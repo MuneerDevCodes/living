@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "61185331927",
+    "firebase_url": "https://planetcare-72029-default-rtdb.firebaseio.com",
+    "project_id": "planetcare-72029",
+    "storage_bucket": "planetcare-72029.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:61185331927:android:7d6308926f3656f8cd9692",
+        "android_client_info": {
+          "package_name": "com.living.living"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW59OEHa_sV85zixOO2MF2laoc-LCP1g0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
