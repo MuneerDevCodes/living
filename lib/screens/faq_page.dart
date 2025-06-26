@@ -10,49 +10,49 @@ class FAQPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final faqs = [
       {
-        'Question': 'How do I place an order?',
+        'Question': 'How do I track my carbon footprint?',
         'Answer':
-            'Browse our collection, add items to your cart, and proceed to checkout. Follow the simple steps to complete your purchase.',
+            'Go to the Carbon Footprint Tracker module and input your daily activities such as transportation, energy usage, and food consumption. The app will calculate your carbon footprint and provide insights.',
       },
       {
-        'Question': 'What payment methods do you accept?',
+        'Question': 'How can I find eco-friendly product suggestions?',
         'Answer':
-            'We accept all major credit cards, PayPal, and other secure payment methods.',
+            'Navigate to the Eco-Friendly Product Suggestions section. Based on your preferences and lifestyle, the app will recommend sustainable products like reusable bottles, organic food, and energy-efficient appliances.',
       },
       {
-        'Question': 'How long does shipping take?',
+        'Question': 'What are Sustainable Living Challenges?',
         'Answer':
-            'Standard shipping typically takes 3-5 business days. Express shipping is available for faster delivery.',
+            'These are weekly or monthly challenges designed to help you adopt specific sustainable habits, such as a "Plastic-Free Week". Participate to improve your eco-friendly lifestyle.',
       },
       {
-        'Question': 'Do you offer international shipping?',
+        'Question': 'How do I use the Waste Reduction Tracker?',
         'Answer':
-            'Yes, we offer international shipping to many countries. Shipping times and fees may vary based on location.',
+            'Use the Waste Reduction Tracker to log your recycling, composting, and plastic reduction efforts. The app will provide tips and statistics to help you improve.',
       },
       {
-        'Question': 'What is your return policy?',
+        'Question': 'Can I get tips for energy conservation?',
         'Answer':
-            'We offer a 30-day return policy on most items. Products must be in original condition. Please contact support to initiate a return.',
+            'Yes! The Energy Conservation Tips module offers personalized suggestions for saving energy at home, such as turning off unused appliances and using renewable sources.',
       },
       {
-        'Question': 'How can I contact customer support?',
+        'Question': 'How do I join the community forum?',
         'Answer':
-            'You can reach our customer support via the Contact Us page, email, or by calling our support hotline.',
+            'Access the Community Forum from the main menu to share your sustainability efforts, ask questions, and connect with other users.',
       },
       {
-        'Question': 'Can I cancel or modify my order after placing it?',
+        'Question': 'Is my data secure in this app?',
         'Answer':
-            'Orders can be modified or canceled within 1 hour of placement. Please contact our support team immediately for assistance.',
+            'Yes, your data is securely stored and only accessible to you. Certain features require authentication to protect your privacy.',
       },
       {
-        'Question': 'Do you offer gift wrapping?',
+        'Question': 'How can I contact support or give feedback?',
         'Answer':
-            'Yes, gift wrapping options are available at checkout for an additional fee.',
+            'Use the Contact Us page to send your queries or feedback. Fill in your name, email, and message, and our team will respond promptly.',
       },
     ];
 
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: BookstoreHeader.buildDrawer(context),
       body: Column(
         children: [
           const BookstoreHeader(),

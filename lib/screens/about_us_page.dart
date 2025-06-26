@@ -10,22 +10,10 @@ class AboutUsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final teamMembers = [
       {
-        'name': 'xxx',
-        'role': 'Chief Booklover',
+        'name': 'Muneer Raja',
+        'role': 'Project Lead & Sustainability Expert',
         'bio':
-            'A lifelong book enthusiast and visionary entrepreneur with over 15 years of experience in the book industry, dedicated to connecting readers with stories that inspire.',
-      },
-      {
-        'name': 'xxx',
-        'role': 'Lead Developer',
-        'bio':
-            'Tech innovator passionate about crafting smooth, intuitive digital experiences that make browsing and buying books a joy.',
-      },
-      {
-        'name': 'xxx',
-        'role': 'Customer Success Manager',
-        'bio':
-            'Committed to creating exceptional customer journeys and helping every reader discover their next favorite book with ease and satisfaction.',
+            'A passionate advocate for sustainable living, Ayesha brings over a decade of experience in environmental education and project management.',
       },
     ];
 
@@ -51,7 +39,7 @@ class AboutUsPage extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text(
-                            'About BookNook',
+                            'About Sustainable Living Guide',
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -59,10 +47,7 @@ class AboutUsPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            'BookNook is your friendly neighborhood online bookstore. '
-                            'We are passionate about connecting readers with their next great read. '
-                            'Our mission is to provide a wide selection of books, excellent customer service, '
-                            'and a welcoming community for book lovers everywhere.',
+                           'Sustainable Living Guide is your all-in-one platform for adopting eco-friendly habits and making a positive impact on the planet. Our mission is to simplify sustainable living by providing tools to track your carbon footprint, discover green products, and connect with a like-minded community.',
                             style: TextStyle(fontSize: 16),
                             textAlign: TextAlign.center,
                           ),
