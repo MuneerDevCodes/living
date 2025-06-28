@@ -1,5 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
-import '../models/product_model.dart';
+import 'package:living/models/product_model.dart';
 
 class ProductDao {
   final _databaseRef = FirebaseDatabase.instance.ref("products");

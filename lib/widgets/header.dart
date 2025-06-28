@@ -16,7 +16,7 @@ class BookstoreHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 70,
-      color: blackberry,
+      color: const Color.fromARGB(255, 24, 70, 72),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(
         children: [
@@ -179,9 +179,9 @@ class DrawerItems {
 
     // Admin Management
     _DrawerItem(
-      label: 'Manage Books',
+      label: 'Manage Products',
       icon: Icons.library_books,
-      route: '/manage-books',
+      route: '/manage-products',
     ),
     _DrawerItem(
       label: 'Manage Categories',

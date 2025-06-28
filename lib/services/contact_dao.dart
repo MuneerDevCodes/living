@@ -1,5 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:living/models/contact.dart';
+import 'package:living/models/contact_us_model.dart';
 
 class ContactDao {
   final _databaseRef = FirebaseDatabase.instance.ref("contacts");

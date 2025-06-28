@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:living/models/contact.dart';
+import 'package:living/models/contact_us_model.dart';
 import 'package:living/services/contact_dao.dart';
 import 'package:living/models/enums.dart';
 import 'package:living/widgets/alert_success.dart';

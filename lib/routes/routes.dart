@@ -6,47 +6,48 @@ import 'package:living/pages/auth/logout.dart';
 import 'package:living/screens/about_us_page.dart';
 import 'package:living/screens/faq_page.dart';
 //  import 'package:living/screens/search_page.dart';
-// import 'package:living/screens/manage_book_page.dart';
+import 'package:living/screens/manage_product_page.dart';
 // import 'package:living/screens/cart_page.dart';
 // import 'package:living/screens/wish_page.dart';
 // import 'package:living/screens/order_page.dart';
- import 'package:living/screens/profile_page.dart';
-// import 'package:living/screens/book_detail_page.dart';
-// import 'package:living/screens/manage_category_page.dart';
+import 'package:living/screens/profile_page.dart';
+import 'package:living/screens/product_detail_page.dart';
+import 'package:living/screens/manage_category_page.dart';
 // import 'package:living/screens/manage_order_page.dart';
-// import 'package:living/screens/manage_contact_us_page.dart';
+import 'package:living/screens/manage_contact_us_page.dart';
 
 // Public routes (no authentication required)
 final Map<String, WidgetBuilder> publicRoutes = {
   '/': (context) => const HomePage(),
-   '/auth': (context) => const AuthPage(),
+  '/auth': (context) => const AuthPage(),
   '/contact-us': (context) => const ContactUsPage(),
   '/about-us': (context) => const AboutUsPage(),
   '/faq': (context) => const FAQPage(),
   // '/search': (context) => const SearchPage(),
-  // '/book-detail':
-  //     (context) => BookDetailPage(
-  //       bookKey:
-  //           (ModalRoute.of(context)?.settings.arguments as Map?)?['bookKey'] ??
-  //           '',
-  //     ),
+  '/product-detail':
+      (context) => ProductDetailPage(
+        productKey:
+            (ModalRoute.of(context)?.settings.arguments
+                as Map?)?['productKey'] ??
+            '',
+      ),
 };
 
 // Protected routes (authentication required)
 final Map<String, WidgetBuilder> protectedRoutes = {
-   '/logout': (context) => const Logout(),
+  '/logout': (context) => const Logout(),
   // '/cart': (context) => const CartPage(),
   // '/wishlist': (context) => const WishPage(),
   // '/order': (context) => const OrderPage(),
-   '/profile': (context) => const ProfilePage(),
+  '/profile': (context) => const ProfilePage(),
 };
 
 // Admin routes (admin access required)
 final Map<String, WidgetBuilder> adminRoutes = {
-  // '/manage-categories': (context) => const ManageCategoryPage(),
+  '/manage-categories': (context) => const ManageCategoryPage(),
   // '/manage-orders': (context) => const ManageOrderPage(),
-  // '/manage-books': (context) => const ManageBookPage(),
-  // '/manage-contact-us': (context) => const ManageContactUsPage(),
+  '/manage-products': (context) => const ManageProductPage(),
+  '/manage-contact-us': (context) => const ManageContactUsPage(),
 };
 
 // Combined routes map
@@ -78,7 +79,7 @@ const List<String> protectedRoutesList = [
 
 // List of routes that ONLY admin users can access
 const List<String> adminOnlyRoutes = [
-  '/manage-books',
+  '/manage-products',
   '/manage-categories',
   '/manage-orders',
   '/manage-contact-us',

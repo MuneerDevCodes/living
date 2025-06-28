@@ -5,3 +5,4 @@ export 'user_model.dart';
 export 'product_model.dart';
 export 'recipe_model.dart';
 export 'forum_post_model.dart';
+export 'contact_us_model.dart';
