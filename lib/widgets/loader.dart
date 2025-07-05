@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class Loader extends StatelessWidget {
   const Loader({super.key});
@@ -7,11 +8,11 @@ class Loader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: bgColor.withAlpha((0.7 * 255).toInt()),
-      child: const Center(
+      color: AppColors.background.withAlpha((0.7 * 255).toInt()),
+      child: Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(blackberry),
-          strokeWidth: 3.5,
+          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+          strokeWidth: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
         ),
       ),
     );

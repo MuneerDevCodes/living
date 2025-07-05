@@ -5,7 +5,7 @@ import 'package:living/screens/auth_page.dart';
 import 'package:living/pages/auth/logout.dart';
 import 'package:living/screens/about_us_page.dart';
 import 'package:living/screens/faq_page.dart';
-//  import 'package:living/screens/search_page.dart';
+import 'package:living/screens/search_page.dart';
 import 'package:living/screens/manage_product_page.dart';
 // import 'package:living/screens/cart_page.dart';
 // import 'package:living/screens/wish_page.dart';
@@ -23,7 +23,7 @@ final Map<String, WidgetBuilder> publicRoutes = {
   '/contact-us': (context) => const ContactUsPage(),
   '/about-us': (context) => const AboutUsPage(),
   '/faq': (context) => const FAQPage(),
-  // '/search': (context) => const SearchPage(),
+  '/search': (context) => const SearchPage(),
   '/product-detail':
       (context) => ProductDetailPage(
         productKey:

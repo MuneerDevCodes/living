@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class AlertSuccess extends StatelessWidget {
   final String message;
@@ -8,30 +10,41 @@ class AlertSuccess extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       decoration: BoxDecoration(
-        color: Colors.green.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.shade400),
+        color: AppColors.success.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+        border: Border.all(color: AppColors.success),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 22),
-          const SizedBox(width: 8),
+          Icon(
+            Icons.check_circle,
+            color: AppColors.success,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: Colors.green,
+              style: TextStyle(
+                color: AppColors.success,
                 fontWeight: FontWeight.w600,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
               ),
             ),
           ),
           if (onClose != null)
             IconButton(
-              icon: const Icon(Icons.close, color: Colors.green),
-              splashRadius: 18,
+                            icon: Icon(
+                Icons.close,
+                color: AppColors.success,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
+              splashRadius: ResponsiveHelper.getAdaptiveIconSize(context),
               onPressed: onClose,
               tooltip: 'Close',
             ),

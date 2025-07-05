@@ -1,6 +1,7 @@
 // lib/Footer.dart
 import 'package:flutter/material.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class Footer extends StatelessWidget {
   const Footer({super.key});
@@ -16,22 +17,28 @@ class Footer extends StatelessWidget {
     }) {
       return Expanded(
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context),
+          ),
           onTap: () {
             Navigator.pushNamed(context, route);
           },
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: ResponsiveHelper.getVerticalPadding(context),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: active ? Colors.white : moonstone, size: 26),
-                const SizedBox(height: 2),
+                Icon(
+                  icon,
+                  color: active ? AppColors.white : AppColors.secondary,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
                 Text(
                   label,
                   style: TextStyle(
-                    color: active ? Colors.white : moonstone,
-                    fontSize: 12,
+                    color: active ? AppColors.white : AppColors.secondary,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                     fontWeight: active ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
@@ -44,23 +51,23 @@ class Footer extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: blackberry,
+        color: AppColors.footerBackground,
         border: Border(
           top: BorderSide(
-            color: moonstone.withAlpha((0.18 * 255).toInt()),
+            color: AppColors.secondary.withAlpha((0.18 * 255).toInt()),
             width: 1,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: blackberry.withAlpha((0.08 * 255).toInt()),
+            color: AppColors.primary.withAlpha((0.08 * 255).toInt()),
             blurRadius: 6,
             offset: const Offset(0, -2),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+        padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

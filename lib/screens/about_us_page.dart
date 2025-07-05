@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class AboutUsPage extends StatelessWidget {
   const AboutUsPage({super.key});
@@ -18,57 +19,79 @@ class AboutUsPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
           Expanded(
             child: Center(
               child: SingleChildScrollView(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  padding: const EdgeInsets.all(20),
+                  constraints: ResponsiveHelper.getFlexibleConstraints(context),
                   child: Card(
                     elevation: 8,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context),
+                      ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(24),
+                      padding: ResponsiveHelper.getCardPadding(context),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
+                          Text(
                             'About Sustainable Living Guide',
                             style: TextStyle(
-                              fontSize: 22,
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          Text(
                            'Sustainable Living Guide is your all-in-one platform for adopting eco-friendly habits and making a positive impact on the planet. Our mission is to simplify sustainable living by providing tools to track your carbon footprint, discover green products, and connect with a like-minded community.',
-                            style: TextStyle(fontSize: 16),
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 24),
-                          const Text(
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5),
+                          Text(
                             'Meet Our Team',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 10),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
                           ...teamMembers.map(
                             (m) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              padding: ResponsiveHelper.getVerticalPadding(context),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  child: Text(m['name']![0]),
+                                  radius: ResponsiveHelper.getAdaptiveIconSize(context),
+                                  child: Text(
+                                    m['name']![0],
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                                title: Text(m['name']!),
-                                subtitle: Text('${m['role']}\n${m['bio']}'),
+                                title: Text(
+                                  m['name']!,
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${m['role']}\n${m['bio']}',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  ),
+                                ),
                                 isThreeLine: true,
                               ),
                             ),

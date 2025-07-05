@@ -4,6 +4,8 @@ import '../models/product_model.dart';
 import '../widgets/header.dart';
 import '../widgets/footer.dart';
 import '../widgets/loader.dart';
+import '../style/responsive_helper.dart';
+import '../style/theme.dart';
 
 class ManageCategoryPage extends StatefulWidget {
   const ManageCategoryPage({super.key});
@@ -43,106 +45,19 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: ResponsiveHelper.getAdaptivePadding(context),
               child: Column(
                 children: [
-                  Form(
-                    key: _formKey,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _nameCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Category Name',
-                            ),
-                            validator:
-                                (v) =>
-                                    v == null || v.isEmpty
-                                        ? 'Enter name'
-                                        : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => _submit(_editingId),
-                          child: Text(_editingId == null ? 'Add' : 'Save'),
-                        ),
-                        if (_editingId != null)
-                          TextButton(
-                            onPressed: () {
-                              _nameCtrl.clear();
-                              setState(() => _editingId = null);
-                            },
-                            child: const Text('Cancel'),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  _buildFormSection(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                   Expanded(
-                    child: StreamBuilder(
-                      stream:
-                          FirebaseDatabase.instance.ref('categories').onValue,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Loader();
-                        }
-                        if (snapshot.hasError) {
-                          return const Center(
-                            child: Text('Error loading categories'),
-                          );
-                        }
-                        final data = snapshot.data?.snapshot.value;
-                        if (data == null) {
-                          return const Center(
-                            child: Text('No categories found.'),
-                          );
-                        }
-                        final cats = <Category>[];
-                        final map = Map<String, dynamic>.from(data as dynamic);
-                        map.forEach((key, value) {
-                          cats.add(
-                            Category.fromJson(Map<String, dynamic>.from(value)),
-                          );
-                        });
-                        return ListView.builder(
-                          itemCount: cats.length,
-                          itemBuilder: (context, i) {
-                            final cat = cats[i];
-                            return ListTile(
-                              title: Text(cat.name),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.edit,
-                                      color: Colors.blue,
-                                    ),
-                                    onPressed: () => _edit(cat),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete,
-                                      color: Colors.red,
-                                    ),
-                                    onPressed: () => _delete(cat.id),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                    child: _buildCategoriesList(),
                   ),
                 ],
               ),
@@ -151,6 +66,172 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
           const Footer(),
         ],
       ),
+    );
+  }
+
+  Widget _buildFormSection() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _editingId == null ? 'Add New Category' : 'Edit Category',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _nameCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Category Name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: (v) => v == null || v.isEmpty ? 'Enter name' : null,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  ElevatedButton(
+                    onPressed: () => _submit(_editingId),
+                    style: ElevatedButton.styleFrom(
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                    ),
+                    child: Text(
+                      _editingId == null ? 'Add' : 'Save',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  ),
+                  if (_editingId != null) ...[
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                    TextButton(
+                      onPressed: () {
+                        _nameCtrl.clear();
+                        setState(() => _editingId = null);
+                      },
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoriesList() {
+    return StreamBuilder(
+      stream: FirebaseDatabase.instance.ref('categories').onValue,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Loader();
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading categories',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+              ),
+            ),
+          );
+        }
+        final data = snapshot.data?.snapshot.value;
+        if (data == null) {
+          return Center(
+            child: Text(
+              'No categories found.',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+              ),
+            ),
+          );
+        }
+        final cats = <Category>[];
+        final map = Map<String, dynamic>.from(data as dynamic);
+        map.forEach((key, value) {
+          cats.add(
+            Category.fromJson(Map<String, dynamic>.from(value)),
+          );
+        });
+        return ListView.builder(
+          itemCount: cats.length,
+          itemBuilder: (context, i) {
+            final cat = cats[i];
+            return Card(
+              margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  ResponsiveHelper.getAdaptiveBorderRadius(context),
+                ),
+              ),
+              child: ListTile(
+                title: Text(
+                  cat.name,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.edit,
+                        color: AppColors.info,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                      onPressed: () => _edit(cat),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.delete,
+                        color: AppColors.error,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                      onPressed: () => _delete(cat.id),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -7,6 +7,8 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Only for EmailAuthProvider
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -120,24 +122,42 @@ class _ProfilePageState extends State<ProfilePage> {
         return AlertDialog(
           title: Text(
             'Confirm $action',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            ),
           ),
           content: TextField(
             controller: ctrl,
             obscureText: true,
-            decoration: const InputDecoration(labelText: 'Current Password'),
+            decoration: InputDecoration(
+              labelText: 'Current Password',
+              labelStyle: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 result = ctrl.text;
                 Navigator.of(context).pop();
               },
-              child: const Text('Continue'),
+              child: Text(
+                'Continue',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
             ),
           ],
         );
@@ -198,15 +218,17 @@ class _ProfilePageState extends State<ProfilePage> {
       _error = null;
     });
     try {
-      await _authService.sendEmailVerification();
+      await AuthService().sendEmailVerification();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Verification email sent')),
+          const SnackBar(
+            content: Text('Verification email sent. Please check your inbox.'),
+          ),
         );
       }
     } catch (e) {
       setState(() {
-        _error = "Failed to send verification: $e";
+        _error = "Failed to send verification email: $e";
       });
     } finally {
       setState(() {
@@ -217,24 +239,21 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _updatePassword() async {
     if (_newPassCtrl.text.isEmpty) return;
-    final password = await _promptPassword('Password Update');
-    if (password == null || password.isEmpty) return;
+    final currentPassword = await _promptPassword('Password Change');
+    if (currentPassword == null) return;
+    if (!await _reauthenticate(currentPassword)) return;
     setState(() {
       _saving = true;
       _error = null;
     });
-    if (!await _reauthenticate(password)) {
-      setState(() => _saving = false);
-      return;
-    }
     try {
-      await _authService.updatePassword(_newPassCtrl.text);
+      await AuthService().updatePassword(_newPassCtrl.text);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Password updated')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Password updated successfully')),
+        );
+        _newPassCtrl.clear();
       }
-      _newPassCtrl.clear();
     } catch (e) {
       setState(() {
         _error = "Failed to update password: $e";
@@ -246,313 +265,288 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _deleteAccount() async {
-    final password = await _promptPassword('Account Deletion');
-    if (password == null || password.isEmpty) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      final user = AuthService().currentUser;
-      if (user == null || user.email == null) throw Exception("No user found");
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: password,
-      );
-      await user.reauthenticateWithCredential(cred);
-      await _authService.deleteCurrentUser();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/logout');
-      }
-    } catch (e) {
-      setState(() {
-        _error = "Failed to delete account: $e";
-      });
-    } finally {
-      setState(() {
-        _saving = false;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _shippingCtrl.dispose();
-    _paymentCtrl.dispose();
-    _emailCtrl.dispose();
-    _newPassCtrl.dispose();
-    _nameCtrl.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(body: Center(child: Loader()));
+    }
+
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
           Expanded(
-            child: Center(
-              child:
-                  _loading
-                      ? const Loader()
-                      : SingleChildScrollView(
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 32,
-                          ),
-                          elevation: 8,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    'Profile Information',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  TextFormField(
-                                    controller: _nameCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Username',
-                                      prefixIcon: Icon(Icons.person),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    validator: validateName,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  if (_error != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12,
-                                      ),
-                                      child: AlertError(
-                                        _error!,
-                                        onClose:
-                                            () => setState(() => _error = null),
-                                      ),
-                                    ),
-                                  TextFormField(
-                                    controller: _shippingCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Shipping Address',
-                                      prefixIcon: Icon(Icons.local_shipping),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    validator:
-                                        (v) =>
-                                            v == null || v.isEmpty
-                                                ? 'Enter shipping address'
-                                                : null,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  DropdownButtonFormField<String>(
-                                    value:
-                                        _paymentCtrl.text.isNotEmpty
-                                            ? _paymentCtrl.text
-                                            : null,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Payment Method',
-                                      prefixIcon: Icon(Icons.credit_card),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    items: [
-                                      _dropdownItem(
-                                        'Credit Card',
-                                        Icons.credit_card,
-                                      ),
-                                      _dropdownItem(
-                                        'PayPal',
-                                        Icons.account_balance_wallet,
-                                      ),
-                                      _dropdownItem(
-                                        'Google Pay',
-                                        Icons.account_balance,
-                                      ),
-                                      _dropdownItem(
-                                        'Cash on Delivery',
-                                        Icons.money,
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null) _paymentCtrl.text = val;
-                                    },
-                                    validator:
-                                        (v) =>
-                                            v == null || v.isEmpty
-                                                ? 'Select payment method'
-                                                : null,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  TextFormField(
-                                    controller: _emailCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: 'New Email',
-                                      prefixIcon: Icon(Icons.email),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed:
-                                            _saving ? null : _updateEmail,
-                                        child: const Text('Update Email'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed:
-                                            _saving
-                                                ? null
-                                                : _sendEmailVerification,
-                                        child: const Text('Send Verification'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Tooltip(
-                                        message: _emailVerified ? "Email Verified" : "Email Not Verified",
-                                        child: Icon(
-                                          _emailVerified
-                                              ? Icons.verified
-                                              : Icons.error_outline,
-                                          color:
-                                              _emailVerified
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                          size: 18,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  TextFormField(
-                                    controller: _newPassCtrl,
-                                    decoration: const InputDecoration(
-                                      labelText: 'New Password',
-                                      prefixIcon: Icon(Icons.lock),
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    obscureText: true,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed:
-                                            _saving ? null : _updatePassword,
-                                        child: const Text('Update Password'),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton(
-                                        onPressed:
-                                            _saving
-                                                ? null
-                                                : () async {
-                                                  if ((_email ?? '').isEmpty) {
-                                                    return;
-                                                  }
-                                                  try {
-                                                    await _authService
-                                                        .sendPasswordResetEmail(
-                                                          _email!,
-                                                        );
-                                                    if (context.mounted) {
-                                                      ScaffoldMessenger.of(
-                                                        context,
-                                                      ).showSnackBar(
-                                                        const SnackBar(
-                                                          content: Text(
-                                                            'Password reset email sent.',
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }
-                                                  } catch (e) {
-                                                    if (context.mounted) {
-                                                      ScaffoldMessenger.of(
-                                                        context,
-                                                      ).showSnackBar(
-                                                        SnackBar(
-                                                          content: Text(
-                                                            'Failed to send reset email: $e',
-                                                          ),
-                                                        ),
-                                                      );
-                                                    }
-                                                  }
-                                                },
-                                        child: const Text('Forgotten Password'),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      icon:
-                                          _saving
-                                              ? const SizedBox(
-                                                width: 18,
-                                                height: 18,
-                                                child: Loader(),
-                                              )
-                                              : const Icon(Icons.save),
-                                      label: Text(
-                                        _saving ? 'Saving...' : 'Save',
-                                      ),
-                                      onPressed: _saving ? null : _saveProfile,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      ElevatedButton.icon(
-                                        icon: const Icon(Icons.logout),
-                                        label: const Text('Logout'),
-                                        onPressed: () {
-                                          Navigator.pushReplacementNamed(
-                                            context,
-                                            '/logout',
-                                          );
-                                        },
-                                      ),
-                                      const SizedBox(width: 8),
-                                      ElevatedButton.icon(
-                                        icon: const Icon(Icons.delete_forever),
-                                        label: const Text('Delete Account'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
-                                          foregroundColor: Colors.white,
-                                        ),
-                                        onPressed:
-                                            _saving ? null : _deleteAccount,
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+            child: SingleChildScrollView(
+              padding: ResponsiveHelper.getAdaptivePadding(context),
+              child: Container(
+                constraints: ResponsiveHelper.getFlexibleConstraints(context),
+                child: Column(
+                  children: [
+                    _buildProfileHeader(),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    _buildProfileForm(),
+                    if (_error != null) ...[
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      AlertError(_error!),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
           const Footer(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          children: [
+            Icon(
+              Icons.account_circle,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 3,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Text(
+              'Profile Settings',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Manage your account information and preferences',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                color: AppColors.secondaryText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _buildSectionCard(
+            'Personal Information',
+            [
+              _buildTextField(
+                controller: _nameCtrl,
+                label: 'Display Name',
+                icon: Icons.person,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+          _buildSectionCard(
+            'Email Settings',
+            [
+              _buildTextField(
+                controller: _emailCtrl,
+                label: 'Email Address',
+                icon: Icons.email,
+                enabled: false,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Row(
+                children: [
+                  Icon(
+                    _emailVerified ? Icons.verified : Icons.warning,
+                    color: _emailVerified ? AppColors.success : AppColors.warning,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                  Expanded(
+                    child: Text(
+                      _emailVerified ? 'Email verified' : 'Email not verified',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        color: _emailVerified ? AppColors.success : AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _saving ? null : _updateEmail,
+                      icon: Icon(
+                        Icons.edit,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                      label: Text(
+                        'Update Email',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _saving ? null : _sendEmailVerification,
+                      icon: Icon(
+                        Icons.verified_user,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                      label: Text(
+                        'Send Verification',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+          _buildSectionCard(
+            'Security',
+            [
+              _buildTextField(
+                controller: _newPassCtrl,
+                label: 'New Password',
+                icon: Icons.lock,
+                obscureText: true,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _saving ? null : _updatePassword,
+                  icon: Icon(
+                    Icons.security,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  label: Text(
+                    'Update Password',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _saving ? null : _saveProfile,
+              style: ElevatedButton.styleFrom(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
+              ),
+              child: _saving
+                  ? SizedBox(
+                      width: ResponsiveHelper.getAdaptiveIconSize(context),
+                      height: ResponsiveHelper.getAdaptiveIconSize(context),
+                      child: const CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      'Save Changes',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard(String title, List<Widget> children) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscureText = false,
+    bool enabled = true,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      enabled: enabled,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(
+          icon,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+          ),
+        ),
+        labelStyle: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+        ),
+      ),
+      style: TextStyle(
+        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
       ),
     );
   }
@@ -564,7 +558,7 @@ DropdownMenuItem<String> _dropdownItem(String label, IconData icon) {
     value: label,
     child: Row(
       children: [
-        Icon(icon, color: Colors.blueGrey),
+        Icon(icon, color: AppColors.secondaryText),
         const SizedBox(width: 8),
         Text(label),
       ],

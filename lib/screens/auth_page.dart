@@ -5,6 +5,7 @@ import 'package:living/pages/auth/register.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/header.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -37,50 +38,55 @@ class _AuthPageState extends State<AuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
           Expanded(
             child: Center(
-              child: Card(
-                elevation: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 32,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        showLogin ? 'Login to Living' : 'Create Your Account',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: blackberry,
-                        ),
+              child: SingleChildScrollView(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
+                child: Container(
+                  constraints: ResponsiveHelper.getFlexibleConstraints(context),
+                  child: Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context),
                       ),
-                      const SizedBox(height: 20),
-                      showLogin ? const LoginScreen() : const RegisterScreen(),
-                      const SizedBox(height: 20),
-                      TextButton(
-                        onPressed: toggle,
-                        child: Text(
-                          showLogin
-                              ? "Don't have an account? Register"
-                              : "Already have an account? Login",
-                          style: const TextStyle(
-                            color: blackberry,
-                            fontWeight: FontWeight.w600,
+                    ),
+                    child: Padding(
+                      padding: ResponsiveHelper.getCardPadding(context),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            showLogin ? 'Login to Living' : 'Create Your Account',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          showLogin ? const LoginScreen() : const RegisterScreen(),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          TextButton(
+                            onPressed: toggle,
+                            child: Text(
+                              showLogin
+                                  ? "Don't have an account? Register"
+                                  : "Already have an account? Login",
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),

@@ -7,6 +7,7 @@ import 'package:living/widgets/alert_success.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Only for FirebaseAuthException
 import 'package:living/services/user_dao.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -70,128 +71,205 @@ class _LoginScreenState extends State<LoginScreen> {
     return _loading
         ? const Loader()
         : Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: AlertError(
-                    _error!,
-                    onClose: () => setState(() => _error = null),
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_error != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                    child: AlertError(
+                      _error!,
+                      onClose: () => setState(() => _error = null),
+                    ),
                   ),
-                ),
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: validateEmail,
+                _buildFormFields(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                _buildLoginButton(),
+              ],
+            ),
+          );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _emailCtrl,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
               ),
-              TextFormField(
-                controller: _passCtrl,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: validatePass,
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed:
-                      _loading
-                          ? null
-                          : () async {
-                            final emailCtrl = TextEditingController(
-                              text: _emailCtrl.text,
-                            );
-                            final result = await showDialog<String>(
-                              context: context,
-                              builder:
-                                  (context) => AlertDialog(
-                                    title: const Text('Reset Password'),
-                                    content: TextField(
-                                      controller: emailCtrl,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Enter your email',
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.of(context).pop(),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed:
-                                            () => Navigator.of(
-                                              context,
-                                            ).pop(emailCtrl.text),
-                                        child: const Text('Send Reset Link'),
-                                      ),
-                                    ],
-                                  ),
-                            );
-                            if (result != null && result.isNotEmpty) {
-                              try {
-                                await AuthService().sendPasswordResetEmail(
-                                  result,
-                                );
-                                if (context.mounted) {
-                                  // Show success alert
-                                  showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          content: AlertSuccess(
-                                            'Password reset email sent.',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () =>
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop(),
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        ),
-                                  );
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  showDialog(
-                                    context: context,
-                                    builder:
-                                        (context) => AlertDialog(
-                                          content: AlertError(
-                                            'Failed to send reset email: $e',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed:
-                                                  () =>
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop(),
-                                              child: const Text('OK'),
-                                            ),
-                                          ],
-                                        ),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                  child: const Text('Forgot Password?'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loading ? null : _login,
-                child: const Text('Login'),
-              ),
-            ],
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
           ),
-        );
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          validator: validateEmail,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        TextFormField(
+          controller: _passCtrl,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          obscureText: true,
+          validator: validatePass,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _loading
+                ? null
+                : () async {
+                    final emailCtrl = TextEditingController(
+                      text: _emailCtrl.text,
+                    );
+                    final result = await showDialog<String>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(
+                          'Reset Password',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: TextField(
+                          controller: emailCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Enter your email',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                              ),
+                            ),
+                            labelStyle: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
+                          ),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(emailCtrl.text),
+                            child: Text(
+                              'Send Reset Link',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (result != null && result.isNotEmpty) {
+                      try {
+                        await AuthService().sendPasswordResetEmail(result);
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              content: AlertSuccess('Password reset email sent.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(
+                                    'OK',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              content: AlertError('Failed to send reset email: $e'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  child: Text(
+                                    'OK',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  },
+            child: Text(
+              'Forgot Password?',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _loading ? null : _login,
+        style: ElevatedButton.styleFrom(
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+        ),
+        child: _loading
+            ? SizedBox(
+                width: ResponsiveHelper.getAdaptiveIconSize(context),
+                height: ResponsiveHelper.getAdaptiveIconSize(context),
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                'Login',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
+    );
   }
 }

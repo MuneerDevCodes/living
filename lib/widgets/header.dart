@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/user_dao.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key});
@@ -14,21 +15,27 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final headerHeight = ResponsiveHelper.getScreenHeight(context) * 0.08;
+    final logoWidth = ResponsiveHelper.getScreenWidth(context) * 0.25;
+    final logoHeight = headerHeight * 0.7;
+    
     return Container(
-      height: 70,
-      color: const Color.fromARGB(255, 24, 70, 72),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: headerHeight,
+      color: AppColors.headerBackground,
+      padding: ResponsiveHelper.getHorizontalPadding(context),
       child: Row(
         children: [
           Builder(
-            builder:
-                (context) => IconButton(
-                  icon: const Icon(Icons.menu),
-                  color: moonstone,
-                  onPressed: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                ),
+            builder: (context) => IconButton(
+              icon: Icon(
+                Icons.menu,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
+              color: AppColors.secondary,
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            ),
           ),
           InkWell(
             onTap: () {
@@ -38,31 +45,40 @@ class Header extends StatelessWidget {
               children: [
                 Image.asset(
                   'assets/logo.png',
-                  width: 150,
-                  height: 50,
-                  fit: BoxFit.fill,
+                  width: logoWidth,
+                  height: logoHeight,
+                  fit: BoxFit.contain,
                 ),
               ],
             ),
           ),
           const Spacer(),
           IconButton(
-            icon: const Icon(Icons.favorite_border),
-            color: moonstone,
+            icon: Icon(
+              Icons.favorite_border,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+            color: AppColors.secondary,
             onPressed: () {
               Navigator.pushNamed(context, '/wishlist');
             },
           ),
           IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            color: moonstone,
+            icon: Icon(
+              Icons.shopping_cart_outlined,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+            color: AppColors.secondary,
             onPressed: () {
               Navigator.pushNamed(context, '/cart');
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            color: moonstone,
+            icon: Icon(
+              Icons.logout,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+            color: AppColors.secondary,
             onPressed: () {
               Navigator.pushNamed(context, '/logout');
             },
@@ -75,79 +91,100 @@ class Header extends StatelessWidget {
   // Method to build the drawer - call this from your main screen
   static Widget buildDrawer(BuildContext context) {
     final user = AuthService().currentUser;
+    final drawerHeaderHeight = ResponsiveHelper.getScreenHeight(context) * 0.25;
+    final logoSize = ResponsiveHelper.getAdaptiveImageSize(context) * 2;
 
     return Drawer(
-      child:
-          user == null
-              ? ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  DrawerHeader(
-                    decoration: const BoxDecoration(color: blackberry),
-                    child: Center(
-                      child: Row(
-                        children: [
-                          Image.asset(
-                            'assets/logo.png',
-                            width: 200,
-                            height: 100,
-                            fit: BoxFit.fill,
-                          ),
-                        ],
+      child: user == null
+          ? ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                DrawerHeader(
+                  decoration: const BoxDecoration(color: AppColors.primary),
+                  child: Center(
+                    child: Padding(
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        width: logoSize,
+                        height: logoSize * 0.5,
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                  ...DrawerItems.guestItems.map(
-                    (item) => ListTile(
-                      leading: Icon(item.icon, color: blackberry),
-                      title: Text(item.label),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.pushNamed(context, item.route);
-                      },
+                ),
+                ...DrawerItems.guestItems.map(
+                  (item) => ListTile(
+                    leading: Icon(
+                      item.icon,
+                      color: AppColors.primary,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
                     ),
+                    title: Text(
+                      item.label,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, item.route);
+                    },
                   ),
-                ],
-              )
-              : FutureBuilder<String?>(
-                future: Header()._getUserRole(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final isAdmin = snapshot.data == 'admin';
-                  final drawerItems =
-                      isAdmin ? DrawerItems.adminItems : DrawerItems.userItems;
-                  return ListView(
-                    padding: EdgeInsets.zero,
-                    children: [
-                      DrawerHeader(
-                        decoration: const BoxDecoration(color: blackberry),
-                        child: Center(
+                ),
+              ],
+            )
+          : FutureBuilder<String?>(
+              future: Header()._getUserRole(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final isAdmin = snapshot.data == 'admin';
+                final drawerItems =
+                    isAdmin ? DrawerItems.adminItems : DrawerItems.userItems;
+                return ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    DrawerHeader(
+                      decoration: const BoxDecoration(color: AppColors.primary),
+                      child: Center(
+                        child: Padding(
+                          padding: ResponsiveHelper.getAdaptivePadding(context),
                           child: Text(
                             'Living'.toUpperCase(),
-                            style: const TextStyle(
-                              color: moonstone,
-                              fontSize: 22,
+                            style: TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
-                      ...drawerItems.map(
-                        (item) => ListTile(
-                          leading: Icon(item.icon, color: blackberry),
-                          title: Text(item.label),
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, item.route);
-                          },
+                    ),
+                    ...drawerItems.map(
+                      (item) => ListTile(
+                        leading: Icon(
+                          item.icon,
+                          color: AppColors.primary,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
                         ),
+                        title: Text(
+                          item.label,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, item.route);
+                        },
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
+            ),
     );
   }
 }

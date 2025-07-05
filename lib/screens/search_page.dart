@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:living/widgets/loader.dart';
 import 'package:living/screens/product_detail_page.dart';
 import 'package:living/services/category_constants.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -116,57 +118,31 @@ class _SearchPageState extends State<SearchPage> {
                 if (_loading) const Positioned.fill(child: Loader()),
                 Center(
                   child: SingleChildScrollView(
+                    padding: ResponsiveHelper.getAdaptivePadding(context),
                     child: Container(
-                      constraints: const BoxConstraints(maxWidth: 500),
-                      padding: const EdgeInsets.all(20),
+                      constraints: ResponsiveHelper.getFlexibleConstraints(context),
                       child: Card(
                         elevation: 8,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context),
+                          ),
                         ),
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: ResponsiveHelper.getCardPadding(context),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Text(
+                              Text(
                                 'Search Products',
                                 style: TextStyle(
-                                  fontSize: 22,
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 16),
-                              TextField(
-                                controller: _controller,
-                                decoration: InputDecoration(
-                                  hintText:
-                                      'Enter product name, category, or keyword',
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  isDense: true,
-                                  suffixIcon:
-                                      _query.isNotEmpty
-                                          ? IconButton(
-                                            icon: const Icon(Icons.clear),
-                                            onPressed: () {
-                                              _controller.clear();
-                                              setState(() => _query = '');
-                                            },
-                                          )
-                                          : null,
-                                ),
-                                onSubmitted: (v) {
-                                  setState(() => _query = v);
-                                  fetchProducts();
-                                },
-                                onChanged: (v) {
-                                  setState(() => _query = v);
-                                },
-                              ),
-                              const SizedBox(height: 12),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              _buildSearchField(),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.75),
                               _buildProductList(),
                             ],
                           ),
@@ -184,6 +160,44 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _controller,
+      decoration: InputDecoration(
+        hintText: 'Enter product name, category, or keyword',
+        prefixIcon: Icon(
+          Icons.search,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+          ),
+        ),
+        isDense: true,
+        suffixIcon: _query.isNotEmpty
+            ? IconButton(
+                icon: Icon(
+                  Icons.clear,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+                onPressed: () {
+                  _controller.clear();
+                  setState(() => _query = '');
+                },
+              )
+            : null,
+      ),
+      onSubmitted: (v) {
+        setState(() => _query = v);
+        fetchProducts();
+      },
+      onChanged: (v) {
+        setState(() => _query = v);
+      },
+    );
+  }
+
   Widget _buildProductList() {
     if (_query.isEmpty) return _buildCategories(context);
 
@@ -193,19 +207,22 @@ class _SearchPageState extends State<SearchPage> {
         future: Future.delayed(const Duration(milliseconds: 300)),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const SizedBox(); // Don't show anything yet
+            return const SizedBox();
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 16),
+              Padding(
+                padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context)),
                 child: Text(
                   'No results found.',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                    color: AppColors.mutedText,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
                 ),
               ),
-              const SizedBox(height: 18),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               _buildCategories(context),
             ],
           );
@@ -216,85 +233,140 @@ class _SearchPageState extends State<SearchPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Text('Sort by:'),
-            const SizedBox(width: 10),
-            DropdownButton<String>(
-              value: _selectedSort,
-              items:
-                  _sortOptions
-                      .map(
-                        (opt) => DropdownMenuItem(value: opt, child: Text(opt)),
-                      )
-                      .toList(),
-              onChanged: (val) {
-                if (val != null && val != _selectedSort) {
-                  setState(() => _selectedSort = val);
-                }
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: filtered.length,
-          separatorBuilder: (context, i) => const Divider(),
-          itemBuilder: (context, i) {
-            final entry = filtered[i];
-            final product = entry.value;
-            final key = entry.key;
-
-            Widget leadingWidget;
-            if (product.imageUrl.isNotEmpty) {
-              try {
-                final imageBytes = base64Decode(product.imageUrl);
-                leadingWidget = ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    imageBytes,
-                    width: 40,
-                    height: 60,
-                    fit: BoxFit.fill,
-                  ),
-                );
-              } catch (_) {
-                leadingWidget = _placeholderImage();
-              }
-            } else {
-              leadingWidget = _placeholderImage();
-            }
-
-            return ListTile(
-              leading: leadingWidget,
-              title: Text(product.name),
-              subtitle: Text(product.category.name),
-              trailing: Text('${product.ecoRating.toStringAsFixed(1)}★'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductDetailPage(productKey: key),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-        const SizedBox(height: 18),
+        _buildSortSection(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        _buildProductListView(filtered),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
         _buildCategories(context),
       ],
     );
   }
 
-  Widget _placeholderImage() {
+  Widget _buildSortSection() {
+    return Row(
+      children: [
+        Text(
+          'Sort by:',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+        Flexible(
+          child: DropdownButton<String>(
+            value: _selectedSort,
+            isExpanded: true,
+            items: _sortOptions
+                .map(
+                  (opt) => DropdownMenuItem(
+                    value: opt,
+                    child: Text(
+                      opt,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (val) {
+              if (val != null && val != _selectedSort) {
+                setState(() => _selectedSort = val);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductListView(List<MapEntry<String, Product>> filtered) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      separatorBuilder: (context, i) => Divider(
+        height: ResponsiveHelper.getAdaptiveSpacing(context),
+      ),
+      itemBuilder: (context, i) {
+        final entry = filtered[i];
+        final product = entry.value;
+        final key = entry.key;
+
+        return _buildProductTile(product, key);
+      },
+    );
+  }
+
+  Widget _buildProductTile(Product product, String key) {
+    final imageSize = ResponsiveHelper.getAdaptiveImageSize(context);
+    
+    Widget leadingWidget;
+    if (product.imageUrl.isNotEmpty) {
+      try {
+        final imageBytes = base64Decode(product.imageUrl);
+        leadingWidget = ClipRRect(
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+          ),
+          child: Image.memory(
+            imageBytes,
+            width: imageSize,
+            height: imageSize * 1.5,
+            fit: BoxFit.cover,
+          ),
+        );
+      } catch (_) {
+        leadingWidget = _placeholderImage(imageSize);
+      }
+    } else {
+      leadingWidget = _placeholderImage(imageSize);
+    }
+
+    return ListTile(
+      leading: leadingWidget,
+      title: Text(
+        product.name,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        product.category.name,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+        ),
+      ),
+      trailing: Text(
+        '${product.ecoRating.toStringAsFixed(1)}★',
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(productKey: key),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _placeholderImage(double size) {
     return Container(
-      color: Colors.grey[300],
-      width: 40,
-      height: 60,
-      child: const Icon(Icons.image, color: Colors.white70, size: 32),
+      color: AppColors.borderLight,
+      width: size,
+      height: size * 1.5,
+      child: Icon(
+        Icons.image,
+        color: AppColors.mutedText,
+        size: ResponsiveHelper.getAdaptiveIconSize(context),
+      ),
     );
   }
 
@@ -305,12 +377,15 @@ class _SearchPageState extends State<SearchPage> {
         Align(
           alignment: Alignment.centerLeft,
           child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0, top: 8.0),
+            padding: EdgeInsets.only(
+              bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+              top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+            ),
             child: Text(
               'Explore Categories',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                 color: Theme.of(context).colorScheme.primary,
               ),
             ),
@@ -320,48 +395,63 @@ class _SearchPageState extends State<SearchPage> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _categories.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.8,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveHelper.getAdaptiveCrossAxisCount(context),
+            mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+            crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+            childAspectRatio: ResponsiveHelper.getAdaptiveAspectRatio(context),
           ),
           itemBuilder: (context, i) {
             final cat = _categories[i];
-            return Material(
-              color: Theme.of(
-                context,
-              ).colorScheme.secondary.withAlpha((0.08 * 255).toInt()),
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () {
-                  _controller.text = cat.label;
-                  setState(() => _query = cat.label);
-                  fetchProducts();
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      cat.icon,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      cat.label,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildCategoryCard(cat);
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildCategoryCard(ProductCategory cat) {
+    return Material(
+      color: Theme.of(context).colorScheme.secondary.withAlpha((0.08 * 255).toInt()),
+      borderRadius: BorderRadius.circular(
+        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.7,
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.7,
+        ),
+        onTap: () {
+          _controller.text = cat.label;
+          setState(() => _query = cat.label);
+          fetchProducts();
+        },
+        child: Padding(
+          padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                cat.icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              Flexible(
+                child: Text(
+                  cat.label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

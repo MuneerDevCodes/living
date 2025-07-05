@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:living/models/product_model.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class ProductModal extends StatefulWidget {
   final Product? product;
@@ -105,26 +107,29 @@ class _ProductModalState extends State<ProductModal> {
         return null;
       },
       builder: (field) {
+        final imageSize = ResponsiveHelper.getAdaptiveImageSize(context) * 3;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             GestureDetector(
               onTap: _pickImage,
               child: SizedBox(
-                width: 150,
-                height: 150,
+                width: imageSize,
+                height: imageSize,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context),
+                  ),
                   child: Container(
-                    color: Colors.grey[200],
+                    color: AppColors.borderLight,
                     child: _webImage != null
-                        ? Image.memory(_webImage!, fit: BoxFit.fill)
+                        ? Image.memory(_webImage!, fit: BoxFit.cover)
                         : _selectedImage != null
-                            ? Image.file(_selectedImage!, fit: BoxFit.fill)
-                            : const Icon(
+                            ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                            : Icon(
                                 Icons.camera_alt,
-                                size: 40,
-                                color: Colors.grey,
+                                size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                                color: AppColors.mutedText,
                               ),
                   ),
                 ),
@@ -132,10 +137,13 @@ class _ProductModalState extends State<ProductModal> {
             ),
             if (field.hasError)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
                 child: Text(
                   field.errorText!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
+                  style: TextStyle(
+                    color: AppColors.error,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                  ),
                 ),
               ),
           ],
@@ -161,9 +169,15 @@ class _ProductModalState extends State<ProductModal> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.product == null ? 'Add Product' : 'Edit Product'),
+      title: Text(
+        widget.product == null ? 'Add Product' : 'Edit Product',
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       content: SizedBox(
-        width: 400,
+        width: ResponsiveHelper.getScreenWidth(context) * 0.8,
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -177,38 +191,8 @@ class _ProductModalState extends State<ProductModal> {
                     child: _imagePreview(),
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Product Name'),
-                  validator: (v) => v == null || v.isEmpty ? 'Enter name' : null,
-                ),
-                DropdownButtonFormField<Category>(
-                  value: _selectedCategory,
-                  items: _categories
-                      .map(
-                        (cat) => DropdownMenuItem(
-                          value: cat,
-                          child: Text(cat.name),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (cat) => setState(() => _selectedCategory = cat),
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  validator: (v) => v == null ? 'Select category' : null,
-                ),
-                TextFormField(
-                  controller: _descCtrl,
-                  decoration: const InputDecoration(labelText: 'Description'),
-                  maxLines: 2,
-                  validator: (v) => v == null || v.isEmpty ? 'Enter description' : null,
-                ),
-                TextFormField(
-                  controller: _ecoRatingCtrl,
-                  decoration: const InputDecoration(labelText: 'Eco Rating'),
-                  keyboardType: TextInputType.number,
-                  validator: (v) => v == null || v.isEmpty ? 'Enter eco rating' : null,
-                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                _buildFormFields(),
               ],
             ),
           ),
@@ -217,11 +201,123 @@ class _ProductModalState extends State<ProductModal> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
         ),
         ElevatedButton(
           onPressed: _submit,
-          child: Text(widget.product == null ? 'Add' : 'Save'),
+          child: Text(
+            widget.product == null ? 'Add' : 'Save',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _nameCtrl,
+          decoration: InputDecoration(
+            labelText: 'Product Name',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          validator: (v) => v == null || v.isEmpty ? 'Enter name' : null,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        DropdownButtonFormField<Category>(
+          value: _selectedCategory,
+          items: _categories
+              .map(
+                (cat) => DropdownMenuItem(
+                  value: cat,
+                  child: Text(
+                    cat.name,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (cat) => setState(() => _selectedCategory = cat),
+          decoration: InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          validator: (v) => v == null ? 'Select category' : null,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        TextFormField(
+          controller: _descCtrl,
+          decoration: InputDecoration(
+            labelText: 'Description',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          maxLines: 3,
+          validator: (v) => v == null || v.isEmpty ? 'Enter description' : null,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        TextFormField(
+          controller: _ecoRatingCtrl,
+          decoration: InputDecoration(
+            labelText: 'Eco Rating (0.0 - 5.0)',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          keyboardType: TextInputType.number,
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Enter eco rating';
+            final rating = double.tryParse(v);
+            if (rating == null || rating < 0 || rating > 5) {
+              return 'Enter a valid rating between 0.0 and 5.0';
+            }
+            return null;
+          },
         ),
       ],
     );

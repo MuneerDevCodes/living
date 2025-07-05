@@ -7,6 +7,8 @@ import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/screens/product_detail_page.dart';
 import 'package:living/widgets/loader.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 import 'dart:convert';
 
 class ManageProductPage extends StatefulWidget {
@@ -24,18 +26,17 @@ class _ManageProductPageState extends State<ManageProductPage> {
   void _showProductModal({Product? product, String? key}) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => ProductModal(
-            product: product,
-            onSubmit: (newProduct) {
-              if (key != null) {
-                productDao.updateProduct(key, newProduct);
-              } else {
-                productDao.saveProduct(newProduct);
-              }
-              setState(() {});
-            },
-          ),
+      builder: (ctx) => ProductModal(
+        product: product,
+        onSubmit: (newProduct) {
+          if (key != null) {
+            productDao.updateProduct(key, newProduct);
+          } else {
+            productDao.saveProduct(newProduct);
+          }
+          setState(() {});
+        },
+      ),
     );
   }
 
@@ -47,40 +48,74 @@ class _ManageProductPageState extends State<ManageProductPage> {
   Widget _buildProductItem(DataSnapshot snapshot) {
     final json = snapshot.value as Map<dynamic, dynamic>;
     final product = Product.fromJson(json);
+    final imageSize = ResponsiveHelper.getAdaptiveImageSize(context);
 
     // Use imageUrl for product image
     Widget imageWidget;
     if (product.imageUrl.isNotEmpty) {
       try {
         imageWidget = ClipRRect(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+          ),
           child: Image.memory(
             base64Decode(product.imageUrl),
-            width: 60,
-            height: 80,
-            fit: BoxFit.fill,
+            width: imageSize,
+            height: imageSize * 1.3,
+            fit: BoxFit.cover,
           ),
         );
       } catch (_) {
-        imageWidget = const Icon(Icons.image, size: 60, color: Colors.grey);
+        imageWidget = Icon(
+          Icons.image,
+          size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+          color: AppColors.mutedText,
+        );
       }
     } else {
-      imageWidget = const Icon(Icons.image, size: 60, color: Colors.grey);
+      imageWidget = Icon(
+        Icons.image,
+        size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+        color: AppColors.mutedText,
+      );
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      margin: EdgeInsets.symmetric(
+        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
       child: ListTile(
         leading: imageWidget,
         title: Text(
           product.name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+          ),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(product.category.name),
-            Text('Eco Rating: ${product.ecoRating}'),
+            Text(
+              product.category.name,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            Text(
+              'Eco Rating: ${product.ecoRating.toStringAsFixed(1)}★',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
         onTap: () {
@@ -95,12 +130,20 @@ class _ManageProductPageState extends State<ManageProductPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
+              icon: Icon(
+                Icons.edit,
+                color: AppColors.info,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
               onPressed: () => _showProductModal(product: product, key: snapshot.key),
               tooltip: 'Edit',
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: Icon(
+                Icons.delete,
+                color: AppColors.error,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
               onPressed: () => _deleteProduct(snapshot.key!),
               tooltip: 'Delete',
             ),
@@ -113,10 +156,10 @@ class _ManageProductPageState extends State<ManageProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Use your header widget
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          const Header(), // Use your header widget
+          const Header(),
           Expanded(
             child: Stack(
               children: [
@@ -127,11 +170,25 @@ class _ManageProductPageState extends State<ManageProductPage> {
                       return const Positioned.fill(child: Loader());
                     }
                     if (snapshot.hasError) {
-                      return const Center(child: Text('Error loading products'));
+                      return Center(
+                        child: Text(
+                          'Error loading products',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          ),
+                        ),
+                      );
                     }
                     final data = snapshot.data?.snapshot.value;
                     if (data == null) {
-                      return const Center(child: Text('No products found.'));
+                      return Center(
+                        child: Text(
+                          'No products found.',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          ),
+                        ),
+                      );
                     }
                     final products = <MapEntry<String, dynamic>>[];
                     final map = Map<String, dynamic>.from(data as dynamic);
@@ -140,6 +197,7 @@ class _ManageProductPageState extends State<ManageProductPage> {
                     });
                     return ListView.builder(
                       controller: _scrollController,
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
                       itemCount: products.length,
                       itemBuilder: (context, index) {
                         final entry = products[index];
@@ -153,18 +211,21 @@ class _ManageProductPageState extends State<ManageProductPage> {
                   },
                 ),
                 Positioned(
-                  bottom: 16,
-                  right: 16,
+                  bottom: ResponsiveHelper.getAdaptiveSpacing(context),
+                  right: ResponsiveHelper.getAdaptiveSpacing(context),
                   child: FloatingActionButton(
                     onPressed: () => _showProductModal(),
                     tooltip: 'Add Product',
-                    child: const Icon(Icons.add),
+                    child: Icon(
+                      Icons.add,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const Footer(), // Use your footer widget
+          const Footer(),
         ],
       ),
     );

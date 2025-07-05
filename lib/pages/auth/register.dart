@@ -7,6 +7,7 @@ import 'package:living/models/user_model.dart' as app_user;
 import 'package:living/services/user_dao.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/loader.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -73,42 +74,113 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return _loading
         ? const Loader()
         : Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: AlertError(
-                    _error!,
-                    onClose: () => setState(() => _error = null),
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_error != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                    child: AlertError(
+                      _error!,
+                      onClose: () => setState(() => _error = null),
+                    ),
                   ),
-                ),
-              TextFormField(
-                controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: validateName,
+                _buildFormFields(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                _buildRegisterButton(),
+              ],
+            ),
+          );
+  }
+
+  Widget _buildFormFields() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _nameCtrl,
+          decoration: InputDecoration(
+            labelText: 'Username',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
               ),
-              TextFormField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: validateEmail,
-              ),
-              TextFormField(
-                controller: _passCtrl,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: validatePass,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loading ? null : _register,
-                child: const Text('Register'),
-              ),
-            ],
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
           ),
-        );
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          validator: validateName,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        TextFormField(
+          controller: _emailCtrl,
+          decoration: InputDecoration(
+            labelText: 'Email',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          validator: validateEmail,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        TextFormField(
+          controller: _passCtrl,
+          decoration: InputDecoration(
+            labelText: 'Password',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          obscureText: true,
+          validator: validatePass,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _loading ? null : _register,
+        style: ElevatedButton.styleFrom(
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+        ),
+        child: _loading
+            ? SizedBox(
+                width: ResponsiveHelper.getAdaptiveIconSize(context),
+                height: ResponsiveHelper.getAdaptiveIconSize(context),
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                'Register',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
+    );
   }
 }
 

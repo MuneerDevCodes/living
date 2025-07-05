@@ -23,17 +23,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Living App',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: blackberry),
-        useMaterial3: true,
-      ),
-      onGenerateRoute: guardedRoute, // one line call
+      theme: AppTheme.lightTheme,
+      onGenerateRoute: guardedRoute,
       debugShowCheckedModeBanner: false,
-      builder:
-          (context, child) => ScrollConfiguration(
-            behavior: NoScrollbarBehavior(),
-            child: child!,
+      builder: (context, child) => ScrollConfiguration(
+        behavior: NoScrollbarBehavior(),
+        child: MediaQuery(
+          // Ensure the app respects system text scaling
+          data: MediaQuery.of(context).copyWith(
+            textScaler: MediaQuery.of(context).textScaler,
           ),
+          child: child!,
+        ),
+      ),
     );
   }
 }

@@ -6,6 +6,8 @@ import '../models/enums.dart';
 import '../services/contact_dao.dart';
 import '../widgets/header.dart';
 import '../widgets/footer.dart';
+import '../style/responsive_helper.dart';
+import '../style/theme.dart';
 
 class ManageContactUsPage extends StatefulWidget {
   const ManageContactUsPage({super.key});
@@ -117,24 +119,33 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
   void _showStatusUpdateDialog(Contact contact) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Update Status'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children:
-                  ContactStatus.values.map((status) {
-                    return ListTile(
-                      title: Text(status.name),
-                      selected: contact.status == status,
-                      onTap: () {
-                        _updateContactStatus(contact, status);
-                        Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
-            ),
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Update Status',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
           ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: ContactStatus.values.map((status) {
+            return ListTile(
+              title: Text(
+                status.name,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+              selected: contact.status == status,
+              onTap: () {
+                _updateContactStatus(contact, status);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
@@ -146,106 +157,131 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
         children: [
           const Header(),
           Expanded(
-            child:
-                isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : contacts.isEmpty
-                    ? const Center(child: Text('No contact submissions yet'))
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : contacts.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No contact submissions yet',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          ),
+                        ),
+                      )
                     : ListView.builder(
-                      itemCount: contacts.length,
-                      itemBuilder: (context, index) {
-                        final contact = contacts[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          child: ExpansionTile(
-                            title: Text(
-                              contact.subject,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'From: ${contact.name} (${contact.email})',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                Text(
-                                  'Status: ${contact.status.name}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.copyWith(
-                                    color:
-                                        contact.status == ContactStatus.new_
-                                            ? Colors.red
-                                            : contact.status ==
-                                                ContactStatus.responded
-                                            ? Colors.green
-                                            : Colors.orange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Message:',
-                                      style:
-                                          Theme.of(
-                                            context,
-                                          ).textTheme.titleSmall,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      contact.message,
-                                      style:
-                                          Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Submitted: ${DateFormat('MMM dd, yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(contact.createdAt))}',
-                                      style:
-                                          Theme.of(context).textTheme.bodySmall,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        TextButton.icon(
-                                          onPressed:
-                                              () => _showStatusUpdateDialog(
-                                                contact,
-                                              ),
-                                          icon: const Icon(Icons.update),
-                                          label: const Text('Update Status'),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        TextButton.icon(
-                                          onPressed:
-                                              () => _replyToContact(contact),
-                                          icon: const Icon(Icons.reply),
-                                          label: const Text('Reply'),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
+                        itemCount: contacts.length,
+                        itemBuilder: (context, index) {
+                          final contact = contacts[index];
+                          return _buildContactCard(contact);
+                        },
+                      ),
           ),
           const Footer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactCard(Contact contact) {
+    return Card(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: ExpansionTile(
+        title: Text(
+          contact.subject,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'From: ${contact.name} (${contact.email})',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            Text(
+              'Status: ${contact.status.name}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: contact.status == ContactStatus.new_
+                    ? AppColors.error
+                    : contact.status == ContactStatus.responded
+                        ? AppColors.success
+                        : AppColors.warning,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        children: [
+          Padding(
+            padding: ResponsiveHelper.getAdaptivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Message:',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                Text(
+                  contact.message,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _replyToContact(contact),
+                        icon: Icon(
+                          Icons.email,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        label: Text(
+                          'Reply',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showStatusUpdateDialog(contact),
+                        icon: Icon(
+                          Icons.update,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        label: Text(
+                          'Update Status',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

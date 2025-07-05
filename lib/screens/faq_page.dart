@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
 
 class FAQPage extends StatelessWidget {
   const FAQPage({super.key});
@@ -58,32 +59,46 @@ class FAQPage extends StatelessWidget {
           const Header(),
           Expanded(
             child: SingleChildScrollView(
+              padding: ResponsiveHelper.getAdaptivePadding(context),
               child: Container(
-                constraints: const BoxConstraints(maxWidth: 800),
-                padding: const EdgeInsets.all(20),
+                constraints: ResponsiveHelper.getFlexibleConstraints(context),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Frequently Asked Questions',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                     ...faqs.map(
                       (faq) => Card(
-                        margin: const EdgeInsets.only(bottom: 15),
+                        margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.75),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context),
+                          ),
+                        ),
                         child: ExpansionTile(
                           title: Text(
                             faq['Question']!,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            ),
                           ),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Text(faq['Answer']!),
+                              padding: ResponsiveHelper.getAdaptivePadding(context),
+                              child: Text(
+                                faq['Answer']!,
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  height: 1.5,
+                                ),
+                              ),
                             ),
                           ],
                         ),

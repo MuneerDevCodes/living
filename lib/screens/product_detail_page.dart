@@ -5,6 +5,8 @@ import 'package:living/models/product_model.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/loader.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final String productKey;
@@ -71,32 +73,58 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Error')),
+        appBar: AppBar(
+          title: Text(
+            'Error',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            ),
+          ),
+        ),
         body: Center(
-          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          child: Text(
+            _error!,
+            style: TextStyle(
+                              color: AppColors.error,
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            ),
+          ),
         ),
       );
     }
 
     if (_product == null) {
-      return const Scaffold(body: Center(child: Text('Product not found')));
+      return Scaffold(
+        body: Center(
+          child: Text(
+            'Product not found',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            ),
+          ),
+        ),
+      );
     }
 
     final product = _product!;
-    final cover =
-        product.imageUrl.isNotEmpty
-            ? Image.memory(
-              base64Decode(product.imageUrl),
-              width: 120,
-              height: 160,
-              fit: BoxFit.fill,
-            )
-            : Container(
-              width: 120,
-              height: 160,
-              color: Colors.grey[300],
-              child: const Icon(Icons.image, size: 60),
-            );
+    final imageSize = ResponsiveHelper.getAdaptiveImageSize(context) * 2;
+    
+    final cover = product.imageUrl.isNotEmpty
+        ? Image.memory(
+            base64Decode(product.imageUrl),
+            width: imageSize,
+            height: imageSize * 1.3,
+            fit: BoxFit.cover,
+          )
+        : Container(
+            width: imageSize,
+            height: imageSize * 1.3,
+            color: AppColors.borderLight,
+            child: Icon(
+              Icons.image,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+            ),
+          );
 
     return Scaffold(
       drawer: Header.buildDrawer(context),
@@ -105,44 +133,130 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           const Header(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      cover,
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Category: ${product.category.name}'),
-                            Text('Eco Rating: ${product.ecoRating}'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    product.description,
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                ],
+              padding: ResponsiveHelper.getAdaptivePadding(context),
+              child: Container(
+                constraints: ResponsiveHelper.getFlexibleConstraints(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildProductHeader(product, cover),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    _buildProductDescription(product),
+                  ],
+                ),
               ),
             ),
           ),
           const Footer(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildProductHeader(Product product, Widget cover) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.5,
+                  ),
+                  child: cover,
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                      Text(
+                        'Category: ${product.category.name}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                      Row(
+                        children: [
+                          Text(
+                            'Eco Rating: ',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                          Text(
+                            '${product.ecoRating.toStringAsFixed(1)}★',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductDescription(Product product) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Description',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              product.description,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
