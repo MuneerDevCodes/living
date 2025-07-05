@@ -15,6 +15,19 @@ import 'package:living/screens/product_detail_page.dart';
 import 'package:living/screens/manage_category_page.dart';
 // import 'package:living/screens/manage_order_page.dart';
 import 'package:living/screens/manage_contact_us_page.dart';
+import 'package:living/screens/carbon_footprint_page.dart';
+import 'package:living/screens/challenges_page.dart';
+import 'package:living/screens/certifications_page.dart';
+//import 'package:living/screens/waste_tracker_page.dart';
+import 'package:living/screens/energy_tips_page.dart';
+import 'package:living/screens/eco_travel_page.dart';
+import 'package:living/screens/educational_content_page.dart';
+import 'package:living/screens/progress_dashboard_page.dart';
+import 'package:living/screens/gallery_page.dart';
+//import 'package:living/screens/forum_page.dart';
+//import 'package:living/screens/recipes_page.dart';
+import 'package:living/screens/manage_challenges_page.dart';
+import 'package:living/screens/manage_educational_content_page.dart';
 
 // Public routes (no authentication required)
 final Map<String, WidgetBuilder> publicRoutes = {
@@ -31,6 +44,12 @@ final Map<String, WidgetBuilder> publicRoutes = {
                 as Map?)?['productKey'] ??
             '',
       ),
+  '/gallery': (context) => const GalleryPage(),
+  '/certifications': (context) => const CertificationsPage(),
+  '/energy-tips': (context) => const EnergyTipsPage(),
+  '/eco-travel': (context) => const EcoTravelPage(),
+  '/educational-content': (context) => const EducationalContentPage(),
+  //'/recipes': (context) => const RecipesPage(),
 };
 
 // Protected routes (authentication required)
@@ -40,6 +59,11 @@ final Map<String, WidgetBuilder> protectedRoutes = {
   // '/wishlist': (context) => const WishPage(),
   // '/order': (context) => const OrderPage(),
   '/profile': (context) => const ProfilePage(),
+  '/carbon-footprint': (context) => const CarbonFootprintPage(),
+  '/challenges': (context) => const ChallengesPage(),
+  //'/waste-tracker': (context) => const WasteTrackerPage(),
+  '/progress-dashboard': (context) => const ProgressDashboardPage(),
+  //'/forum': (context) => const ForumPage(),
 };
 
 // Admin routes (admin access required)
@@ -48,6 +72,8 @@ final Map<String, WidgetBuilder> adminRoutes = {
   // '/manage-orders': (context) => const ManageOrderPage(),
   '/manage-products': (context) => const ManageProductPage(),
   '/manage-contact-us': (context) => const ManageContactUsPage(),
+  '/manage-challenges': (context) => const ManageChallengesPage(),
+  '/manage-educational-content': (context) => const ManageEducationalContentPage(),
 };
 
 // Combined routes map
@@ -66,6 +92,12 @@ const List<String> unprotectedRoutes = [
   '/search',
   '/faq',
   '/product-detail',
+  '/gallery',
+  '/certifications',
+  '/energy-tips',
+  '/eco-travel',
+  '/educational-content',
+  '/recipes',
 ];
 
 // List of routes that DO require authentication
@@ -75,6 +107,11 @@ const List<String> protectedRoutesList = [
   '/wishlist',
   '/order',
   '/profile',
+  '/carbon-footprint',
+  '/challenges',
+  '/waste-tracker',
+  '/progress-dashboard',
+  '/forum',
 ];
 
 // List of routes that ONLY admin users can access
@@ -83,4 +120,6 @@ const List<String> adminOnlyRoutes = [
   '/manage-categories',
   '/manage-orders',
   '/manage-contact-us',
+  '/manage-challenges',
+  '/manage-educational-content',
 ];

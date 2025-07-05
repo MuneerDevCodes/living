@@ -48,7 +48,7 @@ class HomePage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome to Living',
+              'Welcome to Sustainable Living Guide',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
                 fontWeight: FontWeight.bold,
@@ -57,7 +57,7 @@ class HomePage extends StatelessWidget {
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
             Text(
-              'Discover sustainable products and eco-friendly living solutions.',
+              'Your comprehensive platform for sustainable living, eco-friendly products, and environmental awareness.',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                 color: AppColors.secondaryText,
@@ -72,24 +72,88 @@ class HomePage extends StatelessWidget {
   Widget _buildFeatureList(BuildContext context) {
     final features = [
       {
-        'title': 'Introduction to Sustainable Living',
-        'subtitle': 'Learn the basics of sustainable living.',
-        'icon': Icons.eco,
+        'title': 'Carbon Footprint Tracker',
+        'subtitle': 'Track your daily carbon emissions and reduce your environmental impact.',
+        'icon': Icons.cloud,
+        'route': '/carbon-footprint',
+        'requiresAuth': true,
       },
       {
-        'title': 'Eco-Friendly Practices',
-        'subtitle': 'Discover eco-friendly practices for daily life.',
+        'title': 'Sustainable Challenges',
+        'subtitle': 'Participate in eco-friendly challenges and earn rewards.',
+        'icon': Icons.emoji_events,
+        'route': '/challenges',
+        'requiresAuth': true,
+      },
+      {
+        'title': 'Waste Reduction Tracker',
+        'subtitle': 'Monitor your waste reduction efforts and set goals.',
         'icon': Icons.recycling,
+        'route': '/waste-tracker',
+        'requiresAuth': true,
       },
       {
-        'title': 'Sustainable Products',
-        'subtitle': 'Find sustainable products for your home.',
-        'icon': Icons.home,
+        'title': 'Progress Dashboard',
+        'subtitle': 'View your sustainability progress and achievements.',
+        'icon': Icons.analytics,
+        'route': '/progress-dashboard',
+        'requiresAuth': true,
       },
       {
-        'title': 'Community Initiatives',
-        'subtitle': 'Get involved in local sustainability initiatives.',
-        'icon': Icons.people,
+        'title': 'Green Certifications',
+        'subtitle': 'Learn about eco-labels and sustainable product certifications.',
+        'icon': Icons.verified,
+        'route': '/certifications',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Energy Conservation Tips',
+        'subtitle': 'Discover ways to save energy and reduce your carbon footprint.',
+        'icon': Icons.lightbulb,
+        'route': '/energy-tips',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Eco-Travel Guide',
+        'subtitle': 'Find sustainable travel options and eco-friendly destinations.',
+        'icon': Icons.travel_explore,
+        'route': '/eco-travel',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Educational Content',
+        'subtitle': 'Read articles and watch videos about sustainability.',
+        'icon': Icons.school,
+        'route': '/educational-content',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Sustainable Recipes',
+        'subtitle': 'Cook delicious meals with eco-friendly ingredients.',
+        'icon': Icons.restaurant,
+        'route': '/recipes',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Community Forum',
+        'subtitle': 'Connect with others and share your sustainability journey.',
+        'icon': Icons.forum,
+        'route': '/forum',
+        'requiresAuth': true,
+      },
+      {
+        'title': 'Image Gallery',
+        'subtitle': 'Browse inspiring images of sustainable living.',
+        'icon': Icons.photo_library,
+        'route': '/gallery',
+        'requiresAuth': false,
+      },
+      {
+        'title': 'Eco-Friendly Products',
+        'subtitle': 'Shop for sustainable products and green alternatives.',
+        'icon': Icons.shopping_bag,
+        'route': '/search',
+        'requiresAuth': false,
       },
     ];
 
@@ -123,13 +187,17 @@ class HomePage extends StatelessWidget {
                 color: AppColors.secondaryText,
               ),
             ),
+            trailing: feature['requiresAuth'] as bool
+                ? Icon(Icons.lock, color: Colors.grey[400], size: 16)
+                : null,
             onTap: () {
-              // Navigate to search page with the feature as query
-              Navigator.pushNamed(
-                context,
-                '/search',
-                arguments: feature['title'],
-              );
+              if (feature['requiresAuth'] as bool) {
+                // Check if user is authenticated
+                // For now, navigate to auth page
+                Navigator.pushNamed(context, '/auth');
+              } else {
+                Navigator.pushNamed(context, feature['route'] as String);
+              }
             },
           ),
         );
