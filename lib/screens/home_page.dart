@@ -8,10 +8,10 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context),
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Stack(
               children: [
@@ -46,7 +46,7 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

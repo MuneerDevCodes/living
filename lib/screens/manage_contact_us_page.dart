@@ -141,10 +141,10 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context),
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child:
                 isLoading
@@ -245,7 +245,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
                       },
                     ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

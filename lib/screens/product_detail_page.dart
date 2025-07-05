@@ -99,10 +99,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             );
 
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context),
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(18),
@@ -141,7 +141,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

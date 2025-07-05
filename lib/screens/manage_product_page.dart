@@ -113,10 +113,10 @@ class _ManageProductPageState extends State<ManageProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Use your header widget
+      drawer: Header.buildDrawer(context), // Use your header widget
       body: Column(
         children: [
-          const BookstoreHeader(), // Use your header widget
+          const Header(), // Use your header widget
           Expanded(
             child: Stack(
               children: [
@@ -164,7 +164,7 @@ class _ManageProductPageState extends State<ManageProductPage> {
               ],
             ),
           ),
-          const BookstoreFooter(), // Use your footer widget
+          const Footer(), // Use your footer widget
         ],
       ),
     );

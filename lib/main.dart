@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Bookstore App',
+      title: 'Living App',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: blackberry),
         useMaterial3: true,

@@ -65,7 +65,7 @@ const List<String> unprotectedRoutes = [
   '/about-us',
   '/search',
   '/faq',
-  '/book-detail',
+  '/product-detail',
 ];
 
 // List of routes that DO require authentication

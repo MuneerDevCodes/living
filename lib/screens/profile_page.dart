@@ -289,10 +289,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Center(
               child:
@@ -551,7 +551,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

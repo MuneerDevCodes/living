@@ -82,10 +82,10 @@ class _ContactUsPageState extends State<ContactUsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Center(
               child:
@@ -277,7 +277,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                       ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

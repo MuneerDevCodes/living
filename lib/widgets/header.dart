@@ -3,8 +3,8 @@ import 'package:living/style/theme.dart';
 import 'package:living/services/user_dao.dart';
 import 'package:living/services/auth_helper.dart';
 
-class BookstoreHeader extends StatelessWidget {
-  const BookstoreHeader({super.key});
+class Header extends StatelessWidget {
+  const Header({super.key});
 
   Future<String?> _getUserRole() async {
     final user = AuthService().currentUser;
@@ -110,7 +110,7 @@ class BookstoreHeader extends StatelessWidget {
                 ],
               )
               : FutureBuilder<String?>(
-                future: BookstoreHeader()._getUserRole(),
+                future: Header()._getUserRole(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
@@ -125,7 +125,7 @@ class BookstoreHeader extends StatelessWidget {
                         decoration: const BoxDecoration(color: blackberry),
                         child: Center(
                           child: Text(
-                            'BookNook'.toUpperCase(),
+                            'Living'.toUpperCase(),
                             style: const TextStyle(
                               color: moonstone,
                               fontSize: 22,
@@ -180,7 +180,7 @@ class DrawerItems {
     // Admin Management
     _DrawerItem(
       label: 'Manage Products',
-      icon: Icons.library_books,
+      icon: Icons.inventory,
       route: '/manage-products',
     ),
     _DrawerItem(

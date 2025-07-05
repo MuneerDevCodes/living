@@ -18,10 +18,10 @@ class AboutUsPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Center(
               child: SingleChildScrollView(
@@ -81,7 +81,7 @@ class AboutUsPage extends StatelessWidget {
               ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

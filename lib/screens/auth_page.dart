@@ -37,10 +37,10 @@ class _AuthPageState extends State<AuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Center(
               child: Card(
@@ -58,7 +58,7 @@ class _AuthPageState extends State<AuthPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        showLogin ? 'Login to BookNook' : 'Create Your Account',
+                        showLogin ? 'Login to Living' : 'Create Your Account',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -86,7 +86,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

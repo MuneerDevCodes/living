@@ -52,10 +52,10 @@ class FAQPage extends StatelessWidget {
     ];
 
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context),
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: SingleChildScrollView(
               child: Container(
@@ -94,7 +94,7 @@ class FAQPage extends StatelessWidget {
               ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );

@@ -43,10 +43,10 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: BookstoreHeader.buildDrawer(context), // Add the drawer here
+      drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
         children: [
-          const BookstoreHeader(),
+          const Header(),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -148,7 +148,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
               ),
             ),
           ),
-          const BookstoreFooter(),
+          const Footer(),
         ],
       ),
     );
