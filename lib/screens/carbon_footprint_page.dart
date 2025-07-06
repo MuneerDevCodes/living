@@ -4,7 +4,10 @@ import 'package:living/services/carbon_footprint_dao.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
-import 'package:living/widgets/alert_success.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class CarbonFootprintPage extends StatefulWidget {
   const CarbonFootprintPage({super.key});
@@ -17,6 +20,10 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
   List<CarbonFootprintEntry> entries = [];
   bool isLoading = true;
   String? userId;
+  
+  // Carbon footprint variables
+  double get currentFootprint => weeklyAverage;
+  double get targetFootprint => 5.0; // Target of 5 kg CO2/day
 
   final List<ActivityType> activityTypes = [
     ActivityType(name: 'Car Travel', category: 'Transportation', carbonFactor: 0.404, unit: 'km'),
@@ -72,73 +79,98 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carbon Footprint Tracker'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? const Loader()
-          : Column(
+      drawer: Header.buildDrawer(context),
+      body: Column(
+        children: [
+          const Header(),
+          Expanded(
+            child: Stack(
               children: [
-                _buildSummaryCards(),
-                Expanded(
-                  child: _buildEntriesList(),
+                if (isLoading) const Positioned.fill(child: Loader()),
+                SingleChildScrollView(
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                  child: Column(
+                    children: [
+                      _buildOverviewCard(),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      _buildBreakdownCard(),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      _buildTipsCard(),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      _buildActionsCard(),
+                    ],
+                  ),
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddEntryDialog,
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCards() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildSummaryCard(
-              'Total CO₂',
-              '${totalCarbonFootprint.toStringAsFixed(1)} kg',
-              Icons.cloud,
-              Colors.blue,
-            ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _buildSummaryCard(
-              'Weekly Avg',
-              '${weeklyAverage.toStringAsFixed(1)} kg/day',
-              Icons.trending_up,
-              Colors.orange,
-            ),
-          ),
+          const Footer(),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildOverviewCard() {
+    final progress = (targetFootprint / currentFootprint).clamp(0.0, 1.0);
+    final color = currentFootprint <= targetFootprint ? AppColors.success : AppColors.warning;
+
     return Card(
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
             Text(
-              title,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              'Your Carbon Footprint',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        '${currentFootprint.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 32),
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                      Text(
+                        'kg CO2/day',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        'Target: ${targetFootprint.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                      LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: AppColors.borderLight,
+                        valueColor: AlwaysStoppedAnimation<Color>(color),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -146,169 +178,337 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
     );
   }
 
-  Widget _buildEntriesList() {
-    if (entries.isEmpty) {
-      return const Center(
-        child: Text(
-          'No entries yet. Add your first activity to start tracking!',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-      );
-    }
+  Widget _buildBreakdownCard() {
+    final categories = [
+      {'name': 'Transportation', 'value': 4.2, 'color': AppColors.error},
+      {'name': 'Energy', 'value': 3.8, 'color': AppColors.warning},
+      {'name': 'Food', 'value': 2.5, 'color': AppColors.success},
+      {'name': 'Waste', 'value': 1.2, 'color': AppColors.info},
+      {'name': 'Other', 'value': 0.8, 'color': AppColors.mutedText},
+    ];
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.green,
-              child: Text(
-                '${entry.carbonImpact.toStringAsFixed(1)}',
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Breakdown by Category',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
               ),
             ),
-            title: Text(entry.activityType),
-            subtitle: Text(
-              '${entry.value} ${entry.unit} • ${entry.date.toString().split(' ')[0]}',
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteEntry(entry),
-            ),
-          ),
-        );
-      },
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            ...categories.map((category) => Padding(
+              padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+              child: Row(
+                children: [
+                  Container(
+                    width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+                    height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+                    decoration: BoxDecoration(
+                      color: category['color'] as Color,
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                  Expanded(
+                    child: Text(
+                      category['name'] as String,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${(category['value'] as double).toStringAsFixed(1)} kg',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      fontWeight: FontWeight.bold,
+                      color: category['color'] as Color,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
     );
   }
 
-  void _showAddEntryDialog() {
-    ActivityType? selectedActivity;
-    final valueController = TextEditingController();
-    final notesController = TextEditingController();
+  Widget _buildTipsCard() {
+    final tips = [
+      'Use public transportation or carpool',
+      'Switch to energy-efficient appliances',
+      'Reduce meat consumption',
+      'Recycle and compost waste',
+      'Use renewable energy sources',
+    ];
 
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Tips to Reduce Your Footprint',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            ...tips.map((tip) => Padding(
+              padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: AppColors.success,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Expanded(
+                    child: Text(
+                      tip,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        color: AppColors.secondaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionsCard() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _logActivity,
+                    icon: Icon(
+                      Icons.add,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                    label: Text(
+                      'Log Activity',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: AppColors.white,
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                    ),
+                  ),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _setGoal,
+                    icon: Icon(
+                      Icons.flag,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                    label: Text(
+                      'Set Goal',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.info,
+                      foregroundColor: AppColors.white,
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _viewHistory,
+                icon: Icon(
+                  Icons.history,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+                label: Text(
+                  'View History',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.white,
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _logActivity() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Activity'),
+        title: Text(
+          'Log Carbon Activity',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            DropdownButtonFormField<ActivityType>(
-              decoration: const InputDecoration(labelText: 'Activity Type'),
-              value: selectedActivity,
-              items: activityTypes.map((activity) {
-                return DropdownMenuItem(
-                  value: activity,
-                  child: Text('${activity.name} (${activity.category})'),
-                );
-              }).toList(),
-              onChanged: (value) => selectedActivity = value,
+            Text(
+              'What activity did you do today?',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: valueController,
-              decoration: const InputDecoration(labelText: 'Value'),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: notesController,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
-              maxLines: 2,
-            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            // Add form fields here
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (selectedActivity != null && valueController.text.isNotEmpty) {
-                final value = double.tryParse(valueController.text);
-                if (value != null && userId != null) {
-                  final carbonImpact = value * selectedActivity!.carbonFactor;
-                  final entry = CarbonFootprintEntry(
-                    key: '',
-                    userId: userId!,
-                    activityType: selectedActivity!.name,
-                    value: value,
-                    unit: selectedActivity!.unit,
-                    carbonImpact: carbonImpact,
-                    date: DateTime.now(),
-                    notes: notesController.text.isEmpty ? null : notesController.text,
-                  );
-
-                  try {
-                    await CarbonFootprintDAO.addEntry(entry);
-                    Navigator.pop(context);
-                    _loadData();
-                    if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const AlertSuccess('Activity added successfully!'),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertError('Failed to add activity: $e'),
-                      );
-                    }
-                  }
-                }
-              }
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Activity logged successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
+              );
             },
-            child: const Text('Add'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Log',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _deleteEntry(CarbonFootprintEntry entry) {
+  void _setGoal() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Entry'),
-        content: Text('Are you sure you want to delete this ${entry.activityType} entry?'),
+        title: Text(
+          'Set Carbon Goal',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Set your target carbon footprint goal.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              try {
-                await CarbonFootprintDAO.deleteEntry(entry.key);
-                Navigator.pop(context);
-                _loadData();
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AlertSuccess('Entry deleted successfully!'),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertError('Failed to delete entry: $e'),
-                  );
-                }
-              }
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Goal set successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
+              );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Set Goal',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  void _viewHistory() {
+    Navigator.pushNamed(context, '/progress-dashboard');
   }
 } 

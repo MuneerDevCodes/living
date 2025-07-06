@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'routes.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/services/user_dao.dart';
+import 'package:living/widgets/loader.dart';
 
 Future<bool> _isAuthenticated() async {
   // Use AuthService as the source of truth
@@ -50,7 +51,7 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
                   Navigator.of(context).pushReplacementNamed('/auth');
                 });
                 return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
+                  body: Center(child: Loader()),
                 );
               }
               // Authenticated, now check role
@@ -59,7 +60,7 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
                 builder: (context, roleSnapshot) {
                   if (!roleSnapshot.hasData) {
                     return const Scaffold(
-                      body: Center(child: CircularProgressIndicator()),
+                      body: Center(child: Loader()),
                     );
                   }
                   if (roleSnapshot.data != 'admin') {
@@ -89,7 +90,7 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
                 return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
+                  body: Center(child: Loader()),
                 );
               }
               if (!snapshot.data!) {
@@ -97,7 +98,7 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
                   Navigator.of(context).pushReplacementNamed('/auth');
                 });
                 return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
+                  body: Center(child: Loader()),
                 );
               }
               return builder(context);

@@ -24,6 +24,7 @@ class Product {
   final String description;
   final double ecoRating;
   final String imageUrl;
+  final double price;
 
   Product({
     required this.name,
@@ -31,6 +32,7 @@ class Product {
     required this.description,
     required this.ecoRating,
     required this.imageUrl,
+    required this.price,
   });
 
   Product.fromJson(Map<dynamic, dynamic> json)
@@ -42,7 +44,10 @@ class Product {
         ecoRating = (json['ecoRating'] is int)
             ? (json['ecoRating'] as int).toDouble()
             : (json['ecoRating'] as double? ?? 0.0),
-        imageUrl = json['imageUrl'] as String;
+        imageUrl = json['imageUrl'] as String,
+        price = (json['price'] is int)
+            ? (json['price'] as int).toDouble()
+            : (json['price'] as double? ?? 0.0);
 
   Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
         'name': name,
@@ -50,6 +55,7 @@ class Product {
         'description': description,
         'ecoRating': ecoRating,
         'imageUrl': imageUrl,
+        'price': price,
       };
 
   Map<String, dynamic> toMap() => <String, dynamic>{
@@ -58,5 +64,6 @@ class Product {
         'description': description,
         'ecoRating': ecoRating,
         'imageUrl': imageUrl,
+        'price': price,
       };
 }

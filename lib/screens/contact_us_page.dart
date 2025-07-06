@@ -266,7 +266,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
             ? SizedBox(
                 width: ResponsiveHelper.getAdaptiveIconSize(context),
                 height: ResponsiveHelper.getAdaptiveIconSize(context),
-                child: const CircularProgressIndicator(strokeWidth: 2),
+                child: const Loader(),
               )
             : Text(
                 'Send Message',

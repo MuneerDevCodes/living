@@ -18,3 +18,12 @@ const List<ProductCategory> kProductCategories = [
   ProductCategory('Toys & Games', Icons.toys),
   ProductCategory('Health & Wellness', Icons.favorite),
 ];
+
+const List<String> kCertificationCategories = [
+  'All',
+  'Organic',
+  'Fair Trade',
+  'Energy Star',
+  'Forest Stewardship',
+  'Marine Stewardship',
+];

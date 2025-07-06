@@ -3,6 +3,10 @@ import 'package:living/models/educational_content_model.dart';
 import 'package:living/services/educational_content_dao.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class EducationalContentPage extends StatefulWidget {
   const EducationalContentPage({super.key});
@@ -70,205 +74,313 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Educational Content'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? const Loader()
-          : Column(
+      drawer: Header.buildDrawer(context),
+      body: Column(
+        children: [
+          const Header(),
+          Expanded(
+            child: Stack(
               children: [
-                _buildFilters(),
-                Expanded(
-                  child: _buildContentList(),
+                if (isLoading) const Positioned.fill(child: Loader()),
+                Column(
+                  children: [
+                    _buildFilters(),
+                    Expanded(
+                      child: _buildContentList(),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
+          const Footer(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddContentDialog,
+        backgroundColor: AppColors.success,
+        foregroundColor: AppColors.white,
+        child: Icon(
+          Icons.add,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+      ),
     );
   }
 
   Widget _buildFilters() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Category filter
-          Row(
-            children: [
-              const Text('Category: ', style: TextStyle(fontWeight: FontWeight.bold)),
-              Expanded(
-                child: DropdownButton<String>(
-                  value: selectedCategory,
-                  isExpanded: true,
-                  items: categories.map((category) {
-                    return DropdownMenuItem(value: category, child: Text(category));
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedCategory = value!;
-                    });
-                  },
+      height: ResponsiveHelper.getScreenHeight(context) * 0.08,
+      padding: ResponsiveHelper.getVerticalPadding(context),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: ResponsiveHelper.getHorizontalPadding(context),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = category == selectedCategory;
+
+          return Container(
+            margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            child: FilterChip(
+              label: Text(
+                category,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Content type filter
-          Row(
-            children: [
-              const Text('Type: ', style: TextStyle(fontWeight: FontWeight.bold)),
-              Expanded(
-                child: DropdownButton<String>(
-                  value: selectedContentType,
-                  isExpanded: true,
-                  items: contentTypes.map((type) {
-                    return DropdownMenuItem(value: type, child: Text(type));
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedContentType = value!;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  selectedCategory = category;
+                });
+              },
+              selectedColor: AppColors.success,
+              checkmarkColor: AppColors.white,
+            ),
+          );
+        },
       ),
     );
   }
 
   Widget _buildContentList() {
     if (filteredContent.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
-          'No educational content found for the selected filters.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          'No educational content found for this category.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            color: AppColors.secondaryText,
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       itemCount: filteredContent.length,
       itemBuilder: (context, index) {
         final item = filteredContent[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: InkWell(
-            onTap: () => _showContentDetail(item),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: _getContentTypeColor(item.contentType),
-                        child: Icon(
-                          _getContentTypeIcon(item.contentType),
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.title,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '${item.category} • ${item.contentType}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    item.description,
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.person, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        'By ${item.author}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const Spacer(),
-                      Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        _formatDate(item.publishDate),
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        return _buildContentCard(item);
       },
     );
   }
 
-  void _showContentDetail(EducationalContent content) {
+  Widget _buildContentCard(EducationalContent item) {
+    return Card(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: InkWell(
+        onTap: () => _showContentDetail(item),
+        child: Padding(
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: _getContentTypeColor(item.contentType),
+                    child: Icon(
+                      _getContentTypeIcon(item.contentType),
+                      color: AppColors.white,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                        Text(
+                          item.description,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            color: AppColors.secondaryText,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              Row(
+                children: [
+                  Icon(
+                    Icons.person,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    color: AppColors.secondaryText,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                  Text(
+                    'By ${item.author}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                  Icon(
+                    Icons.calendar_today,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    color: AppColors.secondaryText,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                  Text(
+                    item.publishDate.toString().split(' ')[0],
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                      ),
+                    ),
+                    child: Text(
+                      item.category,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                      ),
+                    ),
+                    child: Text(
+                      item.contentType,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        color: AppColors.info,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showContentDetail(EducationalContent item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(content.title),
+        title: Text(
+          item.title,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'By ${content.author} • ${_formatDate(content.publishDate)}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: _getContentTypeColor(item.contentType),
+                    child: Icon(
+                      _getContentTypeIcon(item.contentType),
+                      color: AppColors.white,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'By ${item.author}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        Text(
+                          item.publishDate.toString().split(' ')[0],
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               Text(
-                content.description,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                content.content,
-                style: const TextStyle(fontSize: 14),
-              ),
-              if (content.videoUrl != null) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Video Content Available',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                item.description,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
                 ),
-              ],
-              const SizedBox(height: 16),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                item.content,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.primaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               Wrap(
-                spacing: 8,
-                children: content.tags.map((tag) => Chip(
-                  label: Text(tag),
-                  backgroundColor: Colors.green[100],
-                  labelStyle: const TextStyle(color: Colors.green, fontSize: 12),
+                spacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                children: item.tags.map((tag) => Chip(
+                  label: Text(
+                    tag,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.info,
+                    ),
+                  ),
+                  backgroundColor: AppColors.info.withOpacity(0.1),
+                  labelStyle: TextStyle(
+                    color: AppColors.info,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                  ),
                 )).toList(),
               ),
             ],
@@ -277,7 +389,12 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(
+              'Close',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),
@@ -287,13 +404,13 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   Color _getContentTypeColor(String contentType) {
     switch (contentType.toLowerCase()) {
       case 'article':
-        return Colors.blue;
+        return AppColors.info;
       case 'video':
-        return Colors.red;
+        return AppColors.error;
       case 'infographic':
-        return Colors.orange;
+        return AppColors.warning;
       default:
-        return Colors.grey;
+        return AppColors.mutedText;
     }
   }
 
@@ -310,7 +427,170 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  void _showAddContentDialog() {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final contentController = TextEditingController();
+    final authorController = TextEditingController();
+    final tagsController = TextEditingController();
+    String selectedCategory = 'Climate Change';
+    String selectedContentType = 'Article';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Add Educational Content',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedCategory = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedContentType,
+                decoration: InputDecoration(
+                  labelText: 'Content Type',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Article',
+                  'Video',
+                  'Infographic',
+                ].map((type) => DropdownMenuItem(
+                  value: type,
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedContentType = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: authorController,
+                decoration: InputDecoration(
+                  labelText: 'Author',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: contentController,
+                decoration: InputDecoration(
+                  labelText: 'Content',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 5,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: tagsController,
+                decoration: InputDecoration(
+                  labelText: 'Tags (comma separated)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Add content logic here
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Content added successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Add Content',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 } 

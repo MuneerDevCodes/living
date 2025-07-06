@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
 import 'package:living/models/waste_tracker_model.dart';
 import 'package:living/services/waste_tracker_dao.dart';
-import 'package:living/services/auth_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:living/widgets/loader.dart';
-import 'package:living/widgets/alert_error.dart';
-import 'package:living/widgets/alert_success.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class WasteTrackerPage extends StatefulWidget {
   const WasteTrackerPage({super.key});
+  static const String routeName = '/waste-tracker';
 
   @override
   State<WasteTrackerPage> createState() => _WasteTrackerPageState();
 }
 
 class _WasteTrackerPageState extends State<WasteTrackerPage> {
+  // final ScrollController _scrollController = ScrollController();
+  String? _userId;
+  bool _loading = false;
   List<WasteEntry> entries = [];
   List<WasteReductionGoal> goals = [];
-  bool isLoading = true;
-  String? userId;
+  int _selectedTabIndex = 0;
 
   final List<String> wasteTypes = [
     'Plastic',
@@ -40,28 +45,25 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   @override
   void initState() {
     super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    _userId = user?.uid;
     _loadData();
   }
 
   Future<void> _loadData() async {
+    if (_userId == null) return;
+    setState(() => _loading = true);
     try {
-      setState(() => isLoading = true);
-      userId = AuthService.getCurrentUserId();
-      if (userId != null) {
-        entries = await WasteTrackerDAO.getUserWasteEntries(userId!);
-        goals = await WasteTrackerDAO.getUserGoals(userId!);
-      }
+      final userEntries = await WasteTrackerDAO.getUserWasteEntries(_userId!);
+      final userGoals = await WasteTrackerDAO.getUserGoals(_userId!);
+      setState(() {
+        entries = userEntries;
+        goals = userGoals;
+      });
     } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to load data: $e'),
-        );
-      }
+      debugPrint('Error loading waste tracker data: $e');
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      setState(() => _loading = false);
     }
   }
 
@@ -71,43 +73,81 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
 
   double get recyclingRate {
     if (entries.isEmpty) return 0.0;
-    final recycledEntries = entries.where((entry) => 
-      entry.disposalMethod == 'Recycling' || 
-      entry.disposalMethod == 'Composting' ||
-      entry.disposalMethod == 'Donation'
-    ).toList();
-    return (recycledEntries.fold(0.0, (sum, entry) => sum + entry.amount) / totalWasteReduced) * 100;
+    final recyclingEntries = entries.where((e) => 
+        e.disposalMethod.toLowerCase() == 'recycling').length;
+    return (recyclingEntries / entries.length) * 100;
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Waste Tracker'),
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Entries'),
-              Tab(text: 'Goals'),
-            ],
-            indicatorColor: Colors.white,
+    return Scaffold(
+      drawer: Header.buildDrawer(context),
+      body: Column(
+        children: [
+          const Header(),
+          Expanded(
+            child: Stack(
+              children: [
+                if (_loading) const Positioned.fill(child: Loader()),
+                Column(
+                  children: [
+                    _buildTabBar(),
+                    Expanded(
+                      child: _selectedTabIndex == 0 
+                          ? _buildEntriesTab() 
+                          : _buildGoalsTab(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Footer(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      padding: ResponsiveHelper.getHorizontalPadding(context),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTabButton('Entries', 0),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+          Expanded(
+            child: _buildTabButton('Goals', 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton(String title, int index) {
+    final isSelected = _selectedTabIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTabIndex = index),
+      child: Container(
+        padding: ResponsiveHelper.getVerticalPadding(context),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(
+            ResponsiveHelper.getAdaptiveBorderRadius(context),
+          ),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.borderLight,
           ),
         ),
-        body: isLoading
-            ? const Loader()
-            : TabBarView(
-                children: [
-                  _buildEntriesTab(),
-                  _buildGoalsTab(),
-                ],
-              ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _showAddEntryDialog,
-          backgroundColor: Colors.green,
-          child: const Icon(Icons.add, color: Colors.white),
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.w500,
+            color: isSelected ? AppColors.white : AppColors.primaryText,
+          ),
         ),
       ),
     );
@@ -120,13 +160,14 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
         Expanded(
           child: _buildEntriesList(),
         ),
+        _buildAddEntryButton(),
       ],
     );
   }
 
   Widget _buildSummaryCards() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Row(
         children: [
           Expanded(
@@ -134,16 +175,16 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               'Total Waste',
               '${totalWasteReduced.toStringAsFixed(1)} kg',
               Icons.delete,
-              Colors.red,
+              AppColors.error,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
           Expanded(
             child: _buildSummaryCard(
               'Recycling Rate',
               '${recyclingRate.toStringAsFixed(1)}%',
               Icons.recycling,
-              Colors.green,
+              AppColors.success,
             ),
           ),
         ],
@@ -155,19 +196,29 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     return Card(
       elevation: 4,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
+            Icon(
+              icon, 
+              color: color, 
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
             Text(
               title,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                fontWeight: FontWeight.w500,
+              ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
             Text(
               value,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -177,36 +228,53 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
 
   Widget _buildEntriesList() {
     if (entries.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No entries yet. Add your first waste entry to start tracking!',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            color: AppColors.secondaryText,
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       itemCount: entries.length,
       itemBuilder: (context, index) {
         final entry = entries[index];
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: _getDisposalMethodColor(entry.disposalMethod),
               child: Icon(
                 _getDisposalMethodIcon(entry.disposalMethod),
-                color: Colors.white,
-                size: 20,
+                color: AppColors.white,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
               ),
             ),
-            title: Text(entry.wasteType),
+            title: Text(
+              entry.wasteType,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             subtitle: Text(
               '${entry.amount} ${entry.unit} • ${entry.disposalMethod} • ${entry.date.toString().split(' ')[0]}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                color: AppColors.secondaryText,
+              ),
             ),
             trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
+              icon: Icon(
+                Icons.delete, 
+                color: AppColors.error,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
               onPressed: () => _deleteEntry(entry),
             ),
           ),
@@ -215,72 +283,127 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     );
   }
 
+  Widget _buildAddEntryButton() {
+    return Container(
+      padding: ResponsiveHelper.getHorizontalPadding(context),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _showAddEntryDialog,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.success,
+            padding: ResponsiveHelper.getVerticalPadding(context),
+          ),
+          child: Text(
+            'Add New Entry',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildGoalsTab() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
+        Container(
+          padding: ResponsiveHelper.getHorizontalPadding(context),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _showAddGoalDialog,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: const Text('Add New Goal', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+                padding: ResponsiveHelper.getVerticalPadding(context),
+              ),
+              child: Text(
+                'Add New Goal',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
         ),
         Expanded(
           child: goals.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     'No goals set yet. Create your first waste reduction goal!',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      color: AppColors.secondaryText,
+                    ),
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
                   itemCount: goals.length,
                   itemBuilder: (context, index) {
                     final goal = goals[index];
-                    final progress = goal.currentValue / goal.targetValue;
+                    final progress = goal.currentAmount / goal.targetAmount;
                     return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               goal.goalType,
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                             LinearProgressIndicator(
                               value: progress,
-                              backgroundColor: Colors.grey[300],
-                              valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
+                              backgroundColor: AppColors.borderLight,
+                              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                             Text(
-                              '${goal.currentValue.toStringAsFixed(1)} / ${goal.targetValue.toStringAsFixed(1)} ${goal.unit}',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              '${goal.currentAmount.toStringAsFixed(1)} / ${goal.targetAmount.toStringAsFixed(1)} ${goal.unit}',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                             Text(
                               '${(progress * 100).toStringAsFixed(1)}% Complete',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                color: AppColors.secondaryText,
+                              ),
                             ),
                             if (goal.isCompleted)
                               Container(
-                                margin: const EdgeInsets.only(top: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[100],
-                                  borderRadius: BorderRadius.circular(12),
+                                margin: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                                 ),
-                                child: const Text(
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(
+                                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                                  ),
+                                ),
+                                child: Text(
                                   'Completed!',
-                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: AppColors.success, 
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                  ),
                                 ),
                               ),
                           ],
@@ -297,17 +420,17 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   Color _getDisposalMethodColor(String method) {
     switch (method.toLowerCase()) {
       case 'recycling':
-        return Colors.green;
+        return AppColors.success;
       case 'composting':
-        return Colors.brown;
+        return AppColors.warning;
       case 'landfill':
-        return Colors.red;
+        return AppColors.error;
       case 'donation':
-        return Colors.blue;
+        return AppColors.info;
       case 'reuse':
-        return Colors.orange;
+        return AppColors.warning;
       default:
-        return Colors.grey;
+        return AppColors.mutedText;
     }
   }
 
@@ -334,40 +457,69 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
 
+    final wasteTypes = ['Plastic', 'Paper', 'Glass', 'Metal', 'Organic', 'Electronic', 'Other'];
+    final disposalMethods = ['Recycling', 'Composting', 'Landfill', 'Donation', 'Reuse'];
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Waste Entry'),
+        title: Text(
+          'Add Waste Entry',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Waste Type'),
+              decoration: InputDecoration(
+                labelText: 'Waste Type',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               value: selectedWasteType,
               items: wasteTypes.map((type) {
                 return DropdownMenuItem(value: type, child: Text(type));
               }).toList(),
               onChanged: (value) => selectedWasteType = value,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Disposal Method'),
+              decoration: InputDecoration(
+                labelText: 'Disposal Method',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               value: selectedDisposalMethod,
               items: disposalMethods.map((method) {
                 return DropdownMenuItem(value: method, child: Text(method));
               }).toList(),
               onChanged: (value) => selectedDisposalMethod = value,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             TextField(
               controller: amountController,
-              decoration: const InputDecoration(labelText: 'Amount (kg)'),
+              decoration: InputDecoration(
+                labelText: 'Amount (kg)',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             TextField(
               controller: notesController,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              decoration: InputDecoration(
+                labelText: 'Notes (optional)',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               maxLines: 2,
             ),
           ],
@@ -375,19 +527,24 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
               if (selectedWasteType != null && 
                   selectedDisposalMethod != null && 
                   amountController.text.isNotEmpty &&
-                  userId != null) {
+                  _userId != null) {
                 final amount = double.tryParse(amountController.text);
                 if (amount != null) {
                   final entry = WasteEntry(
                     key: '',
-                    userId: userId!,
+                    userId: _userId!,
                     wasteType: selectedWasteType!,
                     amount: amount,
                     unit: 'kg',
@@ -401,23 +558,42 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     Navigator.pop(context);
                     _loadData();
                     if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const AlertSuccess('Waste entry added successfully!'),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Waste entry added successfully!',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
+                          ),
+                          backgroundColor: AppColors.success,
+                        ),
                       );
                     }
                   } catch (e) {
                     if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertError('Failed to add waste entry: $e'),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to add waste entry: $e',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
+                          ),
+                          backgroundColor: AppColors.error,
+                        ),
                       );
                     }
                   }
                 }
               }
             },
-            child: const Text('Add'),
+            child: Text(
+              'Add',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),
@@ -427,52 +603,79 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   void _showAddGoalDialog() {
     String? selectedGoalType;
     final targetController = TextEditingController();
-    final unitController = TextEditingController();
+    final unitController = TextEditingController(text: 'kg');
+
+    final wasteTypes = ['Plastic', 'Paper', 'Glass', 'Metal', 'Organic', 'Electronic', 'Other'];
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Waste Reduction Goal'),
+        title: Text(
+          'Add Waste Reduction Goal',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Goal Type'),
+              decoration: InputDecoration(
+                labelText: 'Goal Type',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               value: selectedGoalType,
               items: wasteTypes.map((type) {
                 return DropdownMenuItem(value: type, child: Text('Reduce $type'));
               }).toList(),
               onChanged: (value) => selectedGoalType = value,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             TextField(
               controller: targetController,
-              decoration: const InputDecoration(labelText: 'Target Amount'),
+              decoration: InputDecoration(
+                labelText: 'Target Amount',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             TextField(
               controller: unitController,
-              decoration: const InputDecoration(labelText: 'Unit'),
-              initialValue: 'kg',
+              decoration: InputDecoration(
+                labelText: 'Unit',
+                labelStyle: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
               if (selectedGoalType != null && 
                   targetController.text.isNotEmpty &&
-                  userId != null) {
+                  _userId != null) {
                 final targetAmount = double.tryParse(targetController.text);
                 if (targetAmount != null) {
                   final goal = WasteReductionGoal(
                     key: '',
-                    userId: userId!,
+                    userId: _userId!,
                     goalType: selectedGoalType!,
                     targetAmount: targetAmount,
                     unit: unitController.text.isEmpty ? 'kg' : unitController.text,
@@ -485,23 +688,42 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     Navigator.pop(context);
                     _loadData();
                     if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const AlertSuccess('Goal added successfully!'),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Goal added successfully!',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
+                          ),
+                          backgroundColor: AppColors.success,
+                        ),
                       );
                     }
                   } catch (e) {
                     if (mounted) {
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertError('Failed to add goal: $e'),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to add goal: $e',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
+                          ),
+                          backgroundColor: AppColors.error,
+                        ),
                       );
                     }
                   }
                 }
               }
             },
-            child: const Text('Add'),
+            child: Text(
+              'Add',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),
@@ -512,12 +734,28 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Entry'),
-        content: Text('Are you sure you want to delete this ${entry.wasteType} entry?'),
+        title: Text(
+          'Delete Entry',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete this ${entry.wasteType} entry?',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -526,22 +764,42 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 Navigator.pop(context);
                 _loadData();
                 if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AlertSuccess('Entry deleted successfully!'),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Entry deleted successfully!',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      backgroundColor: AppColors.success,
+                    ),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertError('Failed to delete entry: $e'),
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Failed to delete entry: $e',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      backgroundColor: AppColors.error,
+                    ),
                   );
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),

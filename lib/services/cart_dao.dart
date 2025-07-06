@@ -1,118 +1,110 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:living/models/cart_model.dart';
+import 'package:living/models/cart.dart';
+import 'package:living/models/product_model.dart';
 
-class CartDAO {
-  static final DatabaseReference _database = FirebaseDatabase.instance.ref().child('cart');
-  static final DatabaseReference _ordersDatabase = FirebaseDatabase.instance.ref().child('orders');
+class CartDao {
+  final _databaseRef = FirebaseDatabase.instance.ref("carts");
 
-  // Get user's cart items
-  static Future<List<CartItem>> getUserCart(String userId) async {
-    try {
-      final snapshot = await _database.orderByChild('userId').equalTo(userId).get();
-      List<CartItem> cartItems = [];
-      
-      if (snapshot.exists) {
-        for (var child in snapshot.children) {
-          cartItems.add(CartItem.fromJson(child.key!, child.value as Map<String, dynamic>));
+  void saveCart(Cart cart) {
+    _databaseRef.push().set(cart.toJson());
+  }
+
+  Query getCartList() {
+    return _databaseRef;
+  }
+
+  void deleteCart(String key) {
+    _databaseRef.child(key).remove();
+  }
+
+  void updateCart(String key, Cart cart) {
+    _databaseRef.child(key).update(cart.toMap());
+  }
+
+  Future<void> addToCart(
+    String userId,
+    Product product,
+    int quantity,
+    String productId,
+  ) async {
+    final snapshot =
+        await _databaseRef.orderByChild('userId').equalTo(userId).get();
+    if (snapshot.exists && snapshot.children.isNotEmpty) {
+      final cartSnap = snapshot.children.first;
+      final cartMap = cartSnap.value as Map<dynamic, dynamic>;
+      final cart = Cart.fromJson(cartMap);
+      final items = Map<String, CartItem>.from(cart.items);
+      // If item exists, increment quantity, else add new
+      if (items.containsKey(productId)) {
+        final oldItem = items[productId]!;
+        final newQty = (oldItem.quantity ?? 1) + quantity;
+        items[productId] = CartItem(productId: productId, quantity: newQty);
+      } else {
+        items[productId] = CartItem(productId: productId, quantity: quantity);
+      }
+      // Recalculate total
+      double total = 0.0;
+      items.forEach((k, v) {
+        // You may want to fetch product price from DB, here we use passed product.price for simplicity
+        total += (v.quantity ?? 1) * product.price;
+      });
+      final updatedCart = Cart(
+        userId: userId,
+        items: items,
+        totalAmount: total,
+      );
+      await _databaseRef.child(cartSnap.key!).set(updatedCart.toJson());
+    } else {
+      final items = <String, CartItem>{
+        productId: CartItem(productId: productId, quantity: quantity),
+      };
+      final cart = Cart(
+        userId: userId,
+        items: items,
+        totalAmount: product.price * quantity,
+      );
+      await _databaseRef.push().set(cart.toJson());
+    }
+  }
+
+  Future<void> removeFromCart(String userId, String productId) async {
+    final snapshot =
+        await _databaseRef.orderByChild('userId').equalTo(userId).get();
+    if (snapshot.exists && snapshot.children.isNotEmpty) {
+      final cartSnap = snapshot.children.first;
+      final cartMap = cartSnap.value as Map<dynamic, dynamic>;
+      final cart = Cart.fromJson(cartMap);
+      final items = Map<String, CartItem>.from(cart.items);
+      if (items.containsKey(productId)) {
+        final oldItem = items[productId]!;
+        final newQty = (oldItem.quantity ?? 1) - 1;
+        if (newQty > 0) {
+          items[productId] = CartItem(productId: productId, quantity: newQty);
+        } else {
+          items.remove(productId);
         }
+        // Recalculate total
+        double total = 0.0;
+        items.forEach((k, v) {
+          // You may want to fetch product price from DB, here we use 0 for removed
+          total += (v.quantity ?? 1) * 0;
+        });
+        final updatedCart = Cart(
+          userId: userId,
+          items: items,
+          totalAmount: total,
+        );
+        await _databaseRef.child(cartSnap.key!).set(updatedCart.toJson());
       }
-      
-      return cartItems;
-    } catch (e) {
-      throw Exception('Failed to fetch cart items: $e');
     }
   }
 
-  // Add item to cart
-  static Future<void> addToCart(CartItem item) async {
-    try {
-      await _database.push().set(item.toJson());
-    } catch (e) {
-      throw Exception('Failed to add item to cart: $e');
+  Future<void> clearCart(String userId) async {
+    final snapshot =
+        await _databaseRef.orderByChild('userId').equalTo(userId).get();
+    if (snapshot.exists && snapshot.children.isNotEmpty) {
+      final cartSnap = snapshot.children.first;
+      await _databaseRef.child(cartSnap.key!).remove();
     }
   }
-
-  // Update cart item quantity
-  static Future<void> updateCartItem(CartItem item) async {
-    try {
-      await _database.child(item.key).update(item.toJson());
-    } catch (e) {
-      throw Exception('Failed to update cart item: $e');
-    }
-  }
-
-  // Remove item from cart
-  static Future<void> removeFromCart(String key) async {
-    try {
-      await _database.child(key).remove();
-    } catch (e) {
-      throw Exception('Failed to remove item from cart: $e');
-    }
-  }
-
-  // Clear user's cart
-  static Future<void> clearCart(String userId) async {
-    try {
-      final cartItems = await getUserCart(userId);
-      for (var item in cartItems) {
-        await _database.child(item.key).remove();
-      }
-    } catch (e) {
-      throw Exception('Failed to clear cart: $e');
-    }
-  }
-
-  // Get user's orders
-  static Future<List<Order>> getUserOrders(String userId) async {
-    try {
-      final snapshot = await _ordersDatabase.orderByChild('userId').equalTo(userId).get();
-      List<Order> orders = [];
-      
-      if (snapshot.exists) {
-        for (var child in snapshot.children) {
-          orders.add(Order.fromJson(child.key!, child.value as Map<String, dynamic>));
-        }
-      }
-      
-      return orders;
-    } catch (e) {
-      throw Exception('Failed to fetch user orders: $e');
-    }
-  }
-
-  // Place order
-  static Future<void> placeOrder(Order order) async {
-    try {
-      await _ordersDatabase.push().set(order.toJson());
-    } catch (e) {
-      throw Exception('Failed to place order: $e');
-    }
-  }
-
-  // Update order status (admin only)
-  static Future<void> updateOrderStatus(String orderKey, String status) async {
-    try {
-      await _ordersDatabase.child(orderKey).update({'status': status});
-    } catch (e) {
-      throw Exception('Failed to update order status: $e');
-    }
-  }
-
-  // Get all orders (admin only)
-  static Future<List<Order>> getAllOrders() async {
-    try {
-      final snapshot = await _ordersDatabase.get();
-      List<Order> orders = [];
-      
-      if (snapshot.exists) {
-        for (var child in snapshot.children) {
-          orders.add(Order.fromJson(child.key!, child.value as Map<String, dynamic>));
-        }
-      }
-      
-      return orders;
-    } catch (e) {
-      throw Exception('Failed to fetch all orders: $e');
-    }
-  }
-} 
+}

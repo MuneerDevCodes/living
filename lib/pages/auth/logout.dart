@@ -3,6 +3,7 @@ import 'package:living/services/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:living/widgets/alert_success.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/widgets/loader.dart';
 
 class Logout extends StatefulWidget {
   const Logout({super.key});
@@ -61,7 +62,7 @@ class _LogoutState extends State<Logout> {
             SizedBox(
               width: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
               height: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
-              child: const CircularProgressIndicator(),
+              child: const Loader(),
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             Text(

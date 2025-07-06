@@ -28,13 +28,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       builder: (context, child) => ScrollConfiguration(
         behavior: NoScrollbarBehavior(),
-        child: MediaQuery(
-          // Ensure the app respects system text scaling
-          data: MediaQuery.of(context).copyWith(
-            textScaler: MediaQuery.of(context).textScaler,
-          ),
-          child: child!,
-        ),
+        child: child!,
       ),
     );
   }

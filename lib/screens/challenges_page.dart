@@ -4,7 +4,10 @@ import 'package:living/services/challenge_dao.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
-import 'package:living/widgets/alert_success.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class ChallengesPage extends StatefulWidget {
   const ChallengesPage({super.key});
@@ -18,6 +21,16 @@ class _ChallengesPageState extends State<ChallengesPage> {
   List<UserChallenge> userChallenges = [];
   bool isLoading = true;
   String? userId;
+  String selectedCategory = 'All';
+
+  final List<String> categories = [
+    'All',
+    'Energy Conservation',
+    'Waste Reduction',
+    'Transportation',
+    'Food & Diet',
+    'Water Conservation',
+  ];
 
   @override
   void initState() {
@@ -47,309 +60,562 @@ class _ChallengesPageState extends State<ChallengesPage> {
     }
   }
 
+  List<Challenge> get filteredChallenges {
+    if (selectedCategory == 'All') {
+      return availableChallenges;
+    }
+    return availableChallenges.where((challenge) => challenge.category == selectedCategory).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Sustainable Challenges'),
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Available'),
-              Tab(text: 'My Challenges'),
-            ],
-            indicatorColor: Colors.white,
-          ),
-        ),
-        body: isLoading
-            ? const Loader()
-            : TabBarView(
+        drawer: Header.buildDrawer(context),
+        body: Column(
+          children: [
+            const Header(),
+            Expanded(
+              child: Stack(
                 children: [
-                  _buildAvailableChallenges(),
-                  _buildUserChallenges(),
+                  if (isLoading) const Positioned.fill(child: Loader()),
+                  Column(
+                    children: [
+                      Container(
+                        color: AppColors.primary,
+                        child: TabBar(
+                          tabs: [
+                            Tab(
+                              child: Text(
+                                'Active Challenges',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                            Tab(
+                              child: Text(
+                                'My Progress',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                          indicatorColor: AppColors.white,
+                        ),
+                      ),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            _buildChallengesTab(),
+                            _buildProgressTab(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
+            ),
+            const Footer(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAvailableChallenges() {
-    if (availableChallenges.isEmpty) {
-      return const Center(
+  Widget _buildChallengesTab() {
+    return Column(
+      children: [
+        _buildCategoryFilter(),
+        Expanded(
+          child: _buildChallengesList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    return Container(
+      height: ResponsiveHelper.getScreenHeight(context) * 0.08,
+      padding: ResponsiveHelper.getVerticalPadding(context),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: ResponsiveHelper.getHorizontalPadding(context),
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = category == selectedCategory;
+
+          return Container(
+            margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            child: FilterChip(
+              label: Text(
+                category,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() {
+                  selectedCategory = category;
+                });
+              },
+              selectedColor: AppColors.success,
+              checkmarkColor: AppColors.white,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildChallengesList() {
+    if (filteredChallenges.isEmpty) {
+      return Center(
         child: Text(
-          'No challenges available at the moment.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          'No challenges found for this category.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            color: AppColors.secondaryText,
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: availableChallenges.length,
+      padding: ResponsiveHelper.getAdaptivePadding(context),
+      itemCount: filteredChallenges.length,
       itemBuilder: (context, index) {
-        final challenge = availableChallenges[index];
-        final isParticipating = userChallenges.any((uc) => uc.challengeId == challenge.key);
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        challenge.title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getDifficultyColor(challenge.difficulty),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        challenge.difficulty,
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  challenge.description,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${challenge.durationDays} days',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(Icons.star, size: 16, color: Colors.grey[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${challenge.pointsReward} points',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (!isParticipating)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _startChallenge(challenge),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      child: const Text('Start Challenge', style: TextStyle(color: Colors.white)),
-                    ),
-                  )
-                else
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Already Participating',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
+        final challenge = filteredChallenges[index];
+        return _buildChallengeCard(challenge);
       },
     );
   }
 
-  Widget _buildUserChallenges() {
-    if (userChallenges.isEmpty) {
-      return const Center(
-        child: Text(
-          'You haven\'t started any challenges yet.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: userChallenges.length,
-      itemBuilder: (context, index) {
-        final userChallenge = userChallenges[index];
-        final challenge = availableChallenges.firstWhere(
-          (c) => c.key == userChallenge.challengeId,
-          orElse: () => Challenge(
-            key: '',
-            title: 'Unknown Challenge',
-            description: '',
-            category: '',
-            durationDays: 0,
-            pointsReward: 0,
-            difficulty: '',
-            tasks: [],
-            startDate: DateTime.now(),
-            endDate: DateTime.now(),
-          ),
-        );
-
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildChallengeCard(Challenge challenge) {
+    return Card(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  challenge.title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                LinearProgressIndicator(
-                  value: userChallenge.progress / 100,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${userChallenge.progress}% Complete',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 12),
-                if (!userChallenge.isCompleted)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _updateProgress(userChallenge),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                      child: const Text('Update Progress', style: TextStyle(color: Colors.white)),
-                    ),
-                  )
-                else
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Completed!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                CircleAvatar(
+                  backgroundColor: _getDifficultyColor(challenge.difficulty),
+                  child: Text(
+                    challenge.difficulty[0],
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                     ),
                   ),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        challenge.title,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                      Text(
+                        challenge.description,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        );
-      },
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  color: AppColors.secondaryText,
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                Text(
+                  '${challenge.durationDays} days',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                Icon(
+                  Icons.star,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  color: AppColors.secondaryText,
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                Text(
+                  '${challenge.pointsReward} points',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _startChallenge(challenge),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                ),
+                child: Text(
+                  'Start Challenge',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Color _getDifficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
       case 'easy':
-        return Colors.green;
+        return AppColors.success;
       case 'medium':
-        return Colors.orange;
+        return AppColors.warning;
       case 'hard':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.mutedText;
     }
   }
 
-  void _startChallenge(Challenge challenge) async {
-    try {
-      final userChallenge = UserChallenge(
-        key: '',
-        userId: userId!,
-        challengeId: challenge.key,
-        startDate: DateTime.now(),
-        taskCompletion: List.filled(challenge.tasks.length, false),
-      );
-
-      await ChallengeDAO.startChallenge(userChallenge);
-      _loadData();
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => const AlertSuccess('Challenge started successfully!'),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to start challenge: $e'),
-        );
-      }
-    }
-  }
-
-  void _updateProgress(UserChallenge userChallenge) {
+  void _startChallenge(Challenge challenge) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Update Progress'),
-        content: const Text('Mark a task as completed to update your progress.'),
+        title: Text(
+          'Start Challenge',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you ready to start "${challenge.title}"?',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
           ElevatedButton(
-            onPressed: () async {
-              // Simple progress update - in a real app, you'd show task list
-              final newProgress = userChallenge.progress + 25;
-              final updatedChallenge = UserChallenge(
-                key: userChallenge.key,
-                userId: userChallenge.userId,
-                challengeId: userChallenge.challengeId,
-                startDate: userChallenge.startDate,
-                progress: newProgress > 100 ? 100 : newProgress,
-                taskCompletion: userChallenge.taskCompletion,
-                isCompleted: newProgress >= 100,
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Challenge started successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
               );
-
-              try {
-                await ChallengeDAO.updateChallengeProgress(updatedChallenge);
-                Navigator.pop(context);
-                _loadData();
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => const AlertSuccess('Progress updated!'),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertError('Failed to update progress: $e'),
-                  );
-                }
-              }
             },
-            child: const Text('Update'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Start',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressTab() {
+    return SingleChildScrollView(
+      padding: ResponsiveHelper.getAdaptivePadding(context),
+      child: Column(
+        children: [
+          _buildProgressOverview(),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+          _buildActiveChallenges(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressOverview() {
+    return Card(
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your Progress',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildProgressStat('Completed', '12', AppColors.success),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Expanded(
+                  child: _buildProgressStat('In Progress', '3', AppColors.warning),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Expanded(
+                  child: _buildProgressStat('Total Points', '450', AppColors.info),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveChallenges() {
+    return Card(
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Active Challenges',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            // Sample active challenge
+            _buildActiveChallengeItem(
+              'Reduce Plastic Usage',
+              'Day 5 of 30',
+              0.6,
+              AppColors.success,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            _buildActiveChallengeItem(
+              'Walk to Work',
+              'Day 12 of 21',
+              0.8,
+              AppColors.warning,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            _buildActiveChallengeItem(
+              'Energy Conservation',
+              'Day 3 of 14',
+              0.3,
+              AppColors.info,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveChallengeItem(String title, String subtitle, double progress, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+              ),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(
+                  ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                ),
+              ),
+              child: Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        LinearProgressIndicator(
+          value: progress,
+          backgroundColor: AppColors.borderLight,
+          valueColor: AlwaysStoppedAnimation<Color>(color),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => _updateProgress(title),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.info,
+              padding: ResponsiveHelper.getAdaptivePadding(context),
+            ),
+            child: Text(
+              'Update Progress',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _updateProgress(String challengeTitle) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Update Progress',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'How much progress did you make on "$challengeTitle"?',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Progress updated successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Update',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
           ),
         ],
       ),

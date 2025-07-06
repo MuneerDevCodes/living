@@ -46,8 +46,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           final userObj = app_user.User(
             uuid: user.uid,
             role: 'user', // Default role
-            displayname: _nameCtrl.text, 
-            // All other fields are nullable and default to null
+            displayname: _nameCtrl.text,
+            shippingAddress: '', // Default empty address
+            paymentMethod: '', // Default empty payment method
           );
 
           // Save user using UserDao
@@ -170,7 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ? SizedBox(
                 width: ResponsiveHelper.getAdaptiveIconSize(context),
                 height: ResponsiveHelper.getAdaptiveIconSize(context),
-                child: const CircularProgressIndicator(strokeWidth: 2),
+                child: const Loader(),
               )
             : Text(
                 'Register',

@@ -20,12 +20,9 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  final _shippingCtrl = TextEditingController();
-  final _paymentCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  final _authService = AuthService();
   bool _emailVerified = false;
 
   bool _saving = false;
@@ -93,9 +90,9 @@ class _ProfilePageState extends State<ProfilePage> {
         app_user.User(
           uuid: _uid!,
           role: _currentRole ?? 'user',
-          
-         
           displayname: _nameCtrl.text, // update username in DB only
+          shippingAddress: '', // Default empty address
+          paymentMethod: '', // Default empty payment method
         ),
       );
       ScaffoldMessenger.of(
@@ -472,7 +469,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ? SizedBox(
                       width: ResponsiveHelper.getAdaptiveIconSize(context),
                       height: ResponsiveHelper.getAdaptiveIconSize(context),
-                      child: const CircularProgressIndicator(strokeWidth: 2),
+                      child: const Loader(),
                     )
                   : Text(
                       'Save Changes',
@@ -552,19 +549,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
-// Helper for dropdown items
-DropdownMenuItem<String> _dropdownItem(String label, IconData icon) {
-  return DropdownMenuItem(
-    value: label,
-    child: Row(
-      children: [
-        Icon(icon, color: AppColors.secondaryText),
-        const SizedBox(width: 8),
-        Text(label),
-      ],
-    ),
-  );
-}
+
 
 // Name validation
 String? validateName(String? value) {

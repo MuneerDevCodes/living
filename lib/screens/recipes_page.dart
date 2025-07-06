@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:living/models/recipe_model.dart';
-import 'package:living/services/recipe_dao.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class RecipesPage extends StatefulWidget {
   const RecipesPage({super.key});
@@ -18,12 +21,9 @@ class _RecipesPageState extends State<RecipesPage> {
 
   final List<String> categories = [
     'All',
-    'Breakfast',
-    'Lunch',
-    'Dinner',
-    'Snacks',
-    'Desserts',
-    'Beverages',
+    'Low Carbon',
+    'Medium Carbon',
+    'High Carbon',
   ];
 
   @override
@@ -35,7 +35,8 @@ class _RecipesPageState extends State<RecipesPage> {
   Future<void> _loadData() async {
     try {
       setState(() => isLoading = true);
-      recipes = await RecipeDAO.getAllRecipes();
+      // For now, we'll create some sample recipes since the DAO doesn't have getAllRecipes method
+      recipes = _getSampleRecipes();
     } catch (e) {
       if (mounted) {
         showDialog(
@@ -50,58 +51,115 @@ class _RecipesPageState extends State<RecipesPage> {
     }
   }
 
+  List<Recipe> _getSampleRecipes() {
+    return [
+      Recipe(
+        title: 'Vegetarian Pasta',
+        ingredients: ['Pasta', 'Tomatoes', 'Olive Oil', 'Garlic', 'Basil'],
+        steps: '1. Boil pasta\n2. Sauté garlic\n3. Add tomatoes\n4. Combine and serve',
+        carbonScore: 2.5,
+      ),
+      Recipe(
+        title: 'Chicken Stir Fry',
+        ingredients: ['Chicken', 'Vegetables', 'Soy Sauce', 'Oil'],
+        steps: '1. Cook chicken\n2. Add vegetables\n3. Add sauce\n4. Serve hot',
+        carbonScore: 4.2,
+      ),
+      Recipe(
+        title: 'Quinoa Salad',
+        ingredients: ['Quinoa', 'Cucumber', 'Tomatoes', 'Lemon', 'Olive Oil'],
+        steps: '1. Cook quinoa\n2. Chop vegetables\n3. Mix ingredients\n4. Add dressing',
+        carbonScore: 1.8,
+      ),
+    ];
+  }
+
   List<Recipe> get filteredRecipes {
     if (selectedCategory == 'All') {
       return recipes;
     }
-    return recipes.where((recipe) => recipe.category == selectedCategory).toList();
+    // Filter based on carbon score ranges
+    switch (selectedCategory) {
+      case 'Low Carbon':
+        return recipes.where((recipe) => recipe.carbonScore < 2.5).toList();
+      case 'Medium Carbon':
+        return recipes.where((recipe) => recipe.carbonScore >= 2.5 && recipe.carbonScore < 4.0).toList();
+      case 'High Carbon':
+        return recipes.where((recipe) => recipe.carbonScore >= 4.0).toList();
+      default:
+        return recipes;
+    }
+  }
+
+  String _getCarbonCategory(double carbonScore) {
+    if (carbonScore < 2.5) return 'Low Carbon';
+    if (carbonScore < 4.0) return 'Medium Carbon';
+    return 'High Carbon';
+  }
+
+  Color _getCarbonColor(double carbonScore) {
+    if (carbonScore < 2.5) return AppColors.success;
+    if (carbonScore < 4.0) return AppColors.warning;
+    return AppColors.error;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sustainable Recipes'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? const Loader()
-          : Column(
+      drawer: Header.buildDrawer(context),
+      body: Column(
+        children: [
+          const Header(),
+          Expanded(
+            child: Stack(
               children: [
-                _buildCategoryFilter(),
-                Expanded(
-                  child: _buildRecipesList(),
+                if (isLoading) const Positioned.fill(child: Loader()),
+                Column(
+                  children: [
+                    _buildCategoryFilter(),
+                    Expanded(
+                      child: _buildRecipesList(),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
+          const Footer(),
+        ],
+      ),
     );
   }
 
   Widget _buildCategoryFilter() {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      height: ResponsiveHelper.getScreenHeight(context) * 0.08,
+      padding: ResponsiveHelper.getVerticalPadding(context),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: ResponsiveHelper.getHorizontalPadding(context),
         itemCount: categories.length,
         itemBuilder: (context, index) {
           final category = categories[index];
           final isSelected = category == selectedCategory;
 
           return Container(
-            margin: const EdgeInsets.only(right: 8),
+            margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
             child: FilterChip(
-              label: Text(category),
+              label: Text(
+                category,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
                   selectedCategory = category;
                 });
               },
-              selectedColor: Colors.green,
-              checkmarkColor: Colors.white,
+              selectedColor: AppColors.success,
+              checkmarkColor: AppColors.white,
             ),
           );
         },
@@ -111,60 +169,50 @@ class _RecipesPageState extends State<RecipesPage> {
 
   Widget _buildRecipesList() {
     if (filteredRecipes.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No recipes found for this category.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            color: AppColors.secondaryText,
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       itemCount: filteredRecipes.length,
       itemBuilder: (context, index) {
         final recipe = filteredRecipes[index];
+        final carbonCategory = _getCarbonCategory(recipe.carbonScore);
+        final carbonColor = _getCarbonColor(recipe.carbonScore);
+
         return Card(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
           child: InkWell(
             onTap: () => _showRecipeDetail(recipe),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Recipe image
+                // Recipe image placeholder
                 Container(
-                  height: 200,
+                  height: ResponsiveHelper.getScreenHeight(context) * 0.25,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    color: AppColors.borderLight,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.2),
+                    ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    child: recipe.imageUrl.isNotEmpty
-                        ? Image.network(
-                            recipe.imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey[300],
-                                child: Icon(
-                                  Icons.restaurant,
-                                  color: Colors.grey[400],
-                                  size: 60,
-                                ),
-                              );
-                            },
-                          )
-                        : Icon(
-                            Icons.restaurant,
-                            color: Colors.grey[400],
-                            size: 60,
-                          ),
+                  child: Icon(
+                    Icons.restaurant,
+                    color: AppColors.mutedText,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 3,
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -173,58 +221,67 @@ class _RecipesPageState extends State<RecipesPage> {
                           Expanded(
                             child: Text(
                               recipe.title,
-                              style: const TextStyle(
-                                fontSize: 18,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                            ),
                             decoration: BoxDecoration(
-                              color: Colors.green[100],
-                              borderRadius: BorderRadius.circular(12),
+                              color: carbonColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(
+                                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                              ),
                             ),
                             child: Text(
-                              recipe.category,
+                              carbonCategory,
                               style: TextStyle(
-                                color: Colors.green[700],
+                                color: carbonColor,
                                 fontWeight: FontWeight.w500,
-                                fontSize: 12,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                       Text(
-                        recipe.description,
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        'Carbon Score: ${recipe.carbonScore.toStringAsFixed(1)}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                      Text(
+                        'Ingredients: ${recipe.ingredients.join(', ')}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                       Row(
                         children: [
-                          Icon(Icons.timer, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${recipe.cookingTime} min',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          Icon(
+                            Icons.eco,
+                            size: ResponsiveHelper.getAdaptiveIconSize(context),
+                            color: carbonColor,
                           ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.people, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
+                          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                           Text(
-                            '${recipe.servings} servings',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          ),
-                          const Spacer(),
-                          Icon(Icons.eco, size: 16, color: Colors.green[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Eco-friendly',
-                            style: TextStyle(fontSize: 12, color: Colors.green[600]),
+                            'Carbon Footprint',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                              color: carbonColor,
+                            ),
                           ),
                         ],
                       ),
@@ -240,212 +297,152 @@ class _RecipesPageState extends State<RecipesPage> {
   }
 
   void _showRecipeDetail(Recipe recipe) {
+    final carbonCategory = _getCarbonCategory(recipe.carbonScore);
+    final carbonColor = _getCarbonColor(recipe.carbonScore);
+
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Recipe image
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                child: recipe.imageUrl.isNotEmpty
-                    ? Image.network(
-                        recipe.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: Colors.grey[300],
-                            child: Icon(
-                              Icons.restaurant,
-                              color: Colors.grey[400],
-                              size: 60,
-                            ),
-                          );
-                        },
-                      )
-                    : Icon(
-                        Icons.restaurant,
-                        color: Colors.grey[400],
-                        size: 60,
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          recipe.title,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green[100],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          recipe.category,
-                          style: TextStyle(
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.w500,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    recipe.description,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Icon(Icons.timer, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${recipe.cookingTime} minutes',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 16),
-                      Icon(Icons.people, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${recipe.servings} servings',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Ingredients:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                  const SizedBox(height: 8),
-                  ...recipe.ingredients.map((ingredient) => Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('• ', style: TextStyle(fontSize: 16)),
-                        Expanded(
-                          child: Text(
-                            ingredient,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Instructions:',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                  const SizedBox(height: 8),
-                  ...recipe.instructions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final instruction = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              color: Colors.green,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${index + 1}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              instruction,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.green[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green[200]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.eco, color: Colors.green[700], size: 24),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sustainability Benefits',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              Text(
-                                'This recipe uses locally sourced, seasonal ingredients and minimizes food waste.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
+      builder: (context) => AlertDialog(
+        title: Text(
+          recipe.title,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: ResponsiveHelper.getScreenHeight(context) * 0.2,
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
+                decoration: BoxDecoration(
+                  color: AppColors.borderLight,
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context),
+                  ),
+                ),
+                child: Icon(
+                  Icons.restaurant,
+                  color: AppColors.mutedText,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
                 ),
               ),
-            ),
-          ],
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Carbon Score:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              Text(
+                '${recipe.carbonScore.toStringAsFixed(1)} - $carbonCategory',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: carbonColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Ingredients:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              ...recipe.ingredients.map((ingredient) => Padding(
+                padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        ingredient,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Steps:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              Text(
+                recipe.steps,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                ),
+                decoration: BoxDecoration(
+                  color: carbonColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                  ),
+                  border: Border.all(color: carbonColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.eco,
+                      color: carbonColor,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Text(
+                      'Environmental Impact',
+                      style: TextStyle(
+                        color: carbonColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

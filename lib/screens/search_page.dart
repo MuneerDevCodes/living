@@ -207,7 +207,7 @@ class _SearchPageState extends State<SearchPage> {
         future: Future.delayed(const Duration(milliseconds: 300)),
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const SizedBox();
+            return SizedBox();
           }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,

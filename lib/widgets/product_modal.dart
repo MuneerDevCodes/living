@@ -25,6 +25,7 @@ class _ProductModalState extends State<ProductModal> {
   late TextEditingController _descCtrl;
   late TextEditingController _ecoRatingCtrl;
   late TextEditingController _imageUrlCtrl;
+  late TextEditingController _priceCtrl;
 
   final ImagePicker _imagePicker = ImagePicker();
   File? _selectedImage;
@@ -158,6 +159,7 @@ class _ProductModalState extends State<ProductModal> {
         name: _nameCtrl.text,
         category: _selectedCategory!,
         description: _descCtrl.text,
+        price: double.tryParse(_priceCtrl.text) ?? 0.0,
         ecoRating: double.tryParse(_ecoRatingCtrl.text) ?? 0.0,
         imageUrl: _imageBase64!,
       );

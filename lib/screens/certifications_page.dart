@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:living/models/certification_model.dart';
 import 'package:living/services/certification_dao.dart';
 import 'package:living/widgets/loader.dart';
-import 'package:living/widgets/alert_error.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
+import 'package:living/services/category_constants.dart';
 
 class CertificationsPage extends StatefulWidget {
   const CertificationsPage({super.key});
@@ -16,16 +20,6 @@ class _CertificationsPageState extends State<CertificationsPage> {
   bool isLoading = true;
   String selectedCategory = 'All';
 
-  final List<String> categories = [
-    'All',
-    'Food & Agriculture',
-    'Energy',
-    'Textiles',
-    'Building',
-    'Forestry',
-    'Cosmetics',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -38,9 +32,16 @@ class _CertificationsPageState extends State<CertificationsPage> {
       certifications = await CertificationDAO.getAllCertifications();
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to load certifications: $e'),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to load certifications: $e',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -60,48 +61,69 @@ class _CertificationsPageState extends State<CertificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Green Certifications'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? const Loader()
-          : Column(
+      drawer: Header.buildDrawer(context),
+      body: Column(
+        children: [
+          const Header(),
+          Expanded(
+            child: Stack(
               children: [
-                _buildCategoryFilter(),
-                Expanded(
-                  child: _buildCertificationsList(),
+                if (isLoading) const Positioned.fill(child: Loader()),
+                Column(
+                  children: [
+                    _buildCategoryFilter(),
+                    Expanded(
+                      child: _buildCertificationsList(),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
+          const Footer(),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddCertificationDialog,
+        backgroundColor: AppColors.success,
+        foregroundColor: AppColors.white,
+        child: Icon(
+          Icons.add,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+      ),
     );
   }
 
   Widget _buildCategoryFilter() {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      height: ResponsiveHelper.getScreenHeight(context) * 0.08,
+      padding: ResponsiveHelper.getVerticalPadding(context),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
+        padding: ResponsiveHelper.getHorizontalPadding(context),
+        itemCount: kCertificationCategories.length,
         itemBuilder: (context, index) {
-          final category = categories[index];
+          final category = kCertificationCategories[index];
           final isSelected = category == selectedCategory;
 
           return Container(
-            margin: const EdgeInsets.only(right: 8),
+            margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
             child: FilterChip(
-              label: Text(category),
+              label: Text(
+                category,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
               selected: isSelected,
               onSelected: (selected) {
                 setState(() {
                   selectedCategory = category;
                 });
               },
-              selectedColor: Colors.green,
-              checkmarkColor: Colors.white,
+              selectedColor: AppColors.success,
+              checkmarkColor: AppColors.white,
             ),
           );
         },
@@ -111,107 +133,327 @@ class _CertificationsPageState extends State<CertificationsPage> {
 
   Widget _buildCertificationsList() {
     if (filteredCertifications.isEmpty) {
-      return const Center(
+      return Center(
         child: Text(
           'No certifications found for this category.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            color: AppColors.secondaryText,
+          ),
         ),
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       itemCount: filteredCertifications.length,
       itemBuilder: (context, index) {
         final certification = filteredCertifications[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: ExpansionTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.green,
-              child: Text(
-                certification.name[0],
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            title: Text(
-              certification.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            subtitle: Text(certification.category),
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      certification.description,
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSection('Criteria', certification.criteria),
-                    const SizedBox(height: 16),
-                    _buildSection('Verification Process', [certification.verificationProcess]),
-                    const SizedBox(height: 16),
-                    _buildSection('Benefits', [certification.benefits]),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(
-                          certification.isVerified ? Icons.verified : Icons.warning,
-                          color: certification.isVerified ? Colors.green : Colors.orange,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          certification.isVerified ? 'Verified' : 'Pending Verification',
-                          style: TextStyle(
-                            color: certification.isVerified ? Colors.green : Colors.orange,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
+        return _buildCertificationCard(certification);
       },
     );
   }
 
-  Widget _buildSection(String title, List<String> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.green,
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...items.map((item) => Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Row(
+  Widget _buildCertificationCard(Certification certification) {
+    return Card(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: InkWell(
+        onTap: () => _showCertificationDetail(certification),
+        child: Padding(
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('• ', style: TextStyle(fontSize: 16)),
-              Expanded(
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      certification.name,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: certification.isVerified ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                      ),
+                    ),
+                    child: Text(
+                      certification.isVerified ? 'Verified' : 'Pending',
+                      style: TextStyle(
+                        color: certification.isVerified ? AppColors.success : AppColors.warning,
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              Text(
+                certification.description,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                  ),
+                ),
                 child: Text(
-                  item,
-                  style: const TextStyle(fontSize: 14),
+                  certification.category,
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
           ),
-        )),
-      ],
+        ),
+      ),
+    );
+  }
+
+  void _showCertificationDetail(Certification certification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          certification.name,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                certification.description,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Icon(
+                    Icons.verified,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    color: certification.isVerified ? AppColors.success : AppColors.warning,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                  Text(
+                    certification.isVerified ? 'Verified Certification' : 'Pending Verification',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      color: certification.isVerified ? AppColors.success : AppColors.warning,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Criteria:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              Text(
+                certification.criteria.join('\n• '),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Benefits:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+              Text(
+                certification.benefits,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddCertificationDialog() {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final criteriaController = TextEditingController();
+    final benefitsController = TextEditingController();
+    String selectedCategory = 'Organic';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Add Certification',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Certification Name',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: kCertificationCategories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedCategory = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: criteriaController,
+                decoration: InputDecoration(
+                  labelText: 'Certification Criteria',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 2,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: benefitsController,
+                decoration: InputDecoration(
+                  labelText: 'Benefits',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Add certification logic here
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Certification added successfully!',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Add Certification',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 } 

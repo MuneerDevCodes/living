@@ -188,7 +188,7 @@ class HomePage extends StatelessWidget {
               ),
             ),
             trailing: feature['requiresAuth'] as bool
-                ? Icon(Icons.lock, color: Colors.grey[400], size: 16)
+                                    ? Icon(Icons.lock, color: AppColors.mutedText, size: ResponsiveHelper.getAdaptiveIconSize(context))
                 : null,
             onTap: () {
               if (feature['requiresAuth'] as bool) {

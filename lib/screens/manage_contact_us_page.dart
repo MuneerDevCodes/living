@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../models/enums.dart';
 import '../services/contact_dao.dart';
 import '../widgets/header.dart';
 import '../widgets/footer.dart';
+import '../widgets/loader.dart';
 import '../style/responsive_helper.dart';
 import '../style/theme.dart';
 
@@ -158,7 +158,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
           const Header(),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: Loader())
                 : contacts.isEmpty
                     ? Center(
                         child: Text(

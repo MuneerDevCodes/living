@@ -210,7 +210,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -244,7 +244,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
+                color: AppColors.primary,
               ),
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),

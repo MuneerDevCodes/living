@@ -1,389 +1,466 @@
 import 'package:flutter/material.dart';
-import 'package:living/models/cart_model.dart';
+import 'package:living/models/cart.dart';
 import 'package:living/services/cart_dao.dart';
+import 'package:living/widgets/header.dart';
+import 'package:living/widgets/footer.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/widgets/loader.dart';
-import 'package:living/widgets/alert_error.dart';
-import 'package:living/widgets/alert_success.dart';
+import 'package:living/services/order_dao.dart';
+import 'package:living/services/product_dao.dart';
+import 'package:living/models/product_model.dart';
+import 'package:living/models/order.dart';
+import 'package:living/models/enums.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
+import 'dart:convert';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
+  static const String routeName = '/cart';
 
   @override
   State<CartPage> createState() => _CartPageState();
 }
 
 class _CartPageState extends State<CartPage> {
-  List<CartItem> cartItems = [];
-  bool isLoading = true;
-  String? userId;
+  final CartDao cartDao = CartDao();
+  final OrderDao orderDao = OrderDao();
+  final ScrollController _scrollController = ScrollController();
+  String? _userId;
+  final Map<String, Product> _productCache = {};
+  bool _loading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    final user = AuthService().currentUser;
+    _userId = user?.uid;
   }
 
-  Future<void> _loadData() async {
-    try {
-      setState(() => isLoading = true);
-      userId = AuthService.getCurrentUserId();
-      if (userId != null) {
-        cartItems = await CartDAO.getUserCart(userId!);
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to load cart: $e'),
+  Future<Product?> _getProduct(String productId) async {
+    if (_productCache.containsKey(productId)) return _productCache[productId];
+    final snap = await ProductDao().getProductList().ref.child(productId).get();
+    if (snap.exists && snap.value != null) {
+      final product = Product.fromJson(Map<dynamic, dynamic>.from(snap.value as Map));
+      _productCache[productId] = product;
+      return product;
+    }
+    return null;
+  }
+
+  Future<void> _updateQuantity(
+    String cartKey,
+    Cart cart,
+    String productId,
+    int delta,
+  ) async {
+    setState(() {
+      _loading = true;
+    });
+    final items = Map<String, CartItem>.from(cart.items);
+    if (!items.containsKey(productId)) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+    final oldItem = items[productId]!;
+    final newQty = (oldItem.quantity ?? 1) + delta;
+    if (newQty < 1) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+    final product = await _getProduct(productId);
+    if (product == null) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+    items[productId] = CartItem(productId: productId, quantity: newQty);
+    double total = 0.0;
+    items.forEach((k, v) {
+      final b = k == productId ? product : _productCache[k];
+      if (b != null) total += (v.quantity ?? 1) * b.price;
+    });
+    final updatedCart = Cart(
+      userId: cart.userId,
+      items: items,
+      totalAmount: total,
+    );
+    cartDao.updateCart(cartKey, updatedCart);
+    setState(() {
+      _loading = false;
+    });
+  }
+
+  Future<void> _deleteItem(String cartKey, Cart cart, String productId) async {
+    setState(() {
+      _loading = true;
+    });
+    final items = Map<String, CartItem>.from(cart.items);
+    items.remove(productId);
+    double total = 0.0;
+    for (final entry in items.entries) {
+      final b = await _getProduct(entry.key);
+      if (b != null) total += (entry.value.quantity ?? 1) * b.price;
+    }
+    final updatedCart = Cart(
+      userId: cart.userId,
+      items: items,
+      totalAmount: total,
+    );
+    if (items.isEmpty) {
+      cartDao.deleteCart(cartKey);
+    } else {
+      cartDao.updateCart(cartKey, updatedCart);
+    }
+    setState(() {
+      _loading = false;
+    });
+  }
+
+  Future<void> _orderSingleItem(
+    String cartKey,
+    Cart cart,
+    String productId,
+  ) async {
+    setState(() {
+      _loading = true;
+    });
+    final product = await _getProduct(productId);
+    if (product == null) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+    final item = cart.items[productId];
+    if (item == null) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+    final orderItems = {
+      productId: OrderItem(
+        productId: productId,
+        quantity: item.quantity ?? 1,
+        price: product.price,
+        status: OrderStatus.pending,
+      ),
+    };
+    final order = Order(
+      userId: cart.userId,
+      items: orderItems,
+      totalAmount: (item.quantity ?? 1) * product.price,
+    );
+    orderDao.saveOrder(order);
+    await _deleteItem(cartKey, cart, productId);
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Ordered item and removed from cart',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _checkout(String cartKey, Cart cart) async {
+    setState(() {
+      _loading = true;
+    });
+    final orderItems = <String, OrderItem>{};
+    for (final entry in cart.items.entries) {
+      final product = await _getProduct(entry.key);
+      if (product != null) {
+        orderItems[entry.key] = OrderItem(
+          productId: entry.key,
+          quantity: entry.value.quantity ?? 1,
+          price: product.price,
+          status: OrderStatus.pending,
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
     }
+    final order = Order(
+      userId: cart.userId,
+      items: orderItems,
+      totalAmount: cart.totalAmount,
+    );
+    orderDao.saveOrder(order);
+    cartDao.deleteCart(cartKey);
+    setState(() {
+      _loading = false;
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Order placed and cart cleared',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
+      ),
+    );
   }
 
-  double get totalAmount {
-    return cartItems.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
-  }
-
-  int get totalItems {
-    return cartItems.fold(0, (sum, item) => sum + item.quantity);
+  Widget _buildCartItem(DataSnapshot snapshot) {
+    final json = snapshot.value as Map<dynamic, dynamic>;
+    final cart = Cart.fromJson(json);
+    final cartKey = snapshot.key!;
+    final items = cart.items;
+    return Card(
+      margin: EdgeInsets.symmetric(
+        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ...items.entries.map((entry) {
+            final productId = entry.key;
+            final item = entry.value;
+            return FutureBuilder<Product?>(
+              future: _getProduct(productId),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return ListTile(
+                    title: Text(
+                      'Loading...',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  );
+                }
+                final product = snap.data!;
+                final imageSize = ResponsiveHelper.getAdaptiveImageSize(context);
+                
+                Widget leadingWidget;
+                if (product.imageUrl.isNotEmpty) {
+                  try {
+                    leadingWidget = ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                      ),
+                      child: Image.memory(
+                        base64Decode(product.imageUrl),
+                        width: imageSize,
+                        height: imageSize * 1.5,
+                        fit: BoxFit.cover,
+                      ),
+                    );
+                  } catch (_) {
+                    leadingWidget = Icon(
+                      Icons.shopping_cart,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                      color: AppColors.mutedText,
+                    );
+                  }
+                } else {
+                  leadingWidget = Icon(
+                    Icons.shopping_cart,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                    color: AppColors.mutedText,
+                  );
+                }
+                
+                return ListTile(
+                  leading: leadingWidget,
+                  title: Text(
+                    product.name,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Price: ${product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.remove,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                          color: AppColors.error,
+                        ),
+                        onPressed: () => _updateQuantity(cartKey, cart, productId, -1),
+                      ),
+                      Text(
+                        '${item.quantity ?? 1}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.add,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                          color: AppColors.success,
+                        ),
+                        onPressed: () => _updateQuantity(cartKey, cart, productId, 1),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete,
+                          color: AppColors.error,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        onPressed: () => _deleteItem(cartKey, cart, productId),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.shopping_bag,
+                          color: AppColors.success,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        tooltip: 'Order this item',
+                        onPressed: () => _orderSingleItem(cartKey, cart, productId),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          }),
+          Padding(
+            padding: ResponsiveHelper.getAdaptivePadding(context),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Cart Total: ${cart.totalAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => _checkout(cartKey, cart),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.success,
+                    padding: ResponsiveHelper.getVerticalPadding(context),
+                  ),
+                  child: Text(
+                    'Checkout',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shopping Cart'),
-        backgroundColor: Colors.green,
-        foregroundColor: Colors.white,
-      ),
-      body: isLoading
-          ? const Loader()
-          : cartItems.isEmpty
-              ? _buildEmptyCart()
-              : _buildCartContent(),
-    );
-  }
-
-  Widget _buildEmptyCart() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      drawer: Header.buildDrawer(context),
+      body: Column(
         children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Your cart is empty',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+          const Header(),
+          Expanded(
+            child: Stack(
+              children: [
+                if (_loading) const Positioned.fill(child: Loader()),
+                StreamBuilder(
+                  stream:
+                      cartDao
+                          .getCartList()
+                          .orderByChild('userId')
+                          .equalTo(_userId)
+                          .onValue,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Loader();
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Error loading cart.',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            color: AppColors.error,
+                          ),
+                        ),
+                      );
+                    }
+                    final data = snapshot.data?.snapshot.value;
+                    if (data == null) {
+                      return Center(
+                        child: Text(
+                          'No items in cart.',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      );
+                    }
+                    final carts = <MapEntry<String, dynamic>>[];
+                    final map = Map<String, dynamic>.from(data as dynamic);
+                    map.forEach((key, value) {
+                      carts.add(MapEntry(key, value));
+                    });
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                      itemCount: carts.length,
+                      itemBuilder: (context, index) {
+                        final entry = carts[index];
+                        final snapshot = DataSnapshotFake(
+                          entry.key,
+                          entry.value,
+                        );
+                        return _buildCartItem(snapshot);
+                      },
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Add some eco-friendly products to get started!',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: () => Navigator.pushNamed(context, '/'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Start Shopping', style: TextStyle(color: Colors.white)),
-          ),
+          const Footer(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildCartContent() {
-    return Column(
-      children: [
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: cartItems.length,
-            itemBuilder: (context, index) {
-              final item = cartItems[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      // Product image
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: item.imageUrl.isNotEmpty
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  item.imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Icon(
-                                      Icons.image,
-                                      color: Colors.grey[400],
-                                      size: 40,
-                                    );
-                                  },
-                                ),
-                              )
-                            : Icon(
-                                Icons.image,
-                                color: Colors.grey[400],
-                                size: 40,
-                              ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Product details
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.productName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '\$${item.price.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            // Quantity controls
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () => _updateQuantity(item, -1),
-                                  icon: const Icon(Icons.remove_circle_outline),
-                                  iconSize: 20,
-                                ),
-                                Text(
-                                  '${item.quantity}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => _updateQuantity(item, 1),
-                                  icon: const Icon(Icons.add_circle_outline),
-                                  iconSize: 20,
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () => _removeItem(item),
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  iconSize: 20,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        // Checkout section
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.2),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total ($totalItems items):',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    '\$${totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _checkout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    'Proceed to Checkout',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+// Helper class to fake DataSnapshot for compatibility with _buildCartItem
+class DataSnapshotFake implements DataSnapshot {
+  @override
+  final String? key;
+  @override
+  final dynamic value;
+  DataSnapshotFake(this.key, this.value);
 
-  void _updateQuantity(CartItem item, int change) async {
-    final newQuantity = item.quantity + change;
-    if (newQuantity <= 0) {
-     _removeItem(item);
-      return;
-    }
-
-    final updatedItem = CartItem(
-      key: item.key,
-      userId: item.userId,
-      productId: item.productId,
-      productName: item.productName,
-      price: item.price,
-      quantity: newQuantity,
-      imageUrl: item.imageUrl,
-      addedDate: item.addedDate,
-    );
-
-    try {
-      await CartDAO.updateCartItem(updatedItem);
-      _loadData();
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to update quantity: $e'),
-        );
-      }
-    }
-  }
-
-  void _removeItem(CartItem item) async {
-    try {
-      await CartDAO.removeFromCart(item.key);
-      _loadData();
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => const AlertSuccess('Item removed from cart!'),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertError('Failed to remove item: $e'),
-        );
-      }
-    }
-  }
-
-  void _checkout() {
-    if (cartItems.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Checkout'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Total: \$${totalAmount.toStringAsFixed(2)}'),
-            const SizedBox(height: 16),
-            const Text('This will place your order and clear your cart.'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                final order = Order(
-                  key: '',
-                  userId: userId!,
-                  items: cartItems,
-                  totalAmount: totalAmount,
-                  status: 'pending',
-                  orderDate: DateTime.now(),
-                );
-
-                await CartDAO.placeOrder(order);
-                await CartDAO.clearCart(userId!);
-                
-                Navigator.pop(context);
-                _loadData();
-                
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Order Placed!'),
-                      content: const Text('Your order has been placed successfully. You will receive a confirmation email shortly.'),
-                      actions: [
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('OK'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertError('Failed to place order: $e'),
-                  );
-                }
-              }
-            },
-            child: const Text('Place Order'),
-          ),
-        ],
-      ),
-    );
-  }
-} 
+  @override
+  bool get exists => value != null;
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}

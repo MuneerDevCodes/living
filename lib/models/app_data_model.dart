@@ -38,7 +38,7 @@ class AppData {
         forumPosts = (json['forumPosts'] as Map<dynamic, dynamic>).map(
           (key, value) => MapEntry(
             key.toString(),
-            ForumPost.fromJson(value as Map<dynamic, dynamic>),
+            ForumPost.fromJson(key.toString(), value as Map<dynamic, dynamic>),
           ),
         );
 

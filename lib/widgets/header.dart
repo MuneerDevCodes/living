@@ -3,6 +3,7 @@ import 'package:living/style/theme.dart';
 import 'package:living/services/user_dao.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/widgets/loader.dart';
 
 class Header extends StatelessWidget {
   const Header({super.key});
@@ -91,7 +92,7 @@ class Header extends StatelessWidget {
   // Method to build the drawer - call this from your main screen
   static Widget buildDrawer(BuildContext context) {
     final user = AuthService().currentUser;
-    final drawerHeaderHeight = ResponsiveHelper.getScreenHeight(context) * 0.25;
+  //  final drawerHeaderHeight = ResponsiveHelper.getScreenHeight(context) * 0.25;
     final logoSize = ResponsiveHelper.getAdaptiveImageSize(context) * 2;
 
     return Drawer(
@@ -138,7 +139,7 @@ class Header extends StatelessWidget {
               future: Header()._getUserRole(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: Loader());
                 }
                 final isAdmin = snapshot.data == 'admin';
                 final drawerItems =

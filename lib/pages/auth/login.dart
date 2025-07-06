@@ -260,7 +260,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ? SizedBox(
                 width: ResponsiveHelper.getAdaptiveIconSize(context),
                 height: ResponsiveHelper.getAdaptiveIconSize(context),
-                child: const CircularProgressIndicator(strokeWidth: 2),
+                child: const Loader(),
               )
             : Text(
                 'Login',
