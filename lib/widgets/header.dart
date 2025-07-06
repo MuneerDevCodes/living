@@ -236,6 +236,16 @@ class DrawerItems {
       icon: Icons.mark_email_read,
       route: '/manage-contact-us',
     ),
+    _DrawerItem(
+      label: 'Manage Challenges',
+      icon: Icons.emoji_events,
+      route: '/manage-challenges',
+    ),
+    _DrawerItem(
+      label: 'Manage Educational Content',
+      icon: Icons.school,
+      route: '/manage-educational-content',
+    ),
   ];
 
   static final List<_DrawerItem> userItems = [
