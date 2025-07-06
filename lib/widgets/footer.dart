@@ -24,21 +24,22 @@ class Footer extends StatelessWidget {
             Navigator.pushNamed(context, route);
           },
           child: Padding(
-            padding: ResponsiveHelper.getVerticalPadding(context),
+            padding: EdgeInsets.symmetric(vertical: 2),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   icon,
                   color: active ? AppColors.white : AppColors.secondary,
-                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
                 ),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                SizedBox(height: 1),
                 Text(
                   label,
                   style: TextStyle(
                     color: active ? AppColors.white : AppColors.secondary,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
                     fontWeight: active ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
@@ -50,6 +51,7 @@ class Footer extends StatelessWidget {
     }
 
     return Container(
+      height: ResponsiveHelper.getHeaderFooterHeight(context),
       decoration: BoxDecoration(
         color: AppColors.footerBackground,
         border: Border(
@@ -66,31 +68,28 @@ class Footer extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            navItem(
-              icon: Icons.home,
-              label: 'Home',
-              route: '/',
-              active: ModalRoute.of(context)?.settings.name == '/',
-            ),
-            navItem(
-              icon: Icons.search,
-              label: 'Search',
-              route: '/search',
-              active: ModalRoute.of(context)?.settings.name == '/search',
-            ),
-            navItem(
-              icon: Icons.person,
-              label: 'Profile',
-              route: '/profile',
-              active: ModalRoute.of(context)?.settings.name == '/profile',
-            ),
-          ],
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          navItem(
+            icon: Icons.home,
+            label: 'Home',
+            route: '/',
+            active: ModalRoute.of(context)?.settings.name == '/',
+          ),
+          navItem(
+            icon: Icons.search,
+            label: 'Search',
+            route: '/search',
+            active: ModalRoute.of(context)?.settings.name == '/search',
+          ),
+          navItem(
+            icon: Icons.person,
+            label: 'Profile',
+            route: '/profile',
+            active: ModalRoute.of(context)?.settings.name == '/profile',
+          ),
+        ],
       ),
     );
   }

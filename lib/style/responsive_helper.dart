@@ -113,4 +113,9 @@ class ResponsiveHelper {
     if (width < 600) return 2.5;
     return 2.0;
   }
+
+  // Responsive header/footer height (10% of screen height)
+  static double getHeaderFooterHeight(BuildContext context) {
+    return getScreenHeight(context) * 0.10;
+  }
 } 

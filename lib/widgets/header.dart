@@ -16,7 +16,7 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final headerHeight = ResponsiveHelper.getScreenHeight(context) * 0.08;
+    final headerHeight = ResponsiveHelper.getHeaderFooterHeight(context);
     final logoWidth = ResponsiveHelper.getScreenWidth(context) * 0.25;
     final logoHeight = headerHeight * 0.7;
     
