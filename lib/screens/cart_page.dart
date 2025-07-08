@@ -379,6 +379,7 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -444,7 +445,7 @@ class _CartPageState extends State<CartPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

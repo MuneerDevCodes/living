@@ -147,7 +147,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

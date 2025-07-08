@@ -256,7 +256,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

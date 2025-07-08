@@ -79,6 +79,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -104,7 +105,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

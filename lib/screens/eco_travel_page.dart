@@ -64,6 +64,7 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -83,7 +84,7 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

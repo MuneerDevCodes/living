@@ -19,6 +19,7 @@ class AboutUsPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -104,7 +105,7 @@ class AboutUsPage extends StatelessWidget {
               ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

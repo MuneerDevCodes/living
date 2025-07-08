@@ -58,7 +58,7 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

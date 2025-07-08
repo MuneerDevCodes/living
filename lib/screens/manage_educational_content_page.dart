@@ -58,7 +58,7 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

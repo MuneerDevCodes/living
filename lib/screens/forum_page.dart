@@ -86,7 +86,7 @@ class _ForumPageState extends State<ForumPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

@@ -63,7 +63,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
               ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

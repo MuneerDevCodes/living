@@ -225,7 +225,7 @@ class _ManageProductPageState extends State<ManageProductPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

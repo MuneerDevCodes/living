@@ -84,6 +84,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -154,7 +155,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                     ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

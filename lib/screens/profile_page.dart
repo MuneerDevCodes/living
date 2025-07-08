@@ -290,7 +290,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

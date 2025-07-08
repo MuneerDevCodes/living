@@ -38,6 +38,7 @@ class _AuthPageState extends State<AuthPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -92,7 +93,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

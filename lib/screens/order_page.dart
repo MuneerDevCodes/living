@@ -267,7 +267,7 @@ class _OrderPageState extends State<OrderPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

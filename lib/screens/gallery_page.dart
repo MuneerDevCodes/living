@@ -79,7 +79,7 @@ class _GalleryPageState extends State<GalleryPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

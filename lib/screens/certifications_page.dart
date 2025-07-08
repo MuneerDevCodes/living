@@ -61,6 +61,7 @@ class _CertificationsPageState extends State<CertificationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -80,7 +81,7 @@ class _CertificationsPageState extends State<CertificationsPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

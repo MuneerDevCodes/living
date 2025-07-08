@@ -72,6 +72,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: Colors.white,
         drawer: Header.buildDrawer(context),
         body: Column(
           children: [
@@ -121,7 +122,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 ],
               ),
             ),
-            const Footer(),
+            Footer(),
           ],
         ),
       ),

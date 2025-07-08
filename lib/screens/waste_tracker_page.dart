@@ -102,7 +102,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

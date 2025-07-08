@@ -3,11 +3,39 @@ import 'package:flutter/material.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/style/responsive_helper.dart';
 
-class Footer extends StatelessWidget {
-  const Footer({super.key});
+class Footer extends StatefulWidget {
+  @override
+  _FooterState createState() => _FooterState();
+}
+
+class _FooterState extends State<Footer> {
+  double _iconScale = 1.0;
+
+  void _onTapDown(TapDownDetails details) {
+    setState(() {
+      _iconScale = 0.85;
+    });
+  }
+
+  void _onTapUp(TapUpDetails details) {
+    setState(() {
+      _iconScale = 1.0;
+    });
+  }
+
+  void _onTapCancel() {
+    setState(() {
+      _iconScale = 1.0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Only show footer on mobile devices
+    if (!ResponsiveHelper.isMobile(context)) {
+      return SizedBox.shrink();
+    }
+
     // Helper for icon + label
     Widget navItem({
       required IconData icon,
@@ -16,34 +44,45 @@ class Footer extends StatelessWidget {
       bool active = false,
     }) {
       return Expanded(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(
-            ResponsiveHelper.getAdaptiveBorderRadius(context),
-          ),
+        child: GestureDetector(
+          onTapDown: _onTapDown,
+          onTapUp: _onTapUp,
+          onTapCancel: _onTapCancel,
           onTap: () {
             Navigator.pushNamed(context, route);
           },
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  color: active ? AppColors.white : AppColors.secondary,
-                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+          child: Semantics(
+            label: 'Eco-friendly home navigation',
+            button: true,
+            child: AnimatedScale(
+              scale: _iconScale,
+              duration: Duration(milliseconds: 120),
+              curve: Curves.easeInOut,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveHelper.getAdaptiveGap(context) * 0.5,
                 ),
-                SizedBox(height: 1),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: active ? AppColors.white : AppColors.secondary,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
+                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveGap(context) * 0.25),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
+                        fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
+                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -51,19 +90,19 @@ class Footer extends StatelessWidget {
     }
 
     return Container(
-      height: ResponsiveHelper.getHeaderFooterHeight(context),
+      height: ResponsiveHelper.getBottomNavHeight(context),
       decoration: BoxDecoration(
         color: AppColors.footerBackground,
         border: Border(
           top: BorderSide(
             color: AppColors.secondary.withAlpha((0.18 * 255).toInt()),
-            width: 1,
+            width: ResponsiveHelper.getDividerThickness(context),
           ),
         ),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withAlpha((0.08 * 255).toInt()),
-            blurRadius: 6,
+            blurRadius: ResponsiveHelper.getAdaptiveElevation(context) * 2,
             offset: const Offset(0, -2),
           ),
         ],

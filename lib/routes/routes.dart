@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:living/screens/splash_screen.dart';
 import 'package:living/screens/contact_us_page.dart';
 import 'package:living/screens/home_page.dart';
 import 'package:living/screens/auth_page.dart';
@@ -31,7 +32,9 @@ import 'package:living/screens/manage_educational_content_page.dart';
 
 // Public routes (no authentication required)
 final Map<String, WidgetBuilder> publicRoutes = {
+  '/splash': (context) => const SplashScreen(),
   '/': (context) => const HomePage(),
+  '/home': (context) => const HomePage(),
   '/auth': (context) => const AuthPage(),
   '/contact-us': (context) => const ContactUsPage(),
   '/about-us': (context) => const AboutUsPage(),
@@ -86,7 +89,9 @@ final Map<String, WidgetBuilder> routes = {
 
 // List of routes that do NOT require authentication
 const List<String> unprotectedRoutes = [
+  '/splash',
   '/',
+  '/home',
   '/auth',
   '/contact-us',
   '/about-us',

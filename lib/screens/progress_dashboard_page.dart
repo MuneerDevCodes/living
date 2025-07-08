@@ -129,7 +129,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
                 ],
               ),
             ),
-            const Footer(),
+            Footer(),
           ],
         ),
         floatingActionButton: FloatingActionButton(

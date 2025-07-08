@@ -74,6 +74,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -93,7 +94,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
       floatingActionButton: FloatingActionButton(

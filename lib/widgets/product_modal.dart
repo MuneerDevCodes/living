@@ -124,9 +124,17 @@ class _ProductModalState extends State<ProductModal> {
                   child: Container(
                     color: AppColors.borderLight,
                     child: _webImage != null
-                        ? Image.memory(_webImage!, fit: BoxFit.cover)
+                        ? Semantics(
+                            label: 'Product image',
+                            image: true,
+                            child: Image.memory(_webImage!, fit: BoxFit.cover),
+                          )
                         : _selectedImage != null
-                            ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                            ? Semantics(
+                                label: 'Product image',
+                                image: true,
+                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                              )
                             : Icon(
                                 Icons.camera_alt,
                                 size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
@@ -210,12 +218,16 @@ class _ProductModalState extends State<ProductModal> {
             ),
           ),
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: Text(
-            widget.product == null ? 'Add' : 'Save',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+        Semantics(
+          label: 'Submit product',
+          button: true,
+          child: ElevatedButton(
+            onPressed: _submit,
+            child: Text(
+              widget.product == null ? 'Add' : 'Save',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
             ),
           ),
         ),

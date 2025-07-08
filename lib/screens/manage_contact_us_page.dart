@@ -177,7 +177,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
                         },
                       ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

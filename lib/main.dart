@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:living/routes/routes_guard.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/screens/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Living App',
       theme: AppTheme.lightTheme,
+      home: const SplashScreen(),
       onGenerateRoute: guardedRoute,
       debugShowCheckedModeBanner: false,
       builder: (context, child) => ScrollConfiguration(

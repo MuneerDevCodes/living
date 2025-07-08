@@ -125,7 +125,7 @@ class _RecipesPageState extends State<RecipesPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

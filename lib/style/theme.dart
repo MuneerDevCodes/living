@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 // Primary Colors
-const Color blackberry = Color(0xFF48182F);
+const Color blackberry = Color(0xFF748873);
 const Color moonstone = Color(0xFFD4CBC4);
 const Color bgColor = Color(0xFFF5F5F5);
 
@@ -28,8 +28,8 @@ class AppColors {
   // Background Colors
   static const Color cardBackground = Colors.white;
   static const Color surfaceBackground = Color(0xFFFAFAFA);
-  static const Color headerBackground = blackberry;
-  static const Color footerBackground = blackberry;
+  static const Color headerBackground = Color(0xFF748873);
+  static const Color footerBackground = Color(0xFF748873);
   
   // Border Colors
   static const Color borderLight = Color(0xFFE0E0E0);
@@ -53,19 +53,19 @@ class AppColors {
   static const Color overlayDark = Color(0xE6000000);
   
   // Gradient Colors
-  static const Color gradientStart = Color(0xFF48182F);
+  static const Color gradientStart = Color(0xFF748873);
   static const Color gradientEnd = Color(0xFF6B2A4A);
   
   // Material Theme Colors
   static const MaterialColor primarySwatch = MaterialColor(
-    0xFF48182F,
+    0xFF748873,
     <int, Color>{
       50: Color(0xFFF3E5F0),
       100: Color(0xFFE1BED9),
       200: Color(0xFFCD93C0),
       300: Color(0xFFB968A7),
       400: Color(0xFFA94D94),
-      500: Color(0xFF48182F), // primary
+      500: Color(0xFF748873), // primary
       600: Color(0xFF8A2A7A),
       700: Color(0xFF7A2368),
       800: Color(0xFF6A1C56),

@@ -249,7 +249,7 @@ class _WishPageState extends State<WishPage> {
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );

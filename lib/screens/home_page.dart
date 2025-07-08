@@ -11,6 +11,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -22,14 +23,14 @@ class HomePage extends StatelessWidget {
                   padding: ResponsiveHelper.getAdaptivePadding(context),
                   children: [
                     _buildWelcomeSection(context),
-                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                    _buildFeatureList(context),
+                    SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+                    _buildFeatureGrid(context),
                   ],
                 ),
               ],
             ),
           ),
-          const Footer(),
+          Footer(),
         ],
       ),
     );
@@ -37,7 +38,7 @@ class HomePage extends StatelessWidget {
 
   Widget _buildWelcomeSection(BuildContext context) {
     return Card(
-      elevation: 4,
+      elevation: ResponsiveHelper.getAdaptiveElevation(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(
           ResponsiveHelper.getAdaptiveBorderRadius(context),
@@ -51,7 +52,7 @@ class HomePage extends StatelessWidget {
             Text(
               'Welcome to Sustainable Living Guide',
               style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+                fontSize: ResponsiveHelper.getTitleFontSize(context),
                 fontWeight: FontWeight.bold,
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -60,7 +61,7 @@ class HomePage extends StatelessWidget {
             Text(
               'Your comprehensive platform for sustainable living, eco-friendly products, and environmental awareness.',
               style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontSize: ResponsiveHelper.getBodyFontSize(context),
                 color: AppColors.secondaryText,
               ),
             ),
@@ -70,7 +71,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureList(BuildContext context) {
+  Widget _buildFeatureGrid(BuildContext context) {
     final features = [
       {
         'title': 'Carbon Footprint Tracker',
@@ -158,17 +159,26 @@ class HomePage extends StatelessWidget {
       },
     ];
 
+    if (ResponsiveHelper.isMobile(context)) {
+      return _buildMobileFeatureList(context, features);
+    } else {
+      return _buildDesktopFeatureGrid(context, features);
+    }
+  }
+
+  Widget _buildMobileFeatureList(BuildContext context, List<Map<String, dynamic>> features) {
     return Column(
       children: features.map((feature) {
         return Card(
           margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-          elevation: 2,
+          elevation: ResponsiveHelper.getAdaptiveElevation(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(
               ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.8,
             ),
           ),
           child: ListTile(
+            contentPadding: ResponsiveHelper.getCardPadding(context),
             leading: Icon(
               feature['icon'] as IconData,
               color: Theme.of(context).colorScheme.primary,
@@ -177,19 +187,19 @@ class HomePage extends StatelessWidget {
             title: Text(
               feature['title'] as String,
               style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontSize: ResponsiveHelper.getSubtitleFontSize(context),
                 fontWeight: FontWeight.w500,
               ),
             ),
             subtitle: Text(
               feature['subtitle'] as String,
               style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                fontSize: ResponsiveHelper.getBodyFontSize(context),
                 color: AppColors.secondaryText,
               ),
             ),
             trailing: feature['requiresAuth'] as bool
-                                    ? Icon(Icons.lock, color: AppColors.mutedText, size: ResponsiveHelper.getAdaptiveIconSize(context))
+                ? Icon(Icons.lock, color: AppColors.mutedText, size: ResponsiveHelper.getAdaptiveIconSize(context))
                 : null,
             onTap: () {
               if (feature['requiresAuth'] as bool) {
@@ -203,12 +213,101 @@ class HomePage extends StatelessWidget {
                   Navigator.pushNamed(context, feature['route'] as String);
                 }
               } else {
+                // Feature doesn't require auth, navigate directly
                 Navigator.pushNamed(context, feature['route'] as String);
               }
             },
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildDesktopFeatureGrid(BuildContext context, List<Map<String, dynamic>> features) {
+    final crossAxisCount = ResponsiveHelper.getAdaptiveCrossAxisCount(context);
+    final childAspectRatio = ResponsiveHelper.getGridChildAspectRatio(context);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+        mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+      ),
+      itemCount: features.length,
+      itemBuilder: (context, index) {
+        final feature = features[index];
+        return Card(
+          elevation: ResponsiveHelper.getAdaptiveElevation(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              ResponsiveHelper.getAdaptiveBorderRadius(context),
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(
+              ResponsiveHelper.getAdaptiveBorderRadius(context),
+            ),
+            onTap: () {
+              if (feature['requiresAuth'] as bool) {
+                final currentUserId = AuthService.getCurrentUserId();
+                if (currentUserId == null) {
+                  Navigator.pushNamed(context, '/auth');
+                } else {
+                  Navigator.pushNamed(context, feature['route'] as String);
+                }
+              } else {
+                Navigator.pushNamed(context, feature['route'] as String);
+              }
+            },
+            child: Padding(
+              padding: ResponsiveHelper.getCardPadding(context),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    feature['icon'] as IconData,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Text(
+                    feature['title'] as String,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                      fontWeight: FontWeight.bold,
+                      textAlign: TextAlign.center,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                  Text(
+                    feature['subtitle'] as String,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getBodyFontSize(context),
+                      color: AppColors.secondaryText,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (feature['requiresAuth'] as bool)
+                    Padding(
+                      padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                      child: Icon(
+                        Icons.lock,
+                        color: AppColors.mutedText,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
