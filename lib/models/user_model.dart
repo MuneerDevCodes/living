@@ -2,8 +2,8 @@ class User {
   final String uuid;
   final String role;
   final String displayname;
-  final String shippingAddress;
-  final String paymentMethod;
+  final String? shippingAddress;
+  final String? paymentMethod;
   final CarbonFootprint? carbonFootprint;
   final WasteTracking? wasteTracking;
   final Challenges? challenges;
@@ -14,8 +14,8 @@ class User {
     required this.uuid,
     required this.role,
     required this.displayname,
-    required this.shippingAddress,
-    required this.paymentMethod,
+    this.shippingAddress,
+    this.paymentMethod,
     this.carbonFootprint,
     this.wasteTracking,
     this.challenges,
@@ -27,8 +27,8 @@ class User {
       : uuid = json['uuid'] as String,
         role = json['role'] as String,
         displayname = json['displayname'] as String,
-        shippingAddress = json['shippingAddress'] as String,
-        paymentMethod = json['paymentMethod'] as String,
+        shippingAddress = json['shippingAddress'] as String?,
+        paymentMethod = json['paymentMethod'] as String?,
         carbonFootprint = json['carbonFootprint'] != null
             ? CarbonFootprint.fromJson(json['carbonFootprint'] as Map<dynamic, dynamic>)
             : null,

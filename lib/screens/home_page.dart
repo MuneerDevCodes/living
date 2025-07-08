@@ -3,6 +3,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/auth_helper.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -192,9 +193,15 @@ class HomePage extends StatelessWidget {
                 : null,
             onTap: () {
               if (feature['requiresAuth'] as bool) {
-                // Check if user is authenticated
-                // For now, navigate to auth page
-                Navigator.pushNamed(context, '/auth');
+                // Check if user is authenticated using auth helper
+                final currentUserId = AuthService.getCurrentUserId();
+                if (currentUserId == null) {
+                  // User is not authenticated, navigate to auth page
+                  Navigator.pushNamed(context, '/auth');
+                } else {
+                  // User is authenticated, navigate to the feature
+                  Navigator.pushNamed(context, feature['route'] as String);
+                }
               } else {
                 Navigator.pushNamed(context, feature['route'] as String);
               }

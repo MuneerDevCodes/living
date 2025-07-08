@@ -91,8 +91,6 @@ class _ProfilePageState extends State<ProfilePage> {
           uuid: _uid!,
           role: _currentRole ?? 'user',
           displayname: _nameCtrl.text, // update username in DB only
-          shippingAddress: '', // Default empty address
-          paymentMethod: '', // Default empty payment method
         ),
       );
       ScaffoldMessenger.of(

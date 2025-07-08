@@ -47,8 +47,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             uuid: user.uid,
             role: 'user', // Default role
             displayname: _nameCtrl.text,
-            shippingAddress: '', // Default empty address
-            paymentMethod: '', // Default empty payment method
           );
 
           // Save user using UserDao
