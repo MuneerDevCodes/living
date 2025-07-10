@@ -99,10 +99,7 @@ const List<String> unprotectedRoutes = [
   '/faq',
   '/product-detail',
   '/gallery',
-  '/certifications',
   '/energy-tips',
-  '/eco-travel',
-  '/educational-content',
   '/recipes',
 ];
 
@@ -115,9 +112,12 @@ const List<String> protectedRoutesList = [
   '/profile',
   '/carbon-footprint',
   '/challenges',
+  '/certifications',
   '/waste-tracker',
   '/progress-dashboard',
   '/forum',
+  '/educational-content',
+  '/eco-travel',
 ];
 
 // List of routes that ONLY admin users can access
