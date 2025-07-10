@@ -7,24 +7,81 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:living/main.dart';
+import 'package:living/screens/home_page.dart';
+import 'package:living/style/responsive_helper.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('HomePage Responsive Tests', () {
+    testWidgets('HomePage renders correctly on mobile', (WidgetTester tester) async {
+      // Set mobile screen size
+      tester.binding.window.physicalSizeTestValue = const Size(375, 812);
+      tester.binding.window.devicePixelRatioTestValue = 1.0;
+      
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      await tester.pumpAndSettle();
+      
+      // Verify mobile-specific elements are present
+      expect(find.text('Welcome to'), findsOneWidget);
+      expect(find.text('Sustainable Living'), findsOneWidget);
+      expect(find.text('Get Started'), findsOneWidget);
+      expect(find.text('Learn More'), findsOneWidget);
+      expect(find.text('What We Offer'), findsOneWidget);
+      expect(find.text('Explore Features'), findsOneWidget);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    testWidgets('HomePage renders correctly on tablet', (WidgetTester tester) async {
+      // Set tablet screen size
+      tester.binding.window.physicalSizeTestValue = const Size(768, 1024);
+      tester.binding.window.devicePixelRatioTestValue = 1.0;
+      
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      await tester.pumpAndSettle();
+      
+      // Verify tablet-specific elements are present
+      expect(find.text('Welcome to'), findsOneWidget);
+      expect(find.text('Sustainable Living'), findsOneWidget);
+      expect(find.text('Get Started'), findsOneWidget);
+      expect(find.text('Learn More'), findsOneWidget);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    testWidgets('HomePage renders correctly on desktop', (WidgetTester tester) async {
+      // Set desktop screen size
+      tester.binding.window.physicalSizeTestValue = const Size(1920, 1080);
+      tester.binding.window.devicePixelRatioTestValue = 1.0;
+      
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      await tester.pumpAndSettle();
+      
+      // Verify desktop-specific elements are present
+      expect(find.text('Welcome to'), findsOneWidget);
+      expect(find.text('Sustainable Living'), findsOneWidget);
+      expect(find.text('Get Started'), findsOneWidget);
+      expect(find.text('Learn More'), findsOneWidget);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    testWidgets('ResponsiveHelper methods work correctly', (WidgetTester tester) async {
+      await tester.pumpWidget(const MaterialApp(home: HomePage()));
+      
+      final context = tester.element(find.byType(HomePage));
+      
+      // Test mobile detection
+      tester.binding.window.physicalSizeTestValue = const Size(375, 812);
+      expect(ResponsiveHelper.isMobile(context), isTrue);
+      expect(ResponsiveHelper.isTablet(context), isFalse);
+      expect(ResponsiveHelper.isDesktop(context), isFalse);
+      
+      // Test tablet detection
+      tester.binding.window.physicalSizeTestValue = const Size(768, 1024);
+      expect(ResponsiveHelper.isMobile(context), isFalse);
+      expect(ResponsiveHelper.isTablet(context), isTrue);
+      expect(ResponsiveHelper.isDesktop(context), isFalse);
+      
+      // Test desktop detection
+      tester.binding.window.physicalSizeTestValue = const Size(1920, 1080);
+      expect(ResponsiveHelper.isMobile(context), isFalse);
+      expect(ResponsiveHelper.isTablet(context), isFalse);
+      expect(ResponsiveHelper.isDesktop(context), isTrue);
+    });
   });
 }

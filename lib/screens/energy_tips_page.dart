@@ -244,7 +244,7 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: _getDifficultyColor(tip.difficulty).withOpacity(0.1),
+                      color: _getDifficultyColor(tip.difficulty).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
@@ -294,11 +294,11 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
+                      color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
-                      border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

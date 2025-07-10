@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../style/theme.dart';
 import '../screens/home_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -32,10 +31,12 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
     
-    // Start animations
-    _startAnimations();
+    // Start animations after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startAnimations();
+    });
     
-    // Navigate to main app after 2 seconds
+    // Navigate to main app after 4 seconds
     Timer(const Duration(seconds: 4), () {
       _navigateToHome();
     });
@@ -44,12 +45,19 @@ class _SplashScreenState extends State<SplashScreen>
   void _startAnimations() async {
     if (!mounted) return;
     
-    // Start logo animation
-    await _logoController.forward();
-    
-    // Start text animation after logo animation
-    if (mounted) {
-      _textController.forward();
+    try {
+      // Start logo animation
+      await _logoController.forward();
+      
+      // Start text animation after logo animation
+      if (mounted) {
+        await _textController.forward();
+      }
+    } catch (e) {
+      // Handle any animation errors gracefully
+      if (mounted) {
+        _navigateToHome();
+      }
     }
   }
 
@@ -112,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                             borderRadius: BorderRadius.circular(60),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -169,7 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Text(

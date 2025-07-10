@@ -256,7 +256,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
+                      color: AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
@@ -277,7 +277,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.1),
+                      color: AppColors.info.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
@@ -377,7 +377,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                       color: AppColors.info,
                     ),
                   ),
-                  backgroundColor: AppColors.info.withOpacity(0.1),
+                  backgroundColor: AppColors.info.withValues(alpha: 0.1),
                   labelStyle: TextStyle(
                     color: AppColors.info,
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),

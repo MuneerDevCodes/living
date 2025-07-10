@@ -181,6 +181,24 @@
       }
     },
     
+    "waste_entries": {
+      ".indexOn": ["userId", "date"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$entryId": {
+        ".validate": "newData.hasChildren(['userId', 'date', 'recycled', 'composted', 'plasticReduced']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('date').isNumber() && newData.child('recycled').isNumber() && newData.child('composted').isNumber() && newData.child('plasticReduced').isNumber()"
+      }
+    },
+    
+    "waste_goals": {
+      ".indexOn": ["userId", "date"],
+      ".read": "auth != null",
+      ".write": "auth != null",
+      "$goalId": {
+        ".validate": "newData.hasChildren(['userId', 'date', 'targetRecycled', 'targetComposted', 'targetPlasticReduced']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('date').isNumber() && newData.child('targetRecycled').isNumber() && newData.child('targetComposted').isNumber() && newData.child('targetPlasticReduced').isNumber()"
+      }
+    },
+    
     "waste_tracker": {
       "$userId": {
         ".indexOn": ["date"],

@@ -13,7 +13,7 @@ class AlertError extends StatelessWidget {
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
       padding: ResponsiveHelper.getAdaptivePadding(context),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.1),
+        color: AppColors.error.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(
           ResponsiveHelper.getAdaptiveBorderRadius(context),
         ),

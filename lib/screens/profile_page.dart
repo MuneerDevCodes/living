@@ -6,7 +6,7 @@ import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/loader.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Only for EmailAuthProvider
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
@@ -23,7 +23,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final _emailCtrl = TextEditingController();
   final _newPassCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  bool _emailVerified = false;
 
   bool _saving = false;
   bool _loading = true;
@@ -50,7 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
       _email = user?.email;
       _uid = user?.uid;
       _emailCtrl.text = _email ?? '';
-      _emailVerified = user?.emailVerified ?? false;
+      
       final snapshot =
           await _userDao.getUserList().orderByChild('uuid').equalTo(_uid).get();
       if (snapshot.exists && snapshot.children.isNotEmpty) {
@@ -58,7 +57,6 @@ class _ProfilePageState extends State<ProfilePage> {
         final u = app_user.User.fromJson(snap.value as Map<dynamic, dynamic>);
        
         _currentRole = u.role;
-        
         _nameCtrl.text = u.displayname;
         _userKey = snap.key;
       }
@@ -84,18 +82,19 @@ class _ProfilePageState extends State<ProfilePage> {
       _error = null;
     });
     try {
-      // Only update username in database, not in Firebase Auth
       _userDao.updateUser(
         _userKey!,
         app_user.User(
           uuid: _uid!,
           role: _currentRole ?? 'user',
-          displayname: _nameCtrl.text, // update username in DB only
+          displayname: _nameCtrl.text,
         ),
       );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated')),
+        );
+      }
     } catch (e) {
       setState(() {
         _error = "Failed to save: $e";
@@ -104,78 +103,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _saving = false;
       });
-    }
-  }
-
-  // Helper to prompt for password using AppPopup
-  Future<String?> _promptPassword(String action) async {
-    final ctrl = TextEditingController();
-    String? result;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            'Confirm $action',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            ),
-          ),
-          content: TextField(
-            controller: ctrl,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: 'Current Password',
-              labelStyle: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                result = ctrl.text;
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Continue',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-    return result;
-  }
-
-  Future<bool> _reauthenticate(String currentPassword) async {
-    final user = AuthService().currentUser;
-    if (user == null || user.email == null) return false;
-    final cred = EmailAuthProvider.credential(
-      email: user.email!,
-      password: currentPassword,
-    );
-    try {
-      await user.reauthenticateWithCredential(cred);
-      return true;
-    } catch (_) {
-      setState(() {
-        _error = "Current password is incorrect";
-      });
-      return false;
     }
   }
 
@@ -207,36 +134,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _sendEmailVerification() async {
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await AuthService().sendEmailVerification();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification email sent. Please check your inbox.'),
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _error = "Failed to send verification email: $e";
-      });
-    } finally {
-      setState(() {
-        _saving = false;
-      });
-    }
-  }
-
   Future<void> _updatePassword() async {
     if (_newPassCtrl.text.isEmpty) return;
-    final currentPassword = await _promptPassword('Password Change');
-    if (currentPassword == null) return;
-    if (!await _reauthenticate(currentPassword)) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -260,77 +159,166 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _showPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Update Password',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: TextField(
+          controller: _newPassCtrl,
+          decoration: InputDecoration(
+            labelText: 'New Password',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+              ),
+            ),
+            labelStyle: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          obscureText: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _updatePassword();
+            },
+            child: Text(
+              'Update',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: Loader()));
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Center(child: Loader()),
+        ),
+      );
     }
 
     return Scaffold(
+      backgroundColor: Colors.white,
       drawer: Header.buildDrawer(context),
-      body: Column(
-        children: [
-          const Header(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: ResponsiveHelper.getAdaptivePadding(context),
-              child: Container(
-                constraints: ResponsiveHelper.getFlexibleConstraints(context),
-                child: Column(
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Header(),
+            Expanded(
+              child: Padding(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
+                child: Stack(
                   children: [
-                    _buildProfileHeader(),
-                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                    _buildProfileForm(),
-                    if (_error != null) ...[
-                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                      AlertError(_error!),
-                    ],
+                    if (_error != null)
+                      AlertError(
+                        _error!,
+                        onClose: () => setState(() => _error = null),
+                      ),
+                    SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildProfileHeader(),
+                          SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+                          _buildProfileForm(),
+                          SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+                          _buildAccountActions(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          Footer(),
-        ],
+            Footer(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildProfileHeader() {
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.getAdaptiveBorderRadius(context),
-        ),
-      ),
       child: Padding(
-        padding: ResponsiveHelper.getCardPadding(context),
+        padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Column(
           children: [
-            Icon(
-              Icons.account_circle,
-              size: ResponsiveHelper.getAdaptiveIconSize(context) * 3,
-              color: Theme.of(context).colorScheme.primary,
+            CircleAvatar(
+              radius: ResponsiveHelper.getAdaptiveImageSize(context),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: Icon(
+                Icons.person,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                color: Colors.white,
+              ),
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             Text(
-              'Profile Settings',
+              _nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'User',
               style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+                fontSize: ResponsiveHelper.getTitleFontSize(context),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
             Text(
-              'Manage your account information and preferences',
+              _email ?? 'No email',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 color: AppColors.secondaryText,
               ),
-              textAlign: TextAlign.center,
             ),
+            if (_currentRole != null) ...[
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondary,
+                  borderRadius: BorderRadius.circular(
+                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                  ),
+                ),
+                child: Text(
+                  _currentRole!.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -338,17 +326,38 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildProfileForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
-          _buildSectionCard(
-            'Personal Information',
-            [
-              _buildTextField(
+    return Card(
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Profile Information',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextFormField(
                 controller: _nameCtrl,
-                label: 'Display Name',
-                icon: Icons.person,
+                decoration: InputDecoration(
+                  labelText: 'Display Name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your name';
@@ -356,49 +365,125 @@ class _ProfilePageState extends State<ProfilePage> {
                   return null;
                 },
               ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextFormField(
+                controller: _emailCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return 'Please enter a valid email address';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: ResponsiveHelper.getAdaptivePadding(context),
+                  ),
+                  child: Text(
+                    _saving ? 'Saving...' : 'Save Profile',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildSectionCard(
-            'Email Settings',
-            [
-              _buildTextField(
-                controller: _emailCtrl,
-                label: 'Email Address',
-                icon: Icons.email,
-                enabled: false,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountActions() {
+    return Card(
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Account Actions',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                fontWeight: FontWeight.bold,
               ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-              Row(
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            if (ResponsiveHelper.isMobile(context))
+              Column(
                 children: [
-                  Icon(
-                    _emailVerified ? Icons.verified : Icons.warning,
-                    color: _emailVerified ? AppColors.success : AppColors.warning,
-                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _updateEmail,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.secondary,
+                        foregroundColor: Colors.white,
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
+                      ),
+                      child: Text(
+                        'Update Email',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                    ),
                   ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                  Expanded(
-                    child: Text(
-                      _emailVerified ? 'Email verified' : 'Email not verified',
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        color: _emailVerified ? AppColors.success : AppColors.warning,
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : () => _showPasswordDialog(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.tertiary,
+                        foregroundColor: Colors.white,
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
+                      ),
+                      child: Text(
+                        'Update Password',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
                       ),
                     ),
                   ),
                 ],
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              )
+            else
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: _saving ? null : _updateEmail,
-                      icon: Icon(
-                        Icons.edit,
-                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.secondary,
+                        foregroundColor: Colors.white,
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
                       ),
-                      label: Text(
+                      child: Text(
                         'Update Email',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
@@ -408,14 +493,15 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _saving ? null : _sendEmailVerification,
-                      icon: Icon(
-                        Icons.verified_user,
-                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : () => _showPasswordDialog(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).colorScheme.tertiary,
+                        foregroundColor: Colors.white,
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
                       ),
-                      label: Text(
-                        'Send Verification',
+                      child: Text(
+                        'Update Password',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                         ),
@@ -424,138 +510,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ],
               ),
-            ],
-          ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildSectionCard(
-            'Security',
-            [
-              _buildTextField(
-                controller: _newPassCtrl,
-                label: 'New Password',
-                icon: Icons.lock,
-                obscureText: true,
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _saving ? null : _updatePassword,
-                  icon: Icon(
-                    Icons.security,
-                    size: ResponsiveHelper.getAdaptiveIconSize(context),
-                  ),
-                  label: Text(
-                    'Update Password',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _saving ? null : _saveProfile,
-              style: ElevatedButton.styleFrom(
-                padding: ResponsiveHelper.getAdaptivePadding(context),
-              ),
-              child: _saving
-                  ? SizedBox(
-                      width: ResponsiveHelper.getAdaptiveIconSize(context),
-                      height: ResponsiveHelper.getAdaptiveIconSize(context),
-                      child: const Loader(),
-                    )
-                  : Text(
-                      'Save Changes',
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionCard(String title, List<Widget> children) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.getAdaptiveBorderRadius(context),
-        ),
-      ),
-      child: Padding(
-        padding: ResponsiveHelper.getCardPadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            ...children,
           ],
         ),
       ),
     );
   }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool obscureText = false,
-    bool enabled = true,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      obscureText: obscureText,
-      enabled: enabled,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(
-          icon,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-          ),
-        ),
-        labelStyle: TextStyle(
-          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-        ),
-      ),
-      style: TextStyle(
-        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-      ),
-    );
-  }
-}
-
-
-
-// Name validation
-String? validateName(String? value) {
-  if (value == null || value.isEmpty) {
-    return 'Enter your name';
-  }
-  if (value.length < 3) {
-    return 'Name must be at least 3 characters';
-  }
-  return null;
 }

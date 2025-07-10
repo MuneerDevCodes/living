@@ -18,11 +18,15 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
   String _query = '';
   final TextEditingController _controller = TextEditingController();
   bool _loading = false;
   final List<MapEntry<String, Product>> _products = [];
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   String _selectedSort = 'Relevance';
   final List<String> _sortOptions = [
@@ -33,6 +37,36 @@ class _SearchPageState extends State<SearchPage> {
     'Name: Z to A',
   ];
   final List<ProductCategory> _categories = kProductCategories;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    
+    _fadeController.forward();
+    _slideController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -51,13 +85,12 @@ class _SearchPageState extends State<SearchPage> {
     var filtered = entries;
     if (_query.trim().isNotEmpty) {
       final q = _query.trim().toLowerCase();
-      filtered =
-          entries.where((e) {
-            final p = e.value;
-            return p.name.toLowerCase().contains(q) ||
-                p.category.name.toLowerCase().contains(q) ||
-                p.description.toLowerCase().contains(q);
-          }).toList();
+      filtered = entries.where((e) {
+        final p = e.value;
+        return p.name.toLowerCase().contains(q) ||
+            p.category.name.toLowerCase().contains(q) ||
+            p.description.toLowerCase().contains(q);
+      }).toList();
     }
 
     switch (_selectedSort) {
@@ -91,12 +124,10 @@ class _SearchPageState extends State<SearchPage> {
           final product = Product.fromJson(Map<dynamic, dynamic>.from(value));
           products.add(MapEntry(key, product));
         });
-        setState(
-          () =>
-              _products
-                ..clear()
-                ..addAll(products),
-        );
+        setState(() {
+          _products.clear();
+          _products.addAll(products);
+        });
       }
     } catch (e) {
       debugPrint("Error fetching products: $e");
@@ -109,259 +140,513 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Header.buildDrawer(context),
-      body: Column(
-        children: [
-          const Header(),
-          Expanded(
-            child: Stack(
-              children: [
-                if (_loading) const Positioned.fill(child: Loader()),
-                Center(
-                  child: SingleChildScrollView(
-                    padding: ResponsiveHelper.getAdaptivePadding(context),
-                    child: Container(
-                      constraints: ResponsiveHelper.getFlexibleConstraints(context),
-                      child: Card(
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            ResponsiveHelper.getAdaptiveBorderRadius(context),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: ResponsiveHelper.getCardPadding(context),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Search Products',
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                              _buildSearchField(),
-                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.75),
-                              _buildProductList(),
-                            ],
-                          ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppColors.background,
+              AppColors.surfaceBackground,
+            ],
+          ),
+        ),
+        child: Column(
+          children: [
+            const Header(),
+            Expanded(
+              child: Stack(
+                children: [
+                  if (_loading) 
+                    Container(
+                      color: AppColors.overlayLight,
+                      child: const Center(child: Loader()),
+                    ),
+                  FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: SingleChildScrollView(
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
+                        child: Container(
+                          constraints: ResponsiveHelper.getFlexibleConstraints(context),
+                          child: _buildMainContent(),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            Footer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainContent() {
+    return Column(
+      children: [
+        _buildHeroSection(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        _buildSearchSection(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        _buildContentSection(),
+      ],
+    );
+  }
+
+  Widget _buildHeroSection() {
+    return Container(
+      width: double.infinity,
+      padding: ResponsiveHelper.getCardPadding(context),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowMedium,
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
-          Footer(),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.search,
+            size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+            color: Colors.white,
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          Text(
+            'Discover Sustainable Products',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getTitleFontSize(context),
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.25),
+          Text(
+            'Find eco-friendly products that align with your sustainable lifestyle',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getBodyFontSize(context),
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchField() {
-    return TextField(
-      controller: _controller,
-      decoration: InputDecoration(
-        hintText: 'Enter product name, category, or keyword',
-        prefixIcon: Icon(
-          Icons.search,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-          ),
-        ),
-        isDense: true,
-        suffixIcon: _query.isNotEmpty
-            ? IconButton(
-                icon: Icon(
-                  Icons.clear,
-                  size: ResponsiveHelper.getAdaptiveIconSize(context),
-                ),
-                onPressed: () {
-                  _controller.clear();
-                  setState(() => _query = '');
-                },
-              )
-            : null,
+  Widget _buildSearchSection() {
+    return Card(
+      elevation: 8,
+      shadowColor: AppColors.shadowMedium,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
       ),
-      onSubmitted: (v) {
-        setState(() => _query = v);
-        fetchProducts();
-      },
-      onChanged: (v) {
-        setState(() => _query = v);
-      },
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          children: [
+            _buildSearchField(),
+            if (_query.isNotEmpty) ...[
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              _buildSortSection(),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildProductList() {
-    if (_query.isEmpty) return _buildCategories(context);
-
-    final filtered = _applySearchAndSort(_products);
-    if (filtered.isEmpty) {
-      return FutureBuilder(
-        future: Future.delayed(const Duration(milliseconds: 300)),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return SizedBox();
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context)),
-                child: Text(
-                  'No results found.',
-                  style: TextStyle(
-                    color: AppColors.mutedText,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+  Widget _buildSearchField() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: _controller,
+        decoration: InputDecoration(
+          hintText: 'Search for sustainable products...',
+          hintStyle: TextStyle(
+            color: AppColors.mutedText,
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+          ),
+          prefixIcon: Container(
+            margin: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.search,
+              color: Colors.white,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+          ),
+          suffixIcon: _query.isNotEmpty
+              ? IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.clear,
+                      color: AppColors.error,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                    ),
                   ),
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              _buildCategories(context),
-            ],
-          );
+                  onPressed: () {
+                    _controller.clear();
+                    setState(() => _query = '');
+                  },
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context)),
+        ),
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getBodyFontSize(context),
+          color: AppColors.primaryText,
+        ),
+        onSubmitted: (v) {
+          setState(() => _query = v);
+          fetchProducts();
         },
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSortSection(),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        _buildProductListView(filtered),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        _buildCategories(context),
-      ],
+        onChanged: (v) {
+          setState(() => _query = v);
+        },
+      ),
     );
   }
 
   Widget _buildSortSection() {
     return Row(
       children: [
+        Icon(
+          Icons.sort,
+          color: AppColors.primary,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
         Text(
           'Sort by:',
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryText,
           ),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
-        Flexible(
-          child: DropdownButton<String>(
-            value: _selectedSort,
-            isExpanded: true,
-            items: _sortOptions
-                .map(
-                  (opt) => DropdownMenuItem(
-                    value: opt,
-                    child: Text(
-                      opt,
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                      ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceBackground,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.borderMedium),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedSort,
+                isExpanded: true,
+                icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+                items: _sortOptions.map((opt) => DropdownMenuItem(
+                  value: opt,
+                  child: Text(
+                    opt,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getBodyFontSize(context),
+                      color: AppColors.primaryText,
                     ),
                   ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null && val != _selectedSort) {
-                setState(() => _selectedSort = val);
-              }
-            },
+                )).toList(),
+                onChanged: (val) {
+                  if (val != null && val != _selectedSort) {
+                    setState(() => _selectedSort = val);
+                  }
+                },
+              ),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildProductListView(List<MapEntry<String, Product>> filtered) {
-    return ListView.separated(
+  Widget _buildContentSection() {
+    if (_query.isEmpty) {
+      return _buildCategoriesSection();
+    }
+
+    final filtered = _applySearchAndSort(_products);
+    if (filtered.isEmpty) {
+      return _buildNoResultsSection();
+    }
+
+    return Column(
+      children: [
+        _buildResultsHeader(filtered.length),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        _buildProductGrid(filtered),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        _buildCategoriesSection(),
+      ],
+    );
+  }
+
+  Widget _buildResultsHeader(int count) {
+    return Container(
+      padding: ResponsiveHelper.getCardPadding(context),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBackground,
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.inventory_2,
+            color: AppColors.primary,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          Text(
+            '$count product${count == 1 ? '' : 's'} found',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoResultsSection() {
+    return Card(
+      elevation: 4,
+      shadowColor: AppColors.shadowLight,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Column(
+          children: [
+            Icon(
+              Icons.search_off,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+              color: AppColors.mutedText,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Text(
+              'No products found',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Try adjusting your search terms or explore our categories below',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context),
+                color: AppColors.mutedText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildCategoriesSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductGrid(List<MapEntry<String, Product>> filtered) {
+    return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: filtered.length,
-      separatorBuilder: (context, i) => Divider(
-        height: ResponsiveHelper.getAdaptiveSpacing(context),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: ResponsiveHelper.isMobile(context) ? 1 : 
+                       ResponsiveHelper.isTablet(context) ? 2 : 3,
+        mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+        crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+        childAspectRatio: ResponsiveHelper.isMobile(context) ? 3.5 : 2.8,
       ),
       itemBuilder: (context, i) {
         final entry = filtered[i];
-        final product = entry.value;
-        final key = entry.key;
-
-        return _buildProductTile(product, key);
+        return _buildProductCard(entry.value, entry.key);
       },
     );
   }
 
-  Widget _buildProductTile(Product product, String key) {
-    final imageSize = ResponsiveHelper.getAdaptiveImageSize(context);
+  Widget _buildProductCard(Product product, String key) {
+    return Card(
+      elevation: 4,
+      shadowColor: AppColors.shadowLight,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailPage(productKey: key),
+            ),
+          );
+        },
+        child: Container(
+          padding: ResponsiveHelper.getCardPadding(context),
+          child: Row(
+            children: [
+              _buildProductImage(product),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      product.name,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getBodyFontSize(context),
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryText,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.25),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.25,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        product.category.name,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.eco,
+                          color: AppColors.success,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                        ),
+                        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.25),
+                        Text(
+                          '${product.ecoRating.toStringAsFixed(1)}★',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getBodyFontSize(context),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: AppColors.mutedText,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductImage(Product product) {
+    final imageSize = ResponsiveHelper.isMobile(context) ? 60.0 : 80.0;
     
-    Widget leadingWidget;
+    Widget imageWidget;
     if (product.imageUrl.isNotEmpty) {
       try {
         final imageBytes = base64Decode(product.imageUrl);
-        leadingWidget = ClipRRect(
-          borderRadius: BorderRadius.circular(
-            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
-          ),
+        imageWidget = ClipRRect(
+          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4),
           child: Image.memory(
             imageBytes,
             width: imageSize,
-            height: imageSize * 1.5,
+            height: imageSize,
             fit: BoxFit.cover,
           ),
         );
       } catch (_) {
-        leadingWidget = _placeholderImage(imageSize);
+        imageWidget = _buildPlaceholderImage(imageSize);
       }
     } else {
-      leadingWidget = _placeholderImage(imageSize);
+      imageWidget = _buildPlaceholderImage(imageSize);
     }
 
-    return ListTile(
-      leading: leadingWidget,
-      title: Text(
-        product.name,
-        style: TextStyle(
-          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        product.category.name,
-        style: TextStyle(
-          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-        ),
-      ),
-      trailing: Text(
-        '${product.ecoRating.toStringAsFixed(1)}★',
-        style: TextStyle(
-          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductDetailPage(productKey: key),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadowLight,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
-        );
-      },
+        ],
+      ),
+      child: imageWidget,
     );
   }
 
-  Widget _placeholderImage(double size) {
+  Widget _buildPlaceholderImage(double size) {
     return Container(
-      color: AppColors.borderLight,
       width: size,
-      height: size * 1.5,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.borderLight,
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4),
+      ),
       child: Icon(
         Icons.image,
         color: AppColors.mutedText,
@@ -370,25 +655,32 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildCategories(BuildContext context) {
+  Widget _buildCategoriesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: EdgeInsets.only(
-              bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
-              top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
-            ),
-            child: Text(
-              'Explore Categories',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                color: Theme.of(context).colorScheme.primary,
+        Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+            vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.category,
+                color: AppColors.primary,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
               ),
-            ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Text(
+                'Explore Categories',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ],
           ),
         ),
         GridView.builder(
@@ -396,10 +688,11 @@ class _SearchPageState extends State<SearchPage> {
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _categories.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: ResponsiveHelper.getAdaptiveCrossAxisCount(context),
-            mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
-            crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
-            childAspectRatio: ResponsiveHelper.getAdaptiveAspectRatio(context),
+            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 
+                           ResponsiveHelper.isTablet(context) ? 3 : 4,
+            mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+            crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+            childAspectRatio: ResponsiveHelper.isMobile(context) ? 1.2 : 1.5,
           ),
           itemBuilder: (context, i) {
             final cat = _categories[i];
@@ -411,42 +704,58 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildCategoryCard(ProductCategory cat) {
-    return Material(
-      color: Theme.of(context).colorScheme.secondary.withAlpha((0.08 * 255).toInt()),
-      borderRadius: BorderRadius.circular(
-        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.7,
+    return Card(
+      elevation: 2,
+      shadowColor: AppColors.shadowLight,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.7,
-        ),
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
         onTap: () {
           _controller.text = cat.label;
           setState(() => _query = cat.label);
           fetchProducts();
         },
-        child: Padding(
-          padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-          child: Row(
+        child: Container(
+          padding: ResponsiveHelper.getCardPadding(context),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+                             colors: [
+                 AppColors.primary.withValues(alpha: 0.05),
+                 AppColors.secondary.withValues(alpha: 0.05),
+               ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+          ),
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                cat.icon,
-                color: Theme.of(context).colorScheme.primary,
-                size: ResponsiveHelper.getAdaptiveIconSize(context),
-              ),
-              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-              Flexible(
-                child: Text(
-                  cat.label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
+              Container(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
                 ),
+                child: Icon(
+                  cat.icon,
+                  color: AppColors.primary,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.2,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Text(
+                cat.label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: ResponsiveHelper.getBodyFontSize(context),
+                  color: AppColors.primaryText,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

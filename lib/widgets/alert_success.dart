@@ -13,7 +13,7 @@ class AlertSuccess extends StatelessWidget {
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
       padding: ResponsiveHelper.getAdaptivePadding(context),
       decoration: BoxDecoration(
-        color: AppColors.success.withOpacity(0.1),
+        color: AppColors.success.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(
           ResponsiveHelper.getAdaptiveBorderRadius(context),
         ),

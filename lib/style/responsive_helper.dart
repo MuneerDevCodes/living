@@ -56,7 +56,7 @@ class ResponsiveHelper {
     final width = getScreenWidth(context);
     
     if (isMobile(context)) {
-      return EdgeInsets.symmetric(horizontal: width * 0.04);
+      return EdgeInsets.symmetric(horizontal: width * 0.02); // Reduced padding for mobile
     } else if (isTablet(context)) {
       return EdgeInsets.symmetric(horizontal: 32.0);
     } else if (isDesktop(context)) {
@@ -221,11 +221,21 @@ class ResponsiveHelper {
 
   static double getAdaptiveIconSize(BuildContext context) {
     if (isMobile(context)) {
-      return 20.0;
+      return 18.0; // Reduced for mobile to prevent overflow
     } else if (isTablet(context)) {
       return 24.0;
     } else {
       return 28.0;
+    }
+  }
+
+  static double getCompactIconSize(BuildContext context) {
+    if (isMobile(context)) {
+      return 16.0; // Even more compact for tight spaces
+    } else if (isTablet(context)) {
+      return 20.0;
+    } else {
+      return 24.0;
     }
   }
 
@@ -254,7 +264,7 @@ class ResponsiveHelper {
   // Responsive button sizes
   static double getButtonHeight(BuildContext context) {
     if (isMobile(context)) {
-      return 48.0;
+      return 44.0; // Reduced for mobile to prevent overflow
     } else if (isTablet(context)) {
       return 52.0;
     } else {
@@ -438,6 +448,143 @@ class ResponsiveHelper {
     }
   }
 
+  // Enhanced spacing for better visual hierarchy
+  static double getLargeSpacing(BuildContext context) {
+    if (isMobile(context)) {
+      return 32.0;
+    } else if (isTablet(context)) {
+      return 40.0;
+    } else {
+      return 48.0;
+    }
+  }
+
+  static double getMediumSpacing(BuildContext context) {
+    if (isMobile(context)) {
+      return 24.0;
+    } else if (isTablet(context)) {
+      return 32.0;
+    } else {
+      return 40.0;
+    }
+  }
+
+  static double getSmallSpacing(BuildContext context) {
+    if (isMobile(context)) {
+      return 16.0;
+    } else if (isTablet(context)) {
+      return 20.0;
+    } else {
+      return 24.0;
+    }
+  }
+
+  // Enhanced icon sizes for better visual impact
+  static double getLargeIconSize(BuildContext context) {
+    if (isMobile(context)) {
+      return 32.0;
+    } else if (isTablet(context)) {
+      return 40.0;
+    } else {
+      return 48.0;
+    }
+  }
+
+  static double getMediumIconSize(BuildContext context) {
+    if (isMobile(context)) {
+      return 24.0;
+    } else if (isTablet(context)) {
+      return 32.0;
+    } else {
+      return 40.0;
+    }
+  }
+
+  // Enhanced button sizes
+  static double getLargeButtonHeight(BuildContext context) {
+    if (isMobile(context)) {
+      return 56.0;
+    } else if (isTablet(context)) {
+      return 64.0;
+    } else {
+      return 72.0;
+    }
+  }
+
+  static double getMediumButtonHeight(BuildContext context) {
+    if (isMobile(context)) {
+      return 48.0;
+    } else if (isTablet(context)) {
+      return 56.0;
+    } else {
+      return 64.0;
+    }
+  }
+
+  // Enhanced card padding
+  static EdgeInsets getLargeCardPadding(BuildContext context) {
+    if (isMobile(context)) {
+      return EdgeInsets.all(20.0);
+    } else if (isTablet(context)) {
+      return EdgeInsets.all(24.0);
+    } else {
+      return EdgeInsets.all(32.0);
+    }
+  }
+
+  // Enhanced border radius
+  static double getLargeBorderRadius(BuildContext context) {
+    if (isMobile(context)) {
+      return 16.0;
+    } else if (isTablet(context)) {
+      return 20.0;
+    } else {
+      return 24.0;
+    }
+  }
+
+  // Responsive text scale factor
+  static double getTextScaleFactor(BuildContext context) {
+    if (isMobile(context)) {
+      return 1.0;
+    } else if (isTablet(context)) {
+      return 1.1;
+    } else {
+      return 1.2;
+    }
+  }
+
+  // Responsive hero section height
+  static double getHeroSectionHeight(BuildContext context) {
+    if (isMobile(context)) {
+      return 300.0;
+    } else if (isTablet(context)) {
+      return 400.0;
+    } else {
+      return 500.0;
+    }
+  }
+
+  // Responsive feature card aspect ratio
+  static double getFeatureCardAspectRatio(BuildContext context) {
+    if (isMobile(context)) {
+      return 1.8;
+    } else if (isTablet(context)) {
+      return 1.5;
+    } else {
+      return 1.2;
+    }
+  }
+
+  // Responsive gradient stops
+  static List<double> getGradientStops(BuildContext context) {
+    if (isMobile(context)) {
+      return [0.0, 1.0];
+    } else {
+      return [0.0, 0.7, 1.0];
+    }
+  }
+
   // Responsive sidebar width
   static double getSidebarWidth(BuildContext context) {
     if (isMobile(context)) {
@@ -460,4 +607,5 @@ class ResponsiveHelper {
       return width - sidebarWidth;
     }
   }
+
 } 

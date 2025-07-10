@@ -392,7 +392,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                                   vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withOpacity(0.1),
+                                  color: AppColors.success.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(
                                     ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
                                   ),

@@ -521,7 +521,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
               ),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(
                   ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                 ),

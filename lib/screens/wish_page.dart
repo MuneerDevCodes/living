@@ -91,7 +91,7 @@ class _WishPageState extends State<WishPage> {
           );
         }
         return Card(
-          color: AppColors.success.withOpacity(0.1),
+                              color: AppColors.success.withValues(alpha: 0.1),
           margin: EdgeInsets.symmetric(
             horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
             vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,

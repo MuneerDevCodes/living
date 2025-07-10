@@ -182,7 +182,7 @@ class _CertificationsPageState extends State<CertificationsPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: certification.isVerified ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+                      color: certification.isVerified ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
@@ -215,7 +215,7 @@ class _CertificationsPageState extends State<CertificationsPage> {
                   vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(
                     ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                   ),

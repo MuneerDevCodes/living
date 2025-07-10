@@ -4,11 +4,13 @@ import 'package:living/style/theme.dart';
 import 'package:living/style/responsive_helper.dart';
 
 class Footer extends StatefulWidget {
+  const Footer({super.key});
+
   @override
-  _FooterState createState() => _FooterState();
+  FooterState createState() => FooterState();
 }
 
-class _FooterState extends State<Footer> {
+class FooterState extends State<Footer> {
   double _iconScale = 1.0;
 
   void _onTapDown(TapDownDetails details) {
@@ -68,14 +70,14 @@ class _FooterState extends State<Footer> {
                   children: [
                     Icon(
                       icon,
-                      color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
+                      color: active ? AppColors.white : AppColors.white.withValues(alpha: 0.7),
                       size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
                     ),
                     SizedBox(height: ResponsiveHelper.getAdaptiveGap(context) * 0.25),
                     Text(
                       label,
                       style: TextStyle(
-                        color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
+                        color: active ? AppColors.white : AppColors.white.withValues(alpha: 0.7),
                         fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
                         fontWeight: active ? FontWeight.bold : FontWeight.normal,
                       ),

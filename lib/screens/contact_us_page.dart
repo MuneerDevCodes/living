@@ -219,7 +219,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
             ),
             validator: f['validator'] as String? Function(String?)?,
           ),
-        )).toList(),
+        )),
         Padding(
           padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
           child: TextFormField(

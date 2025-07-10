@@ -156,7 +156,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> {
                   child: Column(
                     children: [
                       Text(
-                        'Target: ${targetFootprint.toStringAsFixed(1)}',
+                        'Target: ${targetFootprint.toStringAsFixed(1)} kg CO2/day',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                           fontWeight: FontWeight.w500,

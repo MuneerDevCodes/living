@@ -233,7 +233,7 @@ class _RecipesPageState extends State<RecipesPage> {
                               vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                             ),
                             decoration: BoxDecoration(
-                              color: carbonColor.withOpacity(0.1),
+                              color: carbonColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(
                                 ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
                               ),
@@ -403,11 +403,11 @@ class _RecipesPageState extends State<RecipesPage> {
                   vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                 ),
                 decoration: BoxDecoration(
-                  color: carbonColor.withOpacity(0.1),
+                                      color: carbonColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(
                     ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
                   ),
-                  border: Border.all(color: carbonColor.withOpacity(0.3)),
+                  border: Border.all(color: carbonColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
