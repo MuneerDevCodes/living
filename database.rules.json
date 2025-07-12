@@ -1,259 +1,69 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
-    
     "users": {
-      ".indexOn": ["uuid", "role"],
-      "$uid": {
-        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".write": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
-        ".validate": "newData.hasChildren(['uuid', 'role', 'displayname']) && newData.child('uuid').isString() && newData.child('role').isString() && newData.child('displayname').isString() && newData.child('role').val().matches(/^(user|admin)$/)",
-        
-        "carbonFootprint": {
-          ".validate": "newData.hasChildren(['transport', 'energy', 'food', 'total']) && newData.child('transport').isNumber() && newData.child('energy').isNumber() && newData.child('food').isNumber() && newData.child('total').isNumber()"
-        },
-        
-        "wasteTracking": {
-          ".validate": "newData.hasChildren(['recycled', 'composted', 'plasticReduced']) && newData.child('recycled').isNumber() && newData.child('composted').isNumber() && newData.child('plasticReduced').isNumber()"
-        },
-        
-        "challenges": {
-          ".validate": "newData.hasChildren(['plasticFreeWeek', 'bikeToWork']) && newData.child('plasticFreeWeek').isString() && newData.child('bikeToWork').isString()"
-        },
-        
-        "preferences": {
-          ".validate": "newData.hasChildren(['diet', 'transport']) && newData.child('diet').isString() && newData.child('transport').isString()"
-        },
-        
-        "activityLog": {
-          "$logId": {
-            ".validate": "newData.hasChildren(['energySaved', 'mealsEco']) && newData.child('energySaved').isNumber() && newData.child('mealsEco').isNumber()"
-          }
-        }
-      }
+      ".indexOn": ["uuid", "role"]
     },
-    
     "products": {
-      ".indexOn": ["category", "ecoRating", "price"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$productId": {
-        ".validate": "newData.hasChildren(['name', 'category', 'description', 'ecoRating', 'imageUrl', 'price']) && newData.child('name').isString() && newData.child('description').isString() && newData.child('ecoRating').isNumber() && newData.child('imageUrl').isString() && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('ecoRating').val() >= 0 && newData.child('ecoRating').val() <= 5",
-        
-        "category": {
-          ".validate": "newData.hasChildren(['id', 'name']) && newData.child('id').isString() && newData.child('name').isString()"
-        }
-      }
+      ".indexOn": ["category", "ecoRating", "price", "ratings"]
     },
-    
     "categories": {
-      ".indexOn": ["name"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$categoryId": {
-        ".validate": "newData.hasChildren(['id', 'name']) && newData.child('id').isString() && newData.child('name').isString()"
-      }
+      ".indexOn": ["name"]
     },
-    
     "orders": {
-      ".indexOn": ["userId", "status"],
-      ".read": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'admin' || data.child('userId').val() == auth.uid)",
-      ".write": "auth != null",
-      "$orderId": {
-        ".validate": "newData.hasChildren(['userId', 'items', 'totalAmount']) && newData.child('userId').isString() && newData.child('totalAmount').isNumber() && newData.child('totalAmount').val() >= 0 && newData.child('userId').val() == auth.uid",
-        
-        "items": {
-          "$itemId": {
-            ".validate": "newData.hasChildren(['productId', 'quantity', 'price', 'status']) && newData.child('productId').isString() && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('price').isNumber() && newData.child('price').val() >= 0 && newData.child('status').isString() && newData.child('status').val().matches(/^(pending|processing|shipped|delivered|canceled)$/)"
-          }
-        }
-      }
+      ".indexOn": ["userId", "status"]
     },
-    
-    "cart": {
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        ".validate": "newData.hasChildren(['items', 'totalAmount']) && newData.child('totalAmount').isNumber() && newData.child('totalAmount').val() >= 0",
-        
-        "items": {
-          "$itemId": {
-            ".validate": "newData.hasChildren(['productId', 'quantity', 'price']) && newData.child('productId').isString() && newData.child('quantity').isNumber() && newData.child('quantity').val() > 0 && newData.child('price').isNumber() && newData.child('price').val() >= 0"
-          }
-        }
-      }
+    "carts": {
+      ".indexOn": ["userId"]
     },
-    
-    "wishes": {
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        "$wishId": {
-          ".validate": "newData.hasChildren(['productId', 'addedAt']) && newData.child('productId').isString() && newData.child('addedAt').isNumber()"
-        }
-      }
+    "wishlists": {
+      ".indexOn": ["userId"]
     },
-    
-    "challenges": {
-      ".indexOn": ["startDate", "endDate", "participants", "isActive"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$challengeId": {
-        ".validate": "newData.hasChildren(['title', 'description', 'startDate', 'endDate', 'reward', 'participants']) && newData.child('title').isString() && newData.child('description').isString() && newData.child('startDate').isNumber() && newData.child('endDate').isNumber() && newData.child('reward').isString() && newData.child('participants').isNumber()"
-      }
-    },
-    
-    "certifications": {
-      ".indexOn": ["name"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$certificationId": {
-        ".validate": "newData.hasChildren(['name', 'description', 'criteria', 'badgeUrl']) && newData.child('name').isString() && newData.child('description').isString() && newData.child('criteria').isString() && newData.child('badgeUrl').isString()"
-      }
-    },
-    
-    "energy_tips": {
-      ".indexOn": ["category"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$tipId": {
-        ".validate": "newData.hasChildren(['title', 'description', 'category', 'impact']) && newData.child('title').isString() && newData.child('description').isString() && newData.child('category').isString() && newData.child('impact').isString()"
-      }
-    },
-    
-    "eco_travel": {
-      ".indexOn": ["destination", "ecoRating"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$travelId": {
-        ".validate": "newData.hasChildren(['destination', 'description', 'ecoRating', 'transportOptions', 'accommodation']) && newData.child('destination').isString() && newData.child('description').isString() && newData.child('ecoRating').isNumber() && newData.child('ecoRating').val() >= 0 && newData.child('ecoRating').val() <= 5"
-      }
-    },
-    
-    "educational_content": {
-      ".indexOn": ["category", "difficulty", "isPublished"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$contentId": {
-        ".validate": "newData.hasChildren(['title', 'content', 'category', 'difficulty']) && newData.child('title').isString() && newData.child('content').isString() && newData.child('category').isString() && newData.child('difficulty').isString()"
-      }
-    },
-    
     "recipes": {
-      ".indexOn": ["ecoRating", "prepTime"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$recipeId": {
-        ".validate": "newData.hasChildren(['name', 'ingredients', 'instructions', 'ecoRating', 'prepTime']) && newData.child('name').isString() && newData.child('ingredients').isString() && newData.child('instructions').isString() && newData.child('ecoRating').isNumber() && newData.child('ecoRating').val() >= 0 && newData.child('ecoRating').val() <= 5 && newData.child('prepTime').isNumber()"
-      }
+      ".indexOn": ["ecoRating", "prepTime"]
     },
-    
-    "forum_posts": {
-      ".indexOn": ["userId", "timestamp"],
-      ".read": "auth != null",
-      ".write": "auth != null",
-      "$postId": {
-        ".validate": "newData.hasChildren(['userId', 'title', 'content', 'timestamp']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('title').isString() && newData.child('content').isString() && newData.child('timestamp').isNumber()",
-        
-        "comments": {
-          "$commentId": {
-            ".validate": "newData.hasChildren(['userId', 'content', 'timestamp']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('content').isString() && newData.child('timestamp').isNumber()"
-          }
-        }
-      }
+    "forumPosts": {
+      ".indexOn": ["userId", "timestamp"]
     },
-    
-    "contact_us": {
-      ".indexOn": ["userId", "status", "timestamp"],
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      ".write": "auth != null",
-      "$messageId": {
-        ".validate": "newData.hasChildren(['userId', 'subject', 'message', 'status', 'timestamp']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('subject').isString() && newData.child('message').isString() && newData.child('status').isString() && newData.child('status').val().matches(/^(new|inProgress|responded|closed)$/) && newData.child('timestamp').isNumber()"
-      }
+    "contacts": {
+      ".indexOn": ["userId", "status", "timestamp"]
     },
-    
-    "progress_dashboard": {
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        ".validate": "newData.hasChildren(['carbonFootprint', 'wasteTracking', 'challenges', 'achievements']) && newData.child('carbonFootprint').isNumber() && newData.child('wasteTracking').isNumber() && newData.child('challenges').isNumber() && newData.child('achievements').isNumber()"
-      }
+    "challenges": {
+      ".indexOn": ["startDate", "endDate", "participants", "isActive"]
     },
-    
-    "waste_entries": {
-      ".indexOn": ["userId", "date"],
-      ".read": "auth != null",
-      ".write": "auth != null",
-      "$entryId": {
-        ".validate": "newData.hasChildren(['userId', 'date', 'recycled', 'composted', 'plasticReduced']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('date').isNumber() && newData.child('recycled').isNumber() && newData.child('composted').isNumber() && newData.child('plasticReduced').isNumber()"
-      }
-    },
-    
-    "waste_goals": {
-      ".indexOn": ["userId", "date"],
-      ".read": "auth != null",
-      ".write": "auth != null",
-      "$goalId": {
-        ".validate": "newData.hasChildren(['userId', 'date', 'targetRecycled', 'targetComposted', 'targetPlasticReduced']) && newData.child('userId').isString() && newData.child('userId').val() == auth.uid && newData.child('date').isNumber() && newData.child('targetRecycled').isNumber() && newData.child('targetComposted').isNumber() && newData.child('targetPlasticReduced').isNumber()"
-      }
-    },
-    
-    "waste_tracker": {
-      "$userId": {
-        ".indexOn": ["date"],
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        "$entryId": {
-          ".validate": "newData.hasChildren(['date', 'recycled', 'composted', 'plasticReduced']) && newData.child('date').isNumber() && newData.child('recycled').isNumber() && newData.child('composted').isNumber() && newData.child('plasticReduced').isNumber()"
-        }
-      }
-    },
-    
-    "carbon_footprint": {
-      ".indexOn": ["userId", "date"],
-      "$userId": {
-        ".indexOn": ["date"],
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        "$entryId": {
-          ".validate": "newData.hasChildren(['date', 'transport', 'energy', 'food', 'total']) && newData.child('date').isNumber() && newData.child('transport').isNumber() && newData.child('energy').isNumber() && newData.child('food').isNumber() && newData.child('total').isNumber()"
-        }
-      }
-    },
-    
-    "app_data": {
-      ".indexOn": ["key"],
-      ".read": "auth != null",
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
-      "$dataId": {
-        ".validate": "newData.hasChildren(['key', 'value', 'lastUpdated']) && newData.child('key').isString() && newData.child('value').isString() && newData.child('lastUpdated').isNumber()"
-      }
-    },
-    
-    "user_progress": {
-      ".indexOn": ["userId"],
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId",
-        ".validate": "newData.hasChildren(['carbonFootprint', 'wasteTracking', 'challenges', 'achievements']) && newData.child('carbonFootprint').isNumber() && newData.child('wasteTracking').isNumber() && newData.child('challenges').isNumber() && newData.child('achievements').isNumber()"
-      }
-    },
-    
     "user_challenges": {
-      ".indexOn": ["userId"],
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId"
-      }
+      ".indexOn": ["userId"]
     },
-    
+    "certifications": {
+      ".indexOn": ["name"]
+    },
+    "energy_tips": {
+      ".indexOn": ["category"]
+    },
+    "eco_travel": {
+      ".indexOn": ["destination", "ecoRating"]
+    },
+    "educational_content": {
+      ".indexOn": ["category", "difficulty", "isPublished"]
+    },
+    "waste_entries": {
+      ".indexOn": ["userId", "date"]
+    },
+    "waste_goals": {
+      ".indexOn": ["userId", "date"]
+    },
+    "carbon_footprint": {
+      ".indexOn": ["userId", "date"]
+    },
+    "carbon_goals": {
+      ".indexOn": ["userId"]
+    },
+    "user_progress": {
+      ".indexOn": ["userId"]
+    },
     "progress_goals": {
-      ".indexOn": ["userId"],
-      "$userId": {
-        ".read": "auth != null && auth.uid == $userId",
-        ".write": "auth != null && auth.uid == $userId"
-      }
-    }
+      ".indexOn": ["userId"]
+    },
+    ".read": true,
+    ".write": true
   }
 } 

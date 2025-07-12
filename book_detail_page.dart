@@ -1,29 +1,27 @@
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Only for User type
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:living/models/product_model.dart';
-import 'package:living/services/product_dao.dart';
-import 'package:living/services/cart_dao.dart';
-import 'package:living/services/wish_dao.dart';
-import 'package:living/services/auth_helper.dart';
-import 'package:living/widgets/header.dart';
-import 'package:living/widgets/footer.dart';
-import 'package:living/widgets/loader.dart';
-import 'package:living/style/responsive_helper.dart';
-import 'package:living/style/theme.dart';
+import 'package:bookstore_app/models/book.dart';
+import 'package:bookstore_app/services/book_dao.dart';
+import 'package:bookstore_app/services/cart_dao.dart';
+import 'package:bookstore_app/services/wish_dao.dart';
+import 'package:bookstore_app/services/auth_helper.dart';
+import 'package:bookstore_app/widgets/header.dart';
+import 'package:bookstore_app/widgets/footer.dart';
+import 'package:bookstore_app/widgets/loader.dart';
 
-class ProductDetailPage extends StatefulWidget {
-  final String productKey;
-  const ProductDetailPage({super.key, required this.productKey});
-  static const String routeName = '/product-detail';
+class BookDetailPage extends StatefulWidget {
+  final String bookKey;
+  const BookDetailPage({super.key, required this.bookKey});
+  static const String routeName = '/book-detail';
 
   @override
-  State<ProductDetailPage> createState() => _ProductDetailPageState();
+  State<BookDetailPage> createState() => _BookDetailPageState();
 }
 
-class _ProductDetailPageState extends State<ProductDetailPage> {
-  Product? _product;
+class _BookDetailPageState extends State<BookDetailPage> {
+  Book? _book;
   String? _error;
   final _reviewCtrl = TextEditingController();
   int _rating = 0;
@@ -34,44 +32,36 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   void initState() {
     super.initState();
-    _fetchProduct();
+    _fetchBook();
   }
 
-  @override
-  void dispose() {
-    _reviewCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchProduct() async {
+  Future<void> _fetchBook() async {
     setState(() {
       _error = null;
       _loading = true;
     });
     try {
       final snapshot =
-          await FirebaseDatabase.instance
-              .ref('products/${widget.productKey}')
-              .get();
+          await FirebaseDatabase.instance.ref('books/${widget.bookKey}').get();
       if (snapshot.exists && snapshot.value != null) {
         final data = snapshot.value;
         if (data is Map) {
           setState(() {
-            _product = Product.fromJson(Map<dynamic, dynamic>.from(data));
+            _book = Book.fromJson(Map<dynamic, dynamic>.from(data));
           });
         } else {
           setState(() {
-            _error = "Invalid product data format.";
+            _error = "Invalid book data format.";
           });
         }
       } else {
         setState(() {
-          _error = "Product not found in database.";
+          _error = "Book not found in database.";
         });
       }
     } catch (e) {
       setState(() {
-        _error = "Failed to load product: $e";
+        _error = "Failed to load book: $e";
       });
     } finally {
       setState(() {
@@ -81,7 +71,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   }
 
   Future<void> _submitReview() async {
-    if (_product == null) return;
+    if (_book == null) return;
     if (_rating == 0 || _reviewCtrl.text.trim().isEmpty) {
       setState(() => _error = "Please provide a rating and comment.");
       return;
@@ -99,26 +89,28 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         likes: 0,
         createdAt: DateTime.now().millisecondsSinceEpoch,
       );
-      final updatedReviews = Map<String, Review>.from(_product!.reviews);
+      final updatedReviews = Map<String, Review>.from(_book!.reviews);
       updatedReviews[userId] = review;
       final allRatings = updatedReviews.values.map((r) => r.rating).toList();
       final avg =
           allRatings.isEmpty
               ? 0.0
               : allRatings.reduce((a, b) => a + b) / allRatings.length;
-      final updatedProduct = Product(
-        name: _product!.name,
-        category: _product!.category,
-        description: _product!.description,
-        ecoRating: _product!.ecoRating,
-        imageUrl: _product!.imageUrl,
-        price: _product!.price,
+      final updatedBook = Book(
+        title: _book!.title,
+        author: _book!.author,
+        category: _book!.category,
+        description: _book!.description,
+        coverImageURL: _book!.coverImageURL,
+        price: _book!.price,
+        isBestseller: _book!.isBestseller,
+        isNewArrival: _book!.isNewArrival,
         ratings: Ratings(average: avg, count: allRatings.length),
         reviews: updatedReviews,
       );
-      ProductDao().updateProduct(widget.productKey, updatedProduct);
+      BookDao().updateBook(widget.bookKey, updatedBook);
       setState(() {
-        _product = updatedProduct;
+        _book = updatedBook;
         _reviewCtrl.clear();
         _rating = 0;
       });
@@ -139,59 +131,42 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            'Error',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            ),
-          ),
-        ),
+        appBar: AppBar(title: const Text('Error')),
         body: Center(
-          child: Text(
-            _error!,
-            style: TextStyle(
-              color: AppColors.error,
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-            ),
-          ),
+          child: Text(_error!, style: const TextStyle(color: Colors.red)),
         ),
       );
     }
 
-    if (_product == null) {
-      return const Scaffold(body: Center(child: Text('Product not found')));
+    if (_book == null) {
+      return const Scaffold(body: Center(child: Text('Book not found')));
     }
 
-    final product = _product!;
+    final book = _book!;
     final cover =
-        product.imageUrl.isNotEmpty
+        book.coverImageURL.isNotEmpty
             ? Image.memory(
-              base64Decode(product.imageUrl),
+              base64Decode(book.coverImageURL),
               width: 120,
               height: 160,
-              fit: BoxFit.cover,
+              fit: BoxFit.fill,
             )
             : Container(
               width: 120,
               height: 160,
               color: Colors.grey[300],
-              child: Icon(
-                Icons.shopping_bag,
-                size: 60,
-                color: AppColors.mutedText,
-              ),
+              child: const Icon(Icons.book, size: 60),
             );
     final reviews =
-        product.reviews.values.toList()
+        book.reviews.values.toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final canReview = _user != null;
 
     return Scaffold(
-      drawer: Header.buildDrawer(context),
+      drawer: BookstoreHeader.buildDrawer(context),
       body: Column(
         children: [
-          const Header(),
+          const BookstoreHeader(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(18),
@@ -207,19 +182,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              product.name,
+                              book.title,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              'Category: ${product.category.name}',
+                              'by ${book.author}',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const SizedBox(height: 8),
-                            Text('Price: \$${product.price.toStringAsFixed(2)}'),
-                            Text('Eco Rating: ${product.ecoRating.toStringAsFixed(1)}★'),
+                            Text('Category: ${book.category.name}'),
+                            Text('Price: \$${book.price.toStringAsFixed(2)}'),
                             const SizedBox(height: 8),
                             Row(
                               children: [
@@ -230,7 +205,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${product.ratings.average.toStringAsFixed(1)} (${product.ratings.count} reviews)',
+                                  '${book.ratings.average.toStringAsFixed(1)} (${book.ratings.count} reviews)',
                                 ),
                               ],
                             ),
@@ -247,9 +222,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             final userId = _user!.uid;
                                             await CartDao().addToCart(
                                               userId,
-                                              product,
+                                              book,
                                               1,
-                                              widget.productKey,
+                                              widget.bookKey,
                                             );
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(
@@ -274,8 +249,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             final userId = _user!.uid;
                                             await WishDao().addToWishList(
                                               userId,
-                                              product,
-                                              widget.productKey,
+                                              book,
+                                              widget.bookKey,
                                             );
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(
@@ -298,7 +273,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 18),
-                  Text(product.description, style: const TextStyle(fontSize: 15)),
+                  Text(book.description, style: const TextStyle(fontSize: 15)),
                   const SizedBox(height: 18),
                   const Divider(),
                   Text(
@@ -366,7 +341,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                             : () async {
                                               final updatedReviews =
                                                   Map<String, Review>.from(
-                                                    _product!.reviews,
+                                                    _book!.reviews,
                                                   );
                                               updatedReviews.remove(_user!.uid);
                                               final allRatings =
@@ -383,25 +358,30 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                                               ? 1
                                                               : allRatings
                                                                   .length);
-                                              final updatedProduct = Product(
-                                                name: _product!.name,
-                                                category: _product!.category,
-                                                description: _product!.description,
-                                                ecoRating: _product!.ecoRating,
-                                                imageUrl: _product!.imageUrl,
-                                                price: _product!.price,
+                                              final updatedBook = Book(
+                                                title: _book!.title,
+                                                author: _book!.author,
+                                                category: _book!.category,
+                                                description: _book!.description,
+                                                coverImageURL:
+                                                    _book!.coverImageURL,
+                                                price: _book!.price,
+                                                isBestseller:
+                                                    _book!.isBestseller,
+                                                isNewArrival:
+                                                    _book!.isNewArrival,
                                                 ratings: Ratings(
                                                   average: avg,
                                                   count: allRatings.length,
                                                 ),
                                                 reviews: updatedReviews,
                                               );
-                                              ProductDao().updateProduct(
-                                                widget.productKey,
-                                                updatedProduct,
+                                              BookDao().updateBook(
+                                                widget.bookKey,
+                                                updatedBook,
                                               );
                                               setState(() {
-                                                _product = updatedProduct;
+                                                _book = updatedBook;
                                                 _reviewCtrl.clear();
                                                 _rating = 0;
                                               });
@@ -496,7 +476,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
             ),
           ),
-          const Footer(),
+          const BookstoreFooter(),
         ],
       ),
     );

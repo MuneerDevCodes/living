@@ -23,18 +23,57 @@ class _ManageProductPageState extends State<ManageProductPage> {
   final ProductDao productDao = ProductDao();
   final ScrollController _scrollController = ScrollController();
 
+  @override
+  void initState() {
+    super.initState();
+    _testConnection();
+  }
+
+  Future<void> _testConnection() async {
+    try {
+      await productDao.testConnection();
+    } catch (e) {
+      print('Connection test failed in initState: $e');
+    }
+  }
+
   void _showProductModal({Product? product, String? key}) {
     showDialog(
       context: context,
       builder: (ctx) => ProductModal(
         product: product,
-        onSubmit: (newProduct) {
-          if (key != null) {
-            productDao.updateProduct(key, newProduct);
-          } else {
-            productDao.saveProduct(newProduct);
+        onSubmit: (newProduct) async {
+          try {
+            if (key != null) {
+              // Preserve existing reviews and ratings when editing
+              final existingProduct = await productDao.getProductById(key);
+              if (existingProduct != null) {
+                final updatedProduct = Product(
+                  name: newProduct.name,
+                  category: newProduct.category,
+                  description: newProduct.description,
+                  price: newProduct.price,
+                  ecoRating: newProduct.ecoRating,
+                  imageUrl: newProduct.imageUrl,
+                  ratings: existingProduct.ratings,
+                  reviews: existingProduct.reviews,
+                );
+                await productDao.updateProduct(key, updatedProduct);
+              } else {
+                await productDao.updateProduct(key, newProduct);
+              }
+            } else {
+              await productDao.saveProduct(newProduct);
+            }
+            setState(() {});
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error saving product: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
-          setState(() {});
         },
       ),
     );
@@ -171,11 +210,31 @@ class _ManageProductPageState extends State<ManageProductPage> {
                     }
                     if (snapshot.hasError) {
                       return Center(
-                        child: Text(
-                          'Error loading products',
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                          ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Error loading products',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            Text(
+                              '${snapshot.error}',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                color: Colors.red,
+                              ),
+                            ),
+                            SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: () {
+                                setState(() {});
+                              },
+                              child: Text('Retry'),
+                            ),
+                          ],
                         ),
                       );
                     }

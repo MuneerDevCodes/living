@@ -357,9 +357,100 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Add challenge logic here
+            onPressed: () async {
+              // Validate form data
+              if (titleController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a title'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              if (descriptionController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a description'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              if (categoryController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a category'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              final duration = int.tryParse(durationController.text);
+              if (duration == null || duration <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a valid duration (positive number)'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              final points = int.tryParse(pointsController.text);
+              if (points == null || points < 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a valid points reward (non-negative number)'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              // Parse tasks
+              final tasks = tasksController.text
+                  .split('\n')
+                  .map((task) => task.trim())
+                  .where((task) => task.isNotEmpty)
+                  .toList();
+              
+              if (tasks.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter at least one task'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              try {
+                // Create challenge object
+                final challenge = Challenge(
+                  key: '', // Will be set by Firebase
+                  title: titleController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  category: categoryController.text.trim(),
+                  durationDays: duration,
+                  pointsReward: points,
+                  difficulty: selectedDifficulty,
+                  tasks: tasks,
+                  startDate: DateTime.now(),
+                  endDate: DateTime.now().add(Duration(days: duration)),
+                  isActive: true,
+                );
+                
+                // Add challenge to database
+                await ChallengeDAO.addChallenge(challenge);
+                
+                // Close dialog
               Navigator.pop(context);
+                
+                // Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -371,6 +462,17 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                   backgroundColor: AppColors.success,
                 ),
               );
+                
+                // Reload challenges list
+                _loadData();
+                
+              } catch (e) {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertError('Failed to add challenge: $e'),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -389,6 +491,14 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
   }
 
   void _showEditChallengeDialog(Challenge challenge) {
+    final titleController = TextEditingController(text: challenge.title);
+    final descriptionController = TextEditingController(text: challenge.description);
+    final categoryController = TextEditingController(text: challenge.category);
+    final durationController = TextEditingController(text: challenge.durationDays.toString());
+    final pointsController = TextEditingController(text: challenge.pointsReward.toString());
+    String selectedDifficulty = challenge.difficulty;
+    final tasksController = TextEditingController(text: challenge.tasks.join('\n'));
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -399,10 +509,108 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: Text(
-          'Edit form would go here',
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: categoryController,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: durationController,
+                      decoration: InputDecoration(
+                        labelText: 'Duration (days)',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: TextField(
+                      controller: pointsController,
+                      decoration: InputDecoration(
+                        labelText: 'Points Reward',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedDifficulty,
+                decoration: InputDecoration(
+                  labelText: 'Difficulty',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Easy',
+                  'Medium',
+                  'Hard',
+                ].map((difficulty) => DropdownMenuItem(
+                  value: difficulty,
+                  child: Text(
+                    difficulty,
           style: TextStyle(
             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedDifficulty = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: tasksController,
+                decoration: InputDecoration(
+                  labelText: 'Tasks (one per line)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 5,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -416,8 +624,100 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
+              // Validate form data
+              if (titleController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a title'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              if (descriptionController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a description'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              if (categoryController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a category'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              final duration = int.tryParse(durationController.text);
+              if (duration == null || duration <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a valid duration (positive number)'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              final points = int.tryParse(pointsController.text);
+              if (points == null || points < 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a valid points reward (non-negative number)'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              // Parse tasks
+              final tasks = tasksController.text
+                  .split('\n')
+                  .map((task) => task.trim())
+                  .where((task) => task.isNotEmpty)
+                  .toList();
+              
+              if (tasks.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter at least one task'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              try {
+                // Create updated challenge object
+                final updatedChallenge = Challenge(
+                  key: challenge.key,
+                  title: titleController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  category: categoryController.text.trim(),
+                  durationDays: duration,
+                  pointsReward: points,
+                  difficulty: selectedDifficulty,
+                  tasks: tasks,
+                  startDate: challenge.startDate,
+                  endDate: challenge.startDate.add(Duration(days: duration)),
+                  isActive: challenge.isActive,
+                );
+                
+                // Update challenge in database
+                await ChallengeDAO.updateChallenge(updatedChallenge);
+                
+                // Close dialog
               Navigator.pop(context);
+                
+                // Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -429,6 +729,17 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                   backgroundColor: AppColors.success,
                 ),
               );
+                
+                // Reload challenges list
+                _loadData();
+                
+              } catch (e) {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertError('Failed to update challenge: $e'),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -474,9 +785,15 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Delete challenge logic here
+            onPressed: () async {
+              try {
+                // Delete challenge from database
+                await ChallengeDAO.deleteChallenge(challenge.key);
+                
+                // Close dialog
               Navigator.pop(context);
+                
+                // Show success message
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
@@ -488,6 +805,17 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                   backgroundColor: AppColors.error,
                 ),
               );
+                
+                // Reload challenges list
+                _loadData();
+                
+              } catch (e) {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertError('Failed to delete challenge: $e'),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

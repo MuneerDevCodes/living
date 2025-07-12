@@ -104,9 +104,6 @@ class _OrderPageState extends State<OrderPage> {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return ListTile(
                         title: Loader(),
-                        titleTextStyle: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        ),
                       );
                     }
                     final product = snapshot.data;

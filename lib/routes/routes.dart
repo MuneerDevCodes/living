@@ -17,6 +17,8 @@ import 'package:living/screens/manage_category_page.dart';
 import 'package:living/screens/manage_order_page.dart';
 import 'package:living/screens/manage_contact_us_page.dart';
 import 'package:living/screens/carbon_footprint_page.dart';
+import 'package:living/screens/carbon_history_page.dart';
+import 'package:living/screens/carbon_insights_page.dart';
 import 'package:living/screens/challenges_page.dart';
 import 'package:living/screens/certifications_page.dart';
 import 'package:living/screens/waste_tracker_page.dart';
@@ -60,9 +62,11 @@ final Map<String, WidgetBuilder> protectedRoutes = {
   '/logout': (context) => const Logout(),
   '/cart': (context) => const CartPage(),
   '/wishlist': (context) => const WishPage(),
-  '/order': (context) => const OrderPage(),
+  '/orders': (context) => const OrderPage(),
   '/profile': (context) => const ProfilePage(),
   '/carbon-footprint': (context) => const CarbonFootprintPage(),
+  '/carbon-history': (context) => const CarbonHistoryPage(),
+  '/carbon-insights': (context) => const CarbonInsightsPage(),
   '/challenges': (context) => const ChallengesPage(),
   '/waste-tracker': (context) => const WasteTrackerPage(),
   '/progress-dashboard': (context) => const ProgressDashboardPage(),
@@ -111,6 +115,8 @@ const List<String> protectedRoutesList = [
   '/order',
   '/profile',
   '/carbon-footprint',
+  '/carbon-history',
+  '/carbon-insights',
   '/challenges',
   '/certifications',
   '/waste-tracker',

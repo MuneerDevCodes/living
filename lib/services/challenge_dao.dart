@@ -13,7 +13,7 @@ class ChallengeDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          challenges.add(Challenge.fromJson(child.key!, child.value as Map<String, dynamic>));
+          challenges.add(Challenge.fromJson(child.key!, Map<String, dynamic>.from(child.value as Map)));
         }
       }
       
@@ -31,7 +31,7 @@ class ChallengeDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          userChallenges.add(UserChallenge.fromJson(child.key!, child.value as Map<String, dynamic>));
+          userChallenges.add(UserChallenge.fromJson(child.key!, Map<String, dynamic>.from(child.value as Map)));
         }
       }
       

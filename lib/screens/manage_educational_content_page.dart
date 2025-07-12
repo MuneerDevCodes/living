@@ -393,20 +393,80 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Add content logic here
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Content added successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            onPressed: () async {
+              // Validate required fields
+              if (titleController.text.trim().isEmpty ||
+                  descriptionController.text.trim().isEmpty ||
+                  contentController.text.trim().isEmpty ||
+                  authorController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please fill in all required fields',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.error,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+                );
+                return;
+              }
+
+              try {
+                // Create EducationalContent object
+                final newContent = EducationalContent(
+                  key: '', // Will be set by Firebase
+                  title: titleController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  category: selectedCategory,
+                  content: contentController.text.trim(),
+                  author: authorController.text.trim(),
+                  publishDate: DateTime.now(),
+                  tags: tagsController.text.trim().isEmpty 
+                      ? [] 
+                      : tagsController.text.trim().split(',').map((tag) => tag.trim()).toList(),
+                  imageUrl: imageUrlController.text.trim(),
+                  contentType: selectedContentType,
+                  videoUrl: videoUrlController.text.trim().isEmpty 
+                      ? null 
+                      : videoUrlController.text.trim(),
+                  isPublished: true,
+                );
+
+                // Save to database
+                await EducationalContentDAO.addEducationalContent(newContent);
+
+                Navigator.pop(context);
+                
+                // Refresh the content list
+                await _loadData();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Content added successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to add content: $e',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -425,7 +485,16 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
   }
 
   void _showEditContentDialog(EducationalContent content) {
-    // Similar to add dialog but with pre-filled values
+    final titleController = TextEditingController(text: content.title);
+    final descriptionController = TextEditingController(text: content.description);
+    final contentController = TextEditingController(text: content.content);
+    final authorController = TextEditingController(text: content.author);
+    final imageUrlController = TextEditingController(text: content.imageUrl);
+    final videoUrlController = TextEditingController(text: content.videoUrl ?? '');
+    final tagsController = TextEditingController(text: content.tags.join(', '));
+    String selectedCategory = content.category;
+    String selectedContentType = content.contentType;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -436,10 +505,135 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
             fontWeight: FontWeight.bold,
           ),
         ),
-        content: Text(
-          'Edit form would go here',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Title',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Climate Change',
+                  'Waste Reduction',
+                  'Energy Conservation',
+                  'Sustainable Living',
+                ].map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedCategory = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedContentType,
+                decoration: InputDecoration(
+                  labelText: 'Content Type',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Article',
+                  'Video',
+                  'Infographic',
+                ].map((type) => DropdownMenuItem(
+                  value: type,
+                  child: Text(
+                    type,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedContentType = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: authorController,
+                decoration: InputDecoration(
+                  labelText: 'Author',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: contentController,
+                decoration: InputDecoration(
+                  labelText: 'Content',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 5,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: imageUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Image URL (optional)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: videoUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Video URL (optional)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: tagsController,
+                decoration: InputDecoration(
+                  labelText: 'Tags (comma separated)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -453,19 +647,80 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Content updated successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            onPressed: () async {
+              // Validate required fields
+              if (titleController.text.trim().isEmpty ||
+                  descriptionController.text.trim().isEmpty ||
+                  contentController.text.trim().isEmpty ||
+                  authorController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please fill in all required fields',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.error,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+                );
+                return;
+              }
+
+              try {
+                // Create updated EducationalContent object
+                final updatedContent = EducationalContent(
+                  key: content.key,
+                  title: titleController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  category: selectedCategory,
+                  content: contentController.text.trim(),
+                  author: authorController.text.trim(),
+                  publishDate: content.publishDate,
+                  tags: tagsController.text.trim().isEmpty 
+                      ? [] 
+                      : tagsController.text.trim().split(',').map((tag) => tag.trim()).toList(),
+                  imageUrl: imageUrlController.text.trim(),
+                  contentType: selectedContentType,
+                  videoUrl: videoUrlController.text.trim().isEmpty 
+                      ? null 
+                      : videoUrlController.text.trim(),
+                  isPublished: content.isPublished,
+                );
+
+                // Update in database
+                await EducationalContentDAO.updateEducationalContent(updatedContent);
+
+                Navigator.pop(context);
+                
+                // Refresh the content list
+                await _loadData();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Content updated successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to update content: $e',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -511,20 +766,41 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Delete content logic here
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Content deleted successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            onPressed: () async {
+              try {
+                // Delete from database
+                await EducationalContentDAO.deleteEducationalContent(content.key);
+                
+                Navigator.pop(context);
+                
+                // Refresh the content list
+                await _loadData();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Content deleted successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.error,
                   ),
-                  backgroundColor: AppColors.error,
-                ),
-              );
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to delete content: $e',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,

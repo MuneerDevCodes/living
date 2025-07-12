@@ -316,62 +316,45 @@ class _ChallengesPageState extends State<ChallengesPage> {
     }
   }
 
-  void _startChallenge(Challenge challenge) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Start Challenge',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Are you ready to start "${challenge.title}"?',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Challenge started successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                    ),
-                  ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
-            child: Text(
-              'Start',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-        ],
-      ),
+  void _startChallenge(Challenge challenge) async {
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You must be logged in to start a challenge.')),
+      );
+      return;
+    }
+
+    // Prevent starting the same challenge twice
+    if (userChallenges.any((uc) => uc.challengeId == challenge.key && !uc.isCompleted)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('You have already started this challenge.')),
+      );
+      return;
+    }
+
+    final userChallenge = UserChallenge(
+      key: '', // Will be set by Firebase
+      userId: userId!,
+      challengeId: challenge.key,
+      startDate: DateTime.now(),
+      completedDate: null,
+      isCompleted: false,
+      progress: 0,
+      taskCompletion: List.filled(challenge.tasks.length, false),
     );
+
+    try {
+      await ChallengeDAO.startChallenge(userChallenge);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Challenge started!')),
+      );
+      await _loadData(); // Refresh challenges and progress
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertError('Failed to start challenge: $e'),
+      );
+    }
   }
 
   Widget _buildProgressTab() {
@@ -388,6 +371,31 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildProgressOverview() {
+    // Calculate dynamic stats
+    final completedCount = userChallenges.where((uc) => uc.isCompleted).length;
+    final inProgressCount = userChallenges.where((uc) => !uc.isCompleted).length;
+    int totalPoints = 0;
+    for (var uc in userChallenges.where((uc) => uc.isCompleted)) {
+      final challenge = availableChallenges.firstWhere(
+        (c) => c.key == uc.challengeId,
+        orElse: () => Challenge(
+          key: '',
+          title: '',
+          description: '',
+          category: '',
+          durationDays: 0,
+          pointsReward: 0,
+          difficulty: '',
+          tasks: [],
+          startDate: DateTime.now(),
+          endDate: DateTime.now(),
+          isActive: false,
+        ),
+      );
+      if (challenge.key != '') {
+        totalPoints += challenge.pointsReward;
+      }
+    }
     return Card(
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
@@ -405,15 +413,15 @@ class _ChallengesPageState extends State<ChallengesPage> {
             Row(
               children: [
                 Expanded(
-                  child: _buildProgressStat('Completed', '12', AppColors.success),
+                  child: _buildProgressStat('Completed', completedCount.toString(), AppColors.success),
                 ),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 Expanded(
-                  child: _buildProgressStat('In Progress', '3', AppColors.warning),
+                  child: _buildProgressStat('In Progress', inProgressCount.toString(), AppColors.warning),
                 ),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 Expanded(
-                  child: _buildProgressStat('Total Points', '450', AppColors.info),
+                  child: _buildProgressStat('Total Points', totalPoints.toString(), AppColors.info),
                 ),
               ],
             ),
@@ -447,44 +455,127 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Widget _buildActiveChallenges() {
-    return Card(
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Active Challenges',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-              ),
+    final activeChallenges = userChallenges.where((uc) => !uc.isCompleted).toList();
+    if (activeChallenges.isEmpty) {
+      return Text('No active challenges.');
+    }
+    return Column(
+      children: activeChallenges.map((uc) {
+        final challenge = availableChallenges.firstWhere(
+          (c) => c.key == uc.challengeId,
+          orElse: () => Challenge(
+            key: '',
+            title: '',
+            description: '',
+            category: '',
+            durationDays: 0,
+            pointsReward: 0,
+            difficulty: '',
+            tasks: [],
+            startDate: DateTime.now(),
+            endDate: DateTime.now(),
+            isActive: false,
+          ),
+        );
+        if (challenge.key == '') return SizedBox.shrink();
+        final daysIn = DateTime.now().difference(uc.startDate).inDays + 1;
+        final progress = uc.taskCompletion.isNotEmpty
+            ? uc.taskCompletion.where((t) => t).length / uc.taskCompletion.length
+            : 0.0;
+        return Card(
+          margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
+          child: Padding(
+            padding: ResponsiveHelper.getAdaptivePadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            challenge.title,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Day $daysIn of ${challenge.durationDays}',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(
+                          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                        ),
+                      ),
+                      child: Text(
+                        '${(progress * 100).toInt()}%',
+                        style: TextStyle(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.bold,
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: AppColors.borderLight,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.success),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                // List of tasks with checkboxes
+                ...List.generate(challenge.tasks.length, (taskIdx) {
+                  return CheckboxListTile(
+                    title: Text(
+                      challenge.tasks[taskIdx],
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        decoration: uc.taskCompletion[taskIdx] ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    value: uc.taskCompletion[taskIdx],
+                    onChanged: (checked) async {
+                      final updatedTaskCompletion = List<bool>.from(uc.taskCompletion);
+                      updatedTaskCompletion[taskIdx] = checked ?? false;
+                      final updatedUserChallenge = UserChallenge(
+                        key: uc.key,
+                        userId: uc.userId,
+                        challengeId: uc.challengeId,
+                        startDate: uc.startDate,
+                        completedDate: (updatedTaskCompletion.every((t) => t)) ? DateTime.now() : uc.completedDate,
+                        isCompleted: updatedTaskCompletion.every((t) => t),
+                        progress: updatedTaskCompletion.where((t) => t).length,
+                        taskCompletion: updatedTaskCompletion,
+                      );
+                      await ChallengeDAO.updateChallengeProgress(updatedUserChallenge);
+                      await _loadData();
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                  );
+                }),
+              ],
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            // Sample active challenge
-            _buildActiveChallengeItem(
-              'Reduce Plastic Usage',
-              'Day 5 of 30',
-              0.6,
-              AppColors.success,
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-            _buildActiveChallengeItem(
-              'Walk to Work',
-              'Day 12 of 21',
-              0.8,
-              AppColors.warning,
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-            _buildActiveChallengeItem(
-              'Energy Conservation',
-              'Day 3 of 14',
-              0.3,
-              AppColors.info,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      }).toList(),
     );
   }
 
