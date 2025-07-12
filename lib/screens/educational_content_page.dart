@@ -79,13 +79,19 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
       body: Column(
         children: [
           const Header(),
+          // Intro banner for user guidance
+          _buildIntroBanner(),
           Expanded(
             child: Stack(
               children: [
                 if (isLoading) const Positioned.fill(child: Loader()),
                 Column(
                   children: [
+                    // Section heading for filters
+                    _buildSectionHeading('Filter by Category'),
                     _buildFilters(),
+                    // Section heading for content
+                    _buildSectionHeading('Educational Content'),
                     Expanded(
                       child: _buildContentList(),
                     ),
@@ -104,6 +110,52 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
         child: Icon(
           Icons.add,
           size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIntroBanner() {
+    return Container(
+      width: double.infinity,
+      color: AppColors.info.withOpacity(0.08),
+      padding: EdgeInsets.symmetric(
+        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.7,
+        horizontal: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lightbulb, color: AppColors.info, size: 28),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          Expanded(
+            child: Text(
+              'Explore articles, videos, and infographics to learn about sustainability. Use the filters to find topics you care about. Tap any card for details and actionable steps!',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                color: AppColors.primaryText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeading(String text) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        left: ResponsiveHelper.getAdaptiveSpacing(context),
+        top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.7,
+        bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
         ),
       ),
     );
@@ -148,12 +200,27 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   Widget _buildContentList() {
     if (filteredContent.isEmpty) {
       return Center(
-        child: Text(
-          'No educational content found for this category.',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-            color: AppColors.secondaryText,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, color: AppColors.secondaryText, size: 40),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Text(
+              'No educational content found for this category.',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                color: AppColors.secondaryText,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Try changing the filters or check back later for new content.',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -384,6 +451,10 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                   ),
                 )).toList(),
               ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Divider(),
+              // How to Take Action section
+              _buildActionSection(item),
             ],
           ),
         ),
@@ -400,6 +471,88 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
         ],
       ),
     );
+  }
+
+  // Actionable tips based on category/type
+  Widget _buildActionSection(EducationalContent item) {
+    final tips = _getActionTips(item);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'How to Take Action',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+            color: AppColors.success,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        ...tips.map((tip) => Padding(
+          padding: EdgeInsets.only(bottom: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.check_circle, color: AppColors.success, size: 16),
+              SizedBox(width: 8),
+              Expanded(child: Text(tip, style: TextStyle(fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13)))),
+            ],
+          ),
+        )),
+      ],
+    );
+  }
+
+  List<String> _getActionTips(EducationalContent item) {
+    switch (item.category) {
+      case 'Climate Change':
+        return [
+          'Share what you learned with friends or family.',
+          'Take small steps to reduce your carbon footprint.',
+          'Stay informed and support climate-friendly policies.'
+        ];
+      case 'Sustainable Living':
+        return [
+          'Try one new sustainable habit this week.',
+          'Reduce, reuse, and recycle whenever possible.',
+          'Encourage others to join you in sustainable actions.'
+        ];
+      case 'Renewable Energy':
+        return [
+          'Switch to renewable energy sources if available.',
+          'Advocate for clean energy in your community.',
+          'Educate yourself about local energy options.'
+        ];
+      case 'Waste Management':
+        return [
+          'Sort your waste and recycle properly.',
+          'Compost organic waste if possible.',
+          'Reduce single-use plastics in your daily life.'
+        ];
+      case 'Biodiversity':
+        return [
+          'Support local conservation efforts.',
+          'Plant native species in your garden.',
+          'Learn about local wildlife and habitats.'
+        ];
+      case 'Water Conservation':
+        return [
+          'Fix leaks and use water-saving devices.',
+          'Take shorter showers and turn off the tap when not needed.',
+          'Educate others about the importance of water conservation.'
+        ];
+      case 'Sustainable Agriculture':
+        return [
+          'Buy local and seasonal produce.',
+          'Reduce food waste by planning meals.',
+          'Support farmers who use sustainable practices.'
+        ];
+      default:
+        return [
+          'Reflect on what you learned and share it with others.',
+          'Look for ways to apply this knowledge in your daily life.'
+        ];
+    }
   }
 
   Color _getContentTypeColor(String contentType) {

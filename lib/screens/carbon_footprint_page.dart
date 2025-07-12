@@ -29,6 +29,19 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
   double get currentFootprint => analytics?.weeklyAverage ?? 0.0;
   double get targetFootprint => 5.0; // Target of 5 kg CO2/day
 
+  // Helper method for category icons
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Transportation': return Icons.directions_car;
+      case 'Energy': return Icons.electric_bolt;
+      case 'Food': return Icons.restaurant;
+      case 'Waste': return Icons.delete;
+      case 'Water': return Icons.water_drop;
+      case 'Digital': return Icons.computer;
+      default: return Icons.category;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -557,165 +570,159 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
 
   Widget _buildAnalyticsTab() {
     if (analytics == null) return _buildEmptyState();
-    
+    final highestCategory = analytics!.categoryBreakdown.entries.isNotEmpty
+        ? analytics!.categoryBreakdown.entries.reduce((a, b) => a.value > b.value ? a : b)
+        : null;
+    final lowestCategory = analytics!.categoryBreakdown.entries.isNotEmpty
+        ? analytics!.categoryBreakdown.entries.reduce((a, b) => a.value < b.value ? a : b)
+        : null;
+    final highestDay = analytics!.weeklyTrend.entries.isNotEmpty
+        ? analytics!.weeklyTrend.entries.reduce((a, b) => a.value > b.value ? a : b)
+        : null;
+
     return SingleChildScrollView(
       padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAnalyticsOverviewCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildTrendsCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildComparisonCard(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnalyticsOverviewCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.analytics, color: AppColors.primary, size: 24),
-                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                Text(
-                  'Analytics Overview',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAnalyticsItem('Weekly', '${analytics!.weeklyAverage.toStringAsFixed(1)} kg/day'),
-                ),
-                Expanded(
-                  child: _buildAnalyticsItem('Monthly', '${analytics!.monthlyAverage.toStringAsFixed(1)} kg/day'),
-                ),
-                Expanded(
-                  child: _buildAnalyticsItem('Yearly', '${analytics!.yearlyAverage.toStringAsFixed(1)} kg/day'),
-                ),
-              ],
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAnalyticsItem('Total Entries', '${analytics!.totalEntries}'),
-                ),
-                Expanded(
-                  child: _buildAnalyticsItem('Reduction', '${analytics!.reductionPercentage.toStringAsFixed(1)}%'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnalyticsItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-            color: AppColors.secondaryText,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrendsCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Weekly Trends',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            ...analytics!.weeklyTrend.entries.map((entry) => Padding(
-              padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
-              child: Row(
+          // Total Carbon Footprint
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: Text(entry.key)),
                   Text(
-                    '${entry.value.toStringAsFixed(1)} kg',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    'This Week',
+                    style: TextStyle(fontSize: 16, color: AppColors.secondaryText),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '${analytics!.weeklyAverage.toStringAsFixed(1)} kg CO₂',
+                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Total this month: ${analytics!.monthlyAverage.toStringAsFixed(1)} kg CO₂',
+                    style: TextStyle(fontSize: 14, color: AppColors.secondaryText),
                   ),
                 ],
               ),
-            )),
-          ],
-        ),
-      ),
-    );
-  }
+            ),
+          ),
+          SizedBox(height: 24),
 
-  Widget _buildComparisonCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Global Comparison',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
+          // Category Breakdown
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.pie_chart, color: AppColors.primary, size: 24),
+                      SizedBox(width: 8),
+                      Text('Category Breakdown', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  ...analytics!.categoryBreakdown.entries.map((entry) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(_getCategoryIcon(entry.key), color: AppColors.primary, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(child: Text(entry.key)),
+                        Container(
+                          width: 80,
+                          height: 8,
+                          margin: EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: (analytics!.categoryBreakdown.values.isNotEmpty && (analytics!.categoryBreakdown.values.reduce((a, b) => a > b ? a : b)) > 0)
+                                ? (entry.value / (analytics!.categoryBreakdown.values.reduce((a, b) => a > b ? a : b))).clamp(0.0, 1.0)
+                                : 0.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _getCategoryColor(entry.key),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text('${entry.value.toStringAsFixed(1)} kg CO₂', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  )),
+                ],
               ),
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            _buildComparisonItem('Your Average', currentFootprint, AppColors.primary),
-            _buildComparisonItem('Global Average', 7.0, AppColors.warning),
-            _buildComparisonItem('Target', targetFootprint, AppColors.success),
-          ],
-        ),
-      ),
-    );
-  }
+          ),
+          SizedBox(height: 24),
 
-  Widget _buildComparisonItem(String label, double value, Color color) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(
-            '${value.toStringAsFixed(1)} kg/day',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
+          // Weekly Trends
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.show_chart, color: AppColors.info, size: 24),
+                      SizedBox(width: 8),
+                      Text('Weekly Trends', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  ...analytics!.weeklyTrend.entries.map((entry) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(entry.key)),
+                        Text('${entry.value.toStringAsFixed(1)} kg CO₂', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  )),
+                  if (highestDay != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'Your highest footprint was on ${highestDay.key}: ${highestDay.value.toStringAsFixed(1)} kg CO₂',
+                        style: TextStyle(fontSize: 14, color: AppColors.error, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 24),
+
+          // Quick Insights
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Quick Insights', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  if (highestCategory != null)
+                    Text('🚗 Highest: ${highestCategory.key}: ${highestCategory.value.toStringAsFixed(1)} kg CO₂'),
+                  if (lowestCategory != null)
+                    Text('🥗 Lowest: ${lowestCategory.key}: ${lowestCategory.value.toStringAsFixed(1)} kg CO₂'),
+                  Text('⚡ Energy usage steady this week'),
+                ],
+              ),
             ),
           ),
         ],
@@ -724,253 +731,132 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
   }
 
   Widget _buildGoalsTab() {
+    if (goals.isEmpty) return _buildEmptyState();
+    final activeGoal = goals.firstWhere((g) => g.isActive, orElse: () => goals.first);
+    final progress = (activeGoal.currentProgress / activeGoal.targetValue).clamp(0.0, 1.0);
+    final completedCount = goals.where((g) => g.status == 'completed').length;
+    final bestWeek = analytics?.weeklyTrend.values.isNotEmpty == true
+        ? analytics!.weeklyTrend.values.reduce((a, b) => a < b ? a : b)
+        : null;
+    final highestCategory = analytics?.categoryBreakdown.entries.isNotEmpty == true
+        ? analytics!.categoryBreakdown.entries.reduce((a, b) => a.value > b.value ? a : b)
+        : null;
+    String tip = '';
+    if (highestCategory != null) {
+      switch (highestCategory.key) {
+        case 'Transportation':
+          tip = 'Try taking public transport tomorrow to reduce by 3 kg CO₂';
+          break;
+        case 'Energy':
+          tip = 'Switch off appliances when not in use to save energy';
+          break;
+        case 'Food':
+          tip = 'Choose more plant-based meals this week';
+          break;
+        default:
+          tip = 'Keep up the good work!';
+      }
+    }
     return SingleChildScrollView(
       padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildGoalsOverviewCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildGoalsListCard(),
-                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            _buildAddGoalCard(),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            _buildViewHistoryCard(),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            _buildViewInsightsCard(),
+          // Current Goal Display
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your Weekly Goal', style: TextStyle(fontSize: 16, color: AppColors.secondaryText)),
+                  SizedBox(height: 8),
+                  Text(
+                    'Under ${activeGoal.targetValue.toStringAsFixed(1)} kg CO₂',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 24),
+
+          // Progress Bar
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Progress', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: AppColors.borderLight,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        '${activeGoal.currentProgress.toStringAsFixed(1)} / ${activeGoal.targetValue.toStringAsFixed(1)} kg CO₂',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Text('${(progress * 100).toStringAsFixed(0)}% completed', style: TextStyle(fontSize: 12, color: AppColors.secondaryText)),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 24),
+
+          // Motivational Tip
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.lightbulb, color: AppColors.warning, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(child: Text(tip, style: TextStyle(fontSize: 14))),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 24),
+
+          // Past Achievements
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  if (completedCount > 0)
+                    Row(children: [
+                      Icon(Icons.emoji_events, color: AppColors.success, size: 20),
+                      SizedBox(width: 4),
+                      Text('Goal Achieved $completedCount times this month!', style: TextStyle(fontSize: 14)),
+                      SizedBox(width: 16),
+                    ]),
+                  if (bestWeek != null)
+                    Row(children: [
+                      Icon(Icons.star, color: AppColors.info, size: 20),
+                      SizedBox(width: 4),
+                      Text('Best week: ${bestWeek.toStringAsFixed(1)} kg CO₂', style: TextStyle(fontSize: 14)),
+                    ]),
+                ],
+              ),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildGoalsOverviewCard() {
-    final activeGoals = goals.where((goal) => goal.isActive).length;
-    final completedGoals = goals.where((goal) => goal.status == 'completed').length;
-    
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Icon(Icons.flag, color: AppColors.info, size: 24),
-                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                Text(
-                  'Carbon Goals',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildAnalyticsItem('Active Goals', '$activeGoals'),
-                ),
-                Expanded(
-                  child: _buildAnalyticsItem('Completed', '$completedGoals'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGoalsListCard() {
-    final activeGoals = goals.where((goal) => goal.isActive).toList();
-    
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Active Goals',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            if (activeGoals.isEmpty)
-              Text(
-                'No active goals. Create your first carbon reduction goal!',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  color: AppColors.secondaryText,
-                ),
-              )
-            else
-              ...activeGoals.map((goal) => _buildGoalItem(goal)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGoalItem(CarbonGoal goal) {
-    final progress = (goal.currentProgress / goal.targetValue).clamp(0.0, 1.0);
-    final daysLeft = goal.endDate.difference(DateTime.now()).inDays;
-    
-    return Card(
-      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    goal.title,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(goal.status),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    goal.status.replaceAll('_', ' ').toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: AppColors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
-            Text(
-              goal.description,
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                color: AppColors.secondaryText,
-              ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-            LinearProgressIndicator(
-              value: progress,
-              backgroundColor: AppColors.borderLight,
-              valueColor: AlwaysStoppedAnimation<Color>(_getStatusColor(goal.status)),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '${goal.currentProgress.toStringAsFixed(1)} / ${goal.targetValue.toStringAsFixed(1)} ${goal.unit}',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                ),
-                Text(
-                  '$daysLeft days left',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                    color: AppColors.secondaryText,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'on_track': return AppColors.success;
-      case 'ahead': return AppColors.success;
-      case 'behind': return AppColors.error;
-      case 'completed': return AppColors.info;
-      default: return AppColors.warning;
-    }
-  }
-
-  Widget _buildAddGoalCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          children: [
-            ElevatedButton.icon(
-              onPressed: _showAddGoalDialog,
-              icon: Icon(Icons.add),
-              label: Text('Add New Goal'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.info,
-                foregroundColor: AppColors.white,
-                padding: ResponsiveHelper.getAdaptivePadding(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewHistoryCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          children: [
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/carbon-history'),
-              icon: Icon(Icons.history),
-              label: Text('View History'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: AppColors.white,
-                padding: ResponsiveHelper.getAdaptivePadding(context),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewInsightsCard() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          children: [
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/carbon-insights'),
-              icon: Icon(Icons.insights),
-              label: Text('View Insights'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.warning,
-                foregroundColor: AppColors.white,
-                padding: ResponsiveHelper.getAdaptivePadding(context),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1061,83 +947,417 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
+  bool isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
     final categories = CarbonFootprintDAO.getAllCategories();
-    final activities = selectedCategory != null 
+    final List<ActivityType> activities = selectedCategory != null 
         ? CarbonFootprintDAO.getActivityTypesByCategory(selectedCategory!)
-        : [];
+        : <ActivityType>[];
 
-    return AlertDialog(
-      title: Text('Log Carbon Activity'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: ResponsiveHelper.isMobile(context) ? double.infinity : 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: ResponsiveHelper.getAdaptivePadding(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with guidance
+                _buildHeader(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                
+                // Category Selection with guidance
+                _buildCategorySection(categories),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                
+                // Activity Selection with guidance
+                if (selectedCategory != null) ...[
+                  _buildActivitySection(activities),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
+                
+                // Value Input with guidance
+                if (selectedActivity != null) ...[
+                  _buildValueSection(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
+                
+                // Optional fields
+                if (selectedActivity != null) ...[
+                  _buildOptionalFields(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
+                
+                // Action buttons
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            DropdownButtonFormField<String>(
-              value: selectedCategory,
-              decoration: InputDecoration(labelText: 'Category'),
-              items: categories.map((category) => 
-                DropdownMenuItem(value: category, child: Text(category))
-              ).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCategory = value;
-                  selectedActivity = null;
-                });
-              },
-            ),
-            SizedBox(height: 16),
-            if (selectedCategory != null)
-              DropdownButtonFormField<String>(
-                value: selectedActivity,
-                decoration: InputDecoration(labelText: 'Activity'),
-                items: activities.map((activity) => 
-                  DropdownMenuItem<String>(value: activity.name, child: Text(activity.name))
-                ).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedActivity = value;
-                  });
-                },
+            Icon(Icons.eco, color: AppColors.primary, size: 24),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Log Your Carbon Activity',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                fontWeight: FontWeight.bold,
               ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _valueController,
-              decoration: InputDecoration(
-                labelText: 'Value',
-                suffixText: selectedActivity != null 
-                    ? CarbonFootprintDAO.getActivityByName(selectedActivity!)?.unit ?? ''
-                    : '',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _locationController,
-              decoration: InputDecoration(labelText: 'Location (optional)'),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(labelText: 'Notes (optional)'),
-              maxLines: 3,
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _logActivity,
-          child: Text('Log Activity'),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Text(
+          'Track your daily activities and see their environmental impact. This helps you understand your carbon footprint and find ways to reduce it.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            color: AppColors.secondaryText,
+          ),
         ),
       ],
     );
+  }
+
+  Widget _buildCategorySection(List<String> categories) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.category, color: AppColors.info, size: 20),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Step 1: Choose Activity Category',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        Text(
+          'Select the category that best describes your activity. This helps us calculate the most accurate carbon impact.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        DropdownButtonFormField<String>(
+          value: selectedCategory,
+          decoration: InputDecoration(
+            labelText: 'Activity Category',
+            border: OutlineInputBorder(),
+            helperText: 'What type of activity are you logging?',
+          ),
+          items: categories.map((category) => 
+            DropdownMenuItem(
+              value: category, 
+              child: Row(
+                children: [
+                  Icon(_getCategoryIcon(category), size: 16),
+                  SizedBox(width: 8),
+                  Text(category),
+                ],
+              ),
+            )
+          ).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedCategory = value;
+              selectedActivity = null;
+              _valueController.clear();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivitySection(List<ActivityType> activities) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.list, color: AppColors.info, size: 20),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Step 2: Select Specific Activity',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        Text(
+          'Choose the specific activity you performed. Each has different environmental impacts.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        DropdownButtonFormField<String>(
+          value: selectedActivity,
+          decoration: InputDecoration(
+            labelText: 'Specific Activity',
+            border: OutlineInputBorder(),
+            helperText: 'What exactly did you do?',
+          ),
+          items: activities.map((activity) =>
+            DropdownMenuItem<String>(
+              value: activity.name,
+              child: Row(
+                children: [
+                  Text(
+                    activity.icon,
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    activity.name,
+                    style: TextStyle(fontSize: 14, height: 1),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            )
+          ).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedActivity = value;
+              _valueController.clear();
+            });
+          },
+        ),
+        if (selectedActivity != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0, left: 4.0),
+            child: Text(
+              CarbonFootprintDAO.getActivityByName(selectedActivity!)?.description ?? '',
+              style: TextStyle(fontSize: 12, color: AppColors.secondaryText),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildValueSection() {
+    final activity = CarbonFootprintDAO.getActivityByName(selectedActivity!);
+    if (activity == null) return SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.input, color: AppColors.info, size: 20),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Step 3: Enter Activity Details',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        Text(
+          'Enter the amount of your activity. This helps calculate your carbon footprint accurately.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        TextField(
+          controller: _valueController,
+          decoration: InputDecoration(
+            labelText: 'Amount',
+            suffixText: activity.unit,
+            border: OutlineInputBorder(),
+            helperText: _getValueHelperText(activity),
+            prefixIcon: Icon(Icons.calculate),
+          ),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) {
+            setState(() {});
+          },
+        ),
+        if (_valueController.text.isNotEmpty) ...[
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+          _buildCarbonPreview(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCarbonPreview() {
+    try {
+      final value = double.parse(_valueController.text);
+      final carbonImpact = CarbonFootprintDAO.calculateCarbonImpact(selectedActivity!, value);
+      final activity = CarbonFootprintDAO.getActivityByName(selectedActivity!);
+      
+      return Container(
+        padding: ResponsiveHelper.getAdaptivePadding(context) * 0.5,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.primary, size: 16),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Expanded(
+              child: Text(
+                'This activity will generate ${carbonImpact.toStringAsFixed(2)} kg CO₂',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      return SizedBox.shrink();
+    }
+  }
+
+  Widget _buildOptionalFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.notes, color: AppColors.info, size: 20),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Step 4: Additional Details (Optional)',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        Text(
+          'Add location and notes to help you remember and track your activities better.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        TextField(
+          controller: _locationController,
+          decoration: InputDecoration(
+            labelText: 'Location',
+            border: OutlineInputBorder(),
+            helperText: 'e.g., Home to Work, Grocery Store, etc.',
+            prefixIcon: Icon(Icons.location_on),
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextField(
+          controller: _notesController,
+          decoration: InputDecoration(
+            labelText: 'Notes',
+            border: OutlineInputBorder(),
+            helperText: 'Any additional details about this activity',
+            prefixIcon: Icon(Icons.note),
+          ),
+          maxLines: 2,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: isSubmitting ? null : _logActivity,
+            child: isSubmitting 
+                ? SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text('Log Activity'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getValueHelperText(ActivityType activity) {
+    switch (activity.category) {
+      case 'Transportation':
+        return 'e.g., 12 km from home to work';
+      case 'Energy':
+        return 'e.g., 15 kWh of electricity used';
+      case 'Food':
+        return 'e.g., 0.5 kg of beef consumed';
+      case 'Waste':
+        return 'e.g., 2 kg of waste disposed';
+      case 'Water':
+        return 'e.g., 50 L of hot water used';
+      case 'Digital':
+        return 'e.g., 2 hours of video streaming';
+      default:
+        return 'Enter the amount of your activity';
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Transportation': return Icons.directions_car;
+      case 'Energy': return Icons.electric_bolt;
+      case 'Food': return Icons.restaurant;
+      case 'Waste': return Icons.delete;
+      case 'Water': return Icons.water_drop;
+      case 'Digital': return Icons.computer;
+      default: return Icons.category;
+    }
   }
 
   void _logActivity() async {
@@ -1149,6 +1369,7 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
     }
 
     try {
+      setState(() => isSubmitting = true);
       final value = double.parse(_valueController.text);
       final activity = CarbonFootprintDAO.getActivityByName(selectedActivity!);
       if (activity == null) return;
@@ -1176,17 +1397,65 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
       await CarbonFootprintDAO.addEntry(entry);
       widget.onActivityLogged();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Activity logged successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      // Show success dialog with suggestions
+      _showSuccessDialog(carbonImpact, activity);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error logging activity: $e')),
       );
+    } finally {
+      setState(() => isSubmitting = false);
     }
+  }
+
+  void _showSuccessDialog(double carbonImpact, ActivityType activity) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.success, size: 24),
+            SizedBox(width: 8),
+            Expanded(child: Text('Activity Logged Successfully!')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You generated ${carbonImpact.toStringAsFixed(2)} kg CO₂ for this activity.',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Tips to reduce your footprint:',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              ...activity.tips.take(2).map((tip) => Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.lightbulb, color: AppColors.warning, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(child: Text(tip)),
+                  ],
+                ),
+              )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Continue'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1209,60 +1478,294 @@ class _CategoryActivityDialogState extends State<CategoryActivityDialog> {
   String? selectedActivity;
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  bool isSubmitting = false;
 
   @override
   Widget build(BuildContext context) {
-    final activities = CarbonFootprintDAO.getActivityTypesByCategory(widget.category);
+    final List<ActivityType> activities = CarbonFootprintDAO.getActivityTypesByCategory(widget.category);
 
-    return AlertDialog(
-      title: Text('Log ${widget.category} Activity'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: ResponsiveHelper.isMobile(context) ? double.infinity : 600,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: ResponsiveHelper.getAdaptivePadding(context),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                _buildHeader(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                
+                // Activity Selection
+                _buildActivitySection(activities),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                
+                // Value Input
+                if (selectedActivity != null) ...[
+                  _buildValueSection(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
+                
+                // Notes
+                if (selectedActivity != null) ...[
+                  _buildNotesSection(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
+                
+                // Action buttons
+                _buildActionButtons(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            DropdownButtonFormField<String>(
-              value: selectedActivity,
-              decoration: InputDecoration(labelText: 'Activity'),
-              items: activities.map((activity) => 
-                DropdownMenuItem(value: activity.name, child: Text(activity.name))
-              ).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedActivity = value;
-                });
-              },
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _valueController,
-              decoration: InputDecoration(
-                labelText: 'Value',
-                suffixText: selectedActivity != null 
-                    ? CarbonFootprintDAO.getActivityByName(selectedActivity!)?.unit ?? ''
-                    : '',
+            Icon(_getCategoryIcon(widget.category), color: AppColors.primary, size: 24),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Quick Log: ${widget.category}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                fontWeight: FontWeight.bold,
               ),
-              keyboardType: TextInputType.number,
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(labelText: 'Notes (optional)'),
-              maxLines: 3,
             ),
           ],
         ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _logActivity,
-          child: Text('Log Activity'),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Text(
+          'Quickly log your ${widget.category.toLowerCase()} activity. Select your activity and enter the amount.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            color: AppColors.secondaryText,
+          ),
         ),
       ],
     );
+  }
+
+  Widget _buildActivitySection(List<ActivityType> activities) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Select Activity',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        DropdownButtonFormField<String>(
+          value: selectedActivity,
+          decoration: InputDecoration(
+            labelText: 'Activity',
+            border: OutlineInputBorder(),
+            helperText: 'What ${widget.category.toLowerCase()} activity did you do?',
+          ),
+          items: activities.map((activity) => 
+            DropdownMenuItem<String>(
+              value: activity.name, 
+              child: Row(
+                children: [
+                  Text(activity.icon),
+                  SizedBox(width: 8),
+                  Text(
+                    activity.name,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ],
+              ),
+            )
+          ).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedActivity = value;
+              _valueController.clear();
+            });
+          },
+        ),
+        if (selectedActivity != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4.0, left: 4.0),
+            child: Text(
+              CarbonFootprintDAO.getActivityByName(selectedActivity!)?.description ?? '',
+              style: TextStyle(fontSize: 12, color: AppColors.secondaryText),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildValueSection() {
+    final activity = CarbonFootprintDAO.getActivityByName(selectedActivity!);
+    if (activity == null) return SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Enter Amount',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextField(
+          controller: _valueController,
+          decoration: InputDecoration(
+            labelText: 'Amount',
+            suffixText: activity.unit,
+            border: OutlineInputBorder(),
+            helperText: _getValueHelperText(activity),
+            prefixIcon: Icon(Icons.calculate),
+          ),
+          keyboardType: TextInputType.numberWithOptions(decimal: true),
+          onChanged: (value) {
+            setState(() {});
+          },
+        ),
+        if (_valueController.text.isNotEmpty) ...[
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+          _buildCarbonPreview(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCarbonPreview() {
+    try {
+      final value = double.parse(_valueController.text);
+      final carbonImpact = CarbonFootprintDAO.calculateCarbonImpact(selectedActivity!, value);
+      
+      return Container(
+        padding: ResponsiveHelper.getAdaptivePadding(context) * 0.5,
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.primary, size: 16),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Expanded(
+              child: Text(
+                'Carbon impact: ${carbonImpact.toStringAsFixed(2)} kg CO₂',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      return SizedBox.shrink();
+    }
+  }
+
+  Widget _buildNotesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Notes (Optional)',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextField(
+          controller: _notesController,
+          decoration: InputDecoration(
+            labelText: 'Additional details',
+            border: OutlineInputBorder(),
+            helperText: 'Any notes about this activity',
+            prefixIcon: Icon(Icons.note),
+          ),
+          maxLines: 2,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: isSubmitting ? null : _logActivity,
+            child: isSubmitting 
+                ? SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text('Log Activity'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.white,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getValueHelperText(ActivityType activity) {
+    switch (activity.category) {
+      case 'Transportation':
+        return 'e.g., 12 km from home to work';
+      case 'Energy':
+        return 'e.g., 15 kWh of electricity used';
+      case 'Food':
+        return 'e.g., 0.5 kg of beef consumed';
+      case 'Waste':
+        return 'e.g., 2 kg of waste disposed';
+      case 'Water':
+        return 'e.g., 50 L of hot water used';
+      case 'Digital':
+        return 'e.g., 2 hours of video streaming';
+      default:
+        return 'Enter the amount of your activity';
+    }
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Transportation': return Icons.directions_car;
+      case 'Energy': return Icons.electric_bolt;
+      case 'Food': return Icons.restaurant;
+      case 'Waste': return Icons.delete;
+      case 'Water': return Icons.water_drop;
+      case 'Digital': return Icons.computer;
+      default: return Icons.category;
+    }
   }
 
   void _logActivity() async {
@@ -1274,6 +1777,7 @@ class _CategoryActivityDialogState extends State<CategoryActivityDialog> {
     }
 
     try {
+      setState(() => isSubmitting = true);
       final value = double.parse(_valueController.text);
       final activity = CarbonFootprintDAO.getActivityByName(selectedActivity!);
       if (activity == null) return;
@@ -1300,17 +1804,65 @@ class _CategoryActivityDialogState extends State<CategoryActivityDialog> {
       await CarbonFootprintDAO.addEntry(entry);
       widget.onActivityLogged();
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Activity logged successfully!'),
-          backgroundColor: AppColors.success,
-        ),
-      );
+      // Show success dialog with suggestions
+      _showSuccessDialog(carbonImpact, activity);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error logging activity: $e')),
       );
+    } finally {
+      setState(() => isSubmitting = false);
     }
+  }
+
+  void _showSuccessDialog(double carbonImpact, ActivityType activity) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.success, size: 24),
+            SizedBox(width: 8),
+            Expanded(child: Text('Activity Logged Successfully!')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'You generated ${carbonImpact.toStringAsFixed(2)} kg CO₂ for this activity.',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Tips to reduce your footprint:',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 8),
+              ...activity.tips.take(2).map((tip) => Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.lightbulb, color: AppColors.warning, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(child: Text(tip)),
+                  ],
+                ),
+              )),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Continue'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
