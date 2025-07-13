@@ -61,13 +61,18 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddChallengeDialog,
-        backgroundColor: AppColors.success,
-        child: Icon(
-          Icons.add,
-          color: AppColors.white,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddChallengeDialog,
+          backgroundColor: AppColors.success,
+          child: Icon(
+            Icons.add,
+            color: AppColors.white,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

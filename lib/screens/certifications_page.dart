@@ -84,13 +84,18 @@ class _CertificationsPageState extends State<CertificationsPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCertificationDialog,
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.white,
-        child: Icon(
-          Icons.add,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddCertificationDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          child: Icon(
+            Icons.add,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

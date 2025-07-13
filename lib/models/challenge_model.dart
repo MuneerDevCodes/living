@@ -10,6 +10,11 @@ class Challenge {
   final DateTime startDate;
   final DateTime endDate;
   final bool isActive;
+  final String environmentalImpact;
+  final String benefits;
+  final List<String> tips;
+  final double carbonReduction; // in kg CO2 per day
+  final String icon;
 
   Challenge({
     required this.key,
@@ -23,6 +28,11 @@ class Challenge {
     required this.startDate,
     required this.endDate,
     this.isActive = true,
+    this.environmentalImpact = '',
+    this.benefits = '',
+    this.tips = const [],
+    this.carbonReduction = 0.0,
+    this.icon = '🌱',
   });
 
   Map<String, dynamic> toJson() {
@@ -37,6 +47,11 @@ class Challenge {
       'startDate': startDate.millisecondsSinceEpoch,
       'endDate': endDate.millisecondsSinceEpoch,
       'isActive': isActive,
+      'environmentalImpact': environmentalImpact,
+      'benefits': benefits,
+      'tips': tips,
+      'carbonReduction': carbonReduction,
+      'icon': icon,
     };
   }
 
@@ -53,6 +68,11 @@ class Challenge {
       startDate: DateTime.fromMillisecondsSinceEpoch(json['startDate'] ?? 0),
       endDate: DateTime.fromMillisecondsSinceEpoch(json['endDate'] ?? 0),
       isActive: json['isActive'] ?? true,
+      environmentalImpact: json['environmentalImpact'] ?? '',
+      benefits: json['benefits'] ?? '',
+      tips: List<String>.from(json['tips'] ?? []),
+      carbonReduction: (json['carbonReduction'] ?? 0.0).toDouble(),
+      icon: json['icon'] ?? '🌱',
     );
   }
 }

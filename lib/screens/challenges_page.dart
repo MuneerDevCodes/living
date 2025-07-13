@@ -209,14 +209,19 @@ class _ChallengesPageState extends State<ChallengesPage> {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: _getDifficultyColor(challenge.difficulty),
-                  child: Text(
-                    challenge.difficulty[0],
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                Container(
+                  width: ResponsiveHelper.getAdaptiveSpacing(context) * 2,
+                  height: ResponsiveHelper.getAdaptiveSpacing(context) * 2,
+                  decoration: BoxDecoration(
+                    color: _getDifficultyColor(challenge.difficulty),
+                    borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      challenge.icon,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                      ),
                     ),
                   ),
                 ),
@@ -248,6 +253,101 @@ class _ChallengesPageState extends State<ChallengesPage> {
               ],
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            
+            // Environmental Impact
+            if (challenge.environmentalImpact.isNotEmpty)
+              Container(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.eco,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      color: AppColors.success,
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Expanded(
+                      child: Text(
+                        challenge.environmentalImpact,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            
+            // Benefits
+            if (challenge.benefits.isNotEmpty)
+              Container(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.favorite,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      color: AppColors.info,
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Expanded(
+                      child: Text(
+                        challenge.benefits,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.info,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            
+            // Carbon Reduction
+            if (challenge.carbonReduction > 0)
+              Container(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      color: AppColors.warning,
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Text(
+                      'Saves ${challenge.carbonReduction.toStringAsFixed(1)} kg CO₂ per day',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            
             Row(
               children: [
                 Icon(
@@ -277,9 +377,91 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     color: AppColors.secondaryText,
                   ),
                 ),
+                Spacer(),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                    vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getDifficultyColor(challenge.difficulty).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                  ),
+                  child: Text(
+                    challenge.difficulty,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+                      color: _getDifficultyColor(challenge.difficulty),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ],
             ),
+            
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            
+            // Tips Section
+            if (challenge.tips.isNotEmpty) ...[
+              ExpansionTile(
+                title: Text(
+                  '💡 Tips for Success',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
+                  ),
+                ),
+                children: challenge.tips.map((tip) => Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                    vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '• ',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          tip,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )).toList(),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+            ],
+            
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _showChallengeDetails(challenge),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                ),
+                child: Text(
+                  'Learn More',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -293,6 +475,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                   style: TextStyle(
                     color: AppColors.white,
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -346,7 +529,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
     try {
       await ChallengeDAO.startChallenge(userChallenge);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Challenge started!')),
+        SnackBar(
+          content: Text('🎉 Challenge started! Good luck on your sustainability journey!'),
+          backgroundColor: AppColors.success,
+        ),
       );
       await _loadData(); // Refresh challenges and progress
     } catch (e) {
@@ -355,6 +541,117 @@ class _ChallengesPageState extends State<ChallengesPage> {
         builder: (context) => AlertError('Failed to start challenge: $e'),
       );
     }
+  }
+
+  void _showCompletionCelebration(Challenge challenge, double carbonSaved) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        ),
+        title: Row(
+          children: [
+            Text(
+              '🎉 Congratulations!',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                fontWeight: FontWeight.bold,
+                color: AppColors.success,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'You\'ve completed "${challenge.title}"!',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Container(
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildCelebrationStat('Points Earned', '${challenge.pointsReward}', Icons.star),
+                      _buildCelebrationStat('CO₂ Saved', '${carbonSaved.toStringAsFixed(1)} kg', Icons.eco),
+                    ],
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Text(
+                    'Your impact: ${challenge.environmentalImpact}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              padding: ResponsiveHelper.getAdaptivePadding(context),
+            ),
+            child: Text(
+              'Continue Journey',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCelebrationStat(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          color: AppColors.success,
+          size: ResponsiveHelper.getAdaptiveIconSize(context),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.bold,
+            color: AppColors.success,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+            color: AppColors.secondaryText,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 
   Widget _buildProgressTab() {
@@ -375,6 +672,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
     final completedCount = userChallenges.where((uc) => uc.isCompleted).length;
     final inProgressCount = userChallenges.where((uc) => !uc.isCompleted).length;
     int totalPoints = 0;
+    double totalCarbonSaved = 0.0;
+    
     for (var uc in userChallenges.where((uc) => uc.isCompleted)) {
       final challenge = availableChallenges.firstWhere(
         (c) => c.key == uc.challengeId,
@@ -394,36 +693,92 @@ class _ChallengesPageState extends State<ChallengesPage> {
       );
       if (challenge.key != '') {
         totalPoints += challenge.pointsReward;
+        totalCarbonSaved += challenge.carbonReduction * challenge.durationDays;
       }
     }
+    
     return Card(
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Your Progress',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Icon(
+                  Icons.emoji_events,
+                  color: AppColors.primary,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                Text(
+                  'Your Sustainability Journey',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             Row(
               children: [
                 Expanded(
-                  child: _buildProgressStat('Completed', completedCount.toString(), AppColors.success),
+                  child: _buildProgressStat('Completed', completedCount.toString(), AppColors.success, Icons.check_circle),
                 ),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 Expanded(
-                  child: _buildProgressStat('In Progress', inProgressCount.toString(), AppColors.warning),
+                  child: _buildProgressStat('In Progress', inProgressCount.toString(), AppColors.warning, Icons.pending),
                 ),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 Expanded(
-                  child: _buildProgressStat('Total Points', totalPoints.toString(), AppColors.info),
+                  child: _buildProgressStat('Total Points', totalPoints.toString(), AppColors.info, Icons.star),
                 ),
               ],
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            
+            // Environmental Impact Summary
+            Container(
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              decoration: BoxDecoration(
+                color: AppColors.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                border: Border.all(color: AppColors.success.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.eco,
+                    color: AppColors.success,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Environmental Impact',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
+                        ),
+                        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                        Text(
+                          'You\'ve saved ${totalCarbonSaved.toStringAsFixed(1)} kg of CO₂ through completed challenges!',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -431,9 +786,22 @@ class _ChallengesPageState extends State<ChallengesPage> {
     );
   }
 
-  Widget _buildProgressStat(String label, String value, Color color) {
+  Widget _buildProgressStat(String label, String value, Color color, IconData icon) {
     return Column(
       children: [
+        Container(
+          padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+          ),
+          child: Icon(
+            icon,
+            color: color,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
         Text(
           value,
           style: TextStyle(
@@ -442,13 +810,14 @@ class _ChallengesPageState extends State<ChallengesPage> {
             color: color,
           ),
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
         Text(
           label,
           style: TextStyle(
             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
             color: AppColors.secondaryText,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -457,8 +826,38 @@ class _ChallengesPageState extends State<ChallengesPage> {
   Widget _buildActiveChallenges() {
     final activeChallenges = userChallenges.where((uc) => !uc.isCompleted).toList();
     if (activeChallenges.isEmpty) {
-      return Text('No active challenges.');
+      return Container(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          children: [
+            Icon(
+              Icons.celebration,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+              color: AppColors.success,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Text(
+              'No Active Challenges',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Start a new challenge to continue your sustainability journey!',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                color: AppColors.secondaryText,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
     }
+    
     return Column(
       children: activeChallenges.map((uc) {
         final challenge = availableChallenges.firstWhere(
@@ -478,10 +877,15 @@ class _ChallengesPageState extends State<ChallengesPage> {
           ),
         );
         if (challenge.key == '') return SizedBox.shrink();
+        
         final daysIn = DateTime.now().difference(uc.startDate).inDays + 1;
         final progress = uc.taskCompletion.isNotEmpty
             ? uc.taskCompletion.where((t) => t).length / uc.taskCompletion.length
             : 0.0;
+        final completedTasks = uc.taskCompletion.where((t) => t).length;
+        final totalTasks = uc.taskCompletion.length;
+        final carbonSaved = challenge.carbonReduction * daysIn * progress;
+        
         return Card(
           margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
           child: Padding(
@@ -491,6 +895,23 @@ class _ChallengesPageState extends State<ChallengesPage> {
               children: [
                 Row(
                   children: [
+                    Container(
+                      width: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
+                      height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
+                      decoration: BoxDecoration(
+                        color: _getDifficultyColor(challenge.difficulty),
+                        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          challenge.icon,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,9 +940,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(
-                          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
-                        ),
+                        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
                       ),
                       child: Text(
                         '${(progress * 100).toInt()}%',
@@ -534,14 +953,53 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                
+                // Progress Bar
                 LinearProgressIndicator(
                   value: progress,
                   backgroundColor: AppColors.borderLight,
                   valueColor: AlwaysStoppedAnimation<Color>(AppColors.success),
                 ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                
+                // Progress Details
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$completedTasks/$totalTasks tasks completed',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ),
+                    if (carbonSaved > 0)
+                      Text(
+                        '${carbonSaved.toStringAsFixed(1)} kg CO₂ saved',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
+                ),
+                
                 SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                // List of tasks with checkboxes
+                
+                // Tasks List
+                Text(
+                  'Daily Tasks:',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                
                 ...List.generate(challenge.tasks.length, (taskIdx) {
                   return CheckboxListTile(
                     title: Text(
@@ -549,26 +1007,37 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                         decoration: uc.taskCompletion[taskIdx] ? TextDecoration.lineThrough : null,
+                        color: uc.taskCompletion[taskIdx] ? AppColors.success : AppColors.primaryText,
                       ),
                     ),
                     value: uc.taskCompletion[taskIdx],
                     onChanged: (checked) async {
                       final updatedTaskCompletion = List<bool>.from(uc.taskCompletion);
                       updatedTaskCompletion[taskIdx] = checked ?? false;
+                      final isCompleted = updatedTaskCompletion.every((t) => t);
                       final updatedUserChallenge = UserChallenge(
                         key: uc.key,
                         userId: uc.userId,
                         challengeId: uc.challengeId,
                         startDate: uc.startDate,
-                        completedDate: (updatedTaskCompletion.every((t) => t)) ? DateTime.now() : uc.completedDate,
-                        isCompleted: updatedTaskCompletion.every((t) => t),
+                        completedDate: isCompleted ? DateTime.now() : uc.completedDate,
+                        isCompleted: isCompleted,
                         progress: updatedTaskCompletion.where((t) => t).length,
                         taskCompletion: updatedTaskCompletion,
                       );
                       await ChallengeDAO.updateChallengeProgress(updatedUserChallenge);
+                      
+                      // Show celebration if challenge is completed
+                      if (isCompleted) {
+                        final carbonSaved = challenge.carbonReduction * challenge.durationDays;
+                        _showCompletionCelebration(challenge, carbonSaved);
+                      }
+                      
                       await _loadData();
                     },
                     controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: AppColors.success,
+                    checkColor: AppColors.white,
                   );
                 }),
               ],
@@ -705,6 +1174,140 @@ class _ChallengesPageState extends State<ChallengesPage> {
               'Update',
               style: TextStyle(
                 color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChallengeDetails(Challenge challenge) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        ),
+        title: Text(
+          challenge.title,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                challenge.description,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Category: ${challenge.category}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Duration: ${challenge.durationDays} days',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Points Reward: ${challenge.pointsReward}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Difficulty: ${challenge.difficulty}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Environmental Impact: ${challenge.environmentalImpact}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Benefits: ${challenge.benefits}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Carbon Reduction: ${challenge.carbonReduction.toStringAsFixed(1)} kg CO₂ per day',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Tips:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              ...challenge.tips.map((tip) => Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '• ',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        tip,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Close',
+              style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
               ),
             ),

@@ -61,13 +61,18 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddContentDialog,
-        backgroundColor: AppColors.success,
-        child: Icon(
-          Icons.add,
-          color: AppColors.white,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddContentDialog,
+          backgroundColor: AppColors.success,
+          child: Icon(
+            Icons.add,
+            color: AppColors.white,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

@@ -82,13 +82,18 @@ class _GalleryPageState extends State<GalleryPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddPhotoDialog,
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.white,
-        child: Icon(
-          Icons.add_a_photo,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddPhotoDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          child: Icon(
+            Icons.add_a_photo,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

@@ -146,13 +146,18 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTipDialog,
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.white,
-        child: Icon(
-          Icons.add,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddTipDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          child: Icon(
+            Icons.add,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

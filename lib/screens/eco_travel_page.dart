@@ -87,13 +87,18 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddSuggestionDialog,
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.white,
-        child: Icon(
-          Icons.add,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddSuggestionDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          child: Icon(
+            Icons.add,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );

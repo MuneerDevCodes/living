@@ -103,13 +103,18 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddContentDialog,
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.white,
-        child: Icon(
-          Icons.add,
-          size: ResponsiveHelper.getAdaptiveIconSize(context),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+        ),
+        child: FloatingActionButton(
+          onPressed: _showAddContentDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          child: Icon(
+            Icons.add,
+            size: ResponsiveHelper.getAdaptiveIconSize(context),
+          ),
         ),
       ),
     );
