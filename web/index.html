@@ -31,8 +31,24 @@
 
   <title>living</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Font imports for better web compatibility -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom styles for better font handling -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="loading" class="loading">
+    <div>
+      <h2>Loading Living App...</h2>
+      <p>Please wait while the application loads.</p>
+    </div>
+  </div>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

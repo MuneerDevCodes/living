@@ -17,29 +17,114 @@ class WasteTrackerPage extends StatefulWidget {
 }
 
 class _WasteTrackerPageState extends State<WasteTrackerPage> {
-  // final ScrollController _scrollController = ScrollController();
   String? _userId;
   bool _loading = false;
   List<WasteEntry> entries = [];
   List<WasteReductionGoal> goals = [];
   int _selectedTabIndex = 0;
+  bool _showOnboarding = false;
 
-  final List<String> wasteTypes = [
-    'Plastic',
-    'Paper',
-    'Glass',
-    'Metal',
-    'Organic',
-    'Electronic',
-    'Textile',
+  // Enhanced waste types with descriptions and environmental impact
+  final List<Map<String, dynamic>> wasteTypes = [
+    {
+      'name': 'Plastic',
+      'description': 'Plastic bottles, bags, containers, packaging',
+      'impact': 'Takes 450+ years to decompose, harms marine life',
+      'icon': Icons.local_drink,
+      'color': Colors.blue,
+      'tips': ['Rinse before recycling', 'Check local recycling rules', 'Reduce single-use plastics']
+    },
+    {
+      'name': 'Paper',
+      'description': 'Newspapers, magazines, cardboard, office paper',
+      'impact': 'Recyclable, saves trees and energy',
+      'icon': Icons.description,
+      'color': Colors.brown,
+      'tips': ['Keep dry and clean', 'Remove plastic windows', 'Flatten cardboard boxes']
+    },
+    {
+      'name': 'Glass',
+      'description': 'Bottles, jars, containers',
+      'impact': '100% recyclable, saves energy and resources',
+      'icon': Icons.wine_bar,
+      'color': Colors.green,
+      'tips': ['Rinse thoroughly', 'Remove caps and lids', 'Don\'t break glass']
+    },
+    {
+      'name': 'Metal',
+      'description': 'Aluminum cans, steel containers, scrap metal',
+      'impact': 'Highly recyclable, saves 95% energy vs new production',
+      'icon': Icons.restaurant,
+      'color': Colors.grey,
+      'tips': ['Rinse cans clean', 'Crush to save space', 'Separate aluminum and steel']
+    },
+    {
+      'name': 'Organic',
+      'description': 'Food waste, yard waste, compostable materials',
+      'impact': 'Creates nutrient-rich compost, reduces methane',
+      'icon': Icons.eco,
+      'color': Colors.green,
+      'tips': ['Avoid meat and dairy', 'Chop large items', 'Keep moist but not wet']
+    },
+    {
+      'name': 'Electronic',
+      'description': 'Batteries, electronics, appliances',
+      'impact': 'Contains toxic materials, requires special handling',
+      'icon': Icons.devices,
+      'color': Colors.orange,
+      'tips': ['Find e-waste drop-off', 'Remove batteries', 'Don\'t throw in regular trash']
+    },
+    {
+      'name': 'Textile',
+      'description': 'Clothing, fabric, shoes, accessories',
+      'impact': 'Textile waste fills landfills, takes 200+ years to decompose',
+      'icon': Icons.checkroom,
+      'color': Colors.purple,
+      'tips': ['Donate if usable', 'Find textile recycling', 'Repair before replacing']
+    },
   ];
 
-  final List<String> disposalMethods = [
-    'Recycling',
-    'Composting',
-    'Landfill',
-    'Donation',
-    'Reuse',
+  final List<Map<String, dynamic>> disposalMethods = [
+    {
+      'name': 'Recycling',
+      'description': 'Process materials into new products',
+      'impact': 'Reduces landfill waste, saves energy and resources',
+      'icon': Icons.recycling,
+      'color': AppColors.success,
+      'score': 5
+    },
+    {
+      'name': 'Composting',
+      'description': 'Natural decomposition of organic materials',
+      'impact': 'Creates nutrient-rich soil, reduces methane emissions',
+      'icon': Icons.eco,
+      'color': AppColors.warning,
+      'score': 4
+    },
+    {
+      'name': 'Donation',
+      'description': 'Give usable items to others in need',
+      'impact': 'Extends product life, helps community, reduces waste',
+      'icon': Icons.favorite,
+      'color': AppColors.info,
+      'score': 5
+    },
+    {
+      'name': 'Reuse',
+      'description': 'Use items again for same or different purpose',
+      'impact': 'Prevents waste generation, saves money and resources',
+      'icon': Icons.refresh,
+      'color': AppColors.warning,
+      'score': 5
+    },
+    {
+      'name': 'Landfill',
+      'description': 'Disposal in waste management facility',
+      'impact': 'Least sustainable option, contributes to pollution',
+      'icon': Icons.delete,
+      'color': AppColors.error,
+      'score': 1
+    },
   ];
 
   @override
@@ -48,6 +133,24 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     final user = FirebaseAuth.instance.currentUser;
     _userId = user?.uid;
     _loadData();
+    _checkFirstTimeUser();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _checkFirstTimeUser() async {
+    // Check if user has any entries
+    if (_userId != null) {
+      final userEntries = await WasteTrackerDAO.getUserWasteEntries(_userId!);
+      if (userEntries.isEmpty) {
+        setState(() {
+          _showOnboarding = true;
+        });
+      }
+    }
   }
 
   Future<void> _loadData() async {
@@ -56,9 +159,30 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     try {
       final userEntries = await WasteTrackerDAO.getUserWasteEntries(_userId!);
       final userGoals = await WasteTrackerDAO.getUserGoals(_userId!);
+      // Auto-update each goal's currentAmount based on entries
+      for (final goal in userGoals) {
+        final relevantEntries = userEntries.where((e) => e.wasteType == goal.goalType).toList();
+        final sum = relevantEntries.fold(0.0, (s, e) => s + e.amount);
+        if ((sum != goal.currentAmount) || (goal.isCompleted != (sum >= goal.targetAmount))) {
+          final updatedGoal = WasteReductionGoal(
+            key: goal.key,
+            userId: goal.userId,
+            goalType: goal.goalType,
+            targetAmount: goal.targetAmount,
+            unit: goal.unit,
+            startDate: goal.startDate,
+            endDate: goal.endDate,
+            currentAmount: sum,
+            isCompleted: sum >= goal.targetAmount,
+          );
+          await WasteTrackerDAO.updateWasteGoal(updatedGoal);
+        }
+      }
+      // Reload updated goals
+      final refreshedGoals = await WasteTrackerDAO.getUserGoals(_userId!);
       setState(() {
         entries = userEntries;
-        goals = userGoals;
+        goals = refreshedGoals;
       });
     } catch (e) {
       debugPrint('Error loading waste tracker data: $e');
@@ -78,19 +202,38 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     return (recyclingEntries / entries.length) * 100;
   }
 
+  double get environmentalScore {
+    if (entries.isEmpty) return 0.0;
+    double totalScore = 0.0;
+    for (var entry in entries) {
+      final method = disposalMethods.firstWhere(
+        (m) => m['name'].toLowerCase() == entry.disposalMethod.toLowerCase(),
+        orElse: () => {'score': 1}
+      );
+      totalScore += method['score'] * entry.amount;
+    }
+    return (totalScore / totalWasteReduced) * 20; // Scale to 0-100
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Header.buildDrawer(context),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           const Header(),
           Expanded(
             child: Stack(
               children: [
-                if (_loading) const Positioned.fill(child: Loader()),
+                  if (_loading) 
+                    const Positioned.fill(
+                      child: Center(child: Loader()),
+                    ),
+                  if (!_loading)
                 Column(
                   children: [
+                        _buildWelcomeSection(),
                     _buildTabBar(),
                     Expanded(
                       child: _selectedTabIndex == 0 
@@ -102,8 +245,60 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               ],
             ),
           ),
-          Footer(),
-        ],
+            const Footer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection() {
+    return Container(
+      padding: ResponsiveHelper.getHorizontalPadding(context),
+      child: Card(
+        elevation: 4,
+        child: Padding(
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.eco,
+                    color: AppColors.success,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                  Expanded(
+                    child: Text(
+                      'Waste Reduction Tracker',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getTitleFontSize(context),
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ),
+                  if (_showOnboarding)
+                    IconButton(
+                      icon: Icon(Icons.help_outline, color: AppColors.info),
+                      onPressed: _showOnboardingDialog,
+                      tooltip: 'Get started guide',
+                    ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Text(
+                'Track your waste reduction journey and make a positive environmental impact. Every entry helps you understand your consumption patterns and find ways to reduce waste.',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getBodyFontSize(context),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -114,21 +309,28 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
       child: Row(
         children: [
           Expanded(
-            child: _buildTabButton('Entries', 0),
+            child: _buildTabButton('Track Entries', 0, Icons.list_alt),
           ),
           SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
           Expanded(
-            child: _buildTabButton('Goals', 1),
+            child: _buildTabButton('Set Goals', 1, Icons.flag),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabButton(String title, int index) {
+  Widget _buildTabButton(String title, int index, IconData icon) {
     final isSelected = _selectedTabIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTabIndex = index),
+    return InkWell(
+      onTap: () {
+        if (mounted) {
+          setState(() => _selectedTabIndex = index);
+        }
+      },
+      borderRadius: BorderRadius.circular(
+        ResponsiveHelper.getAdaptiveBorderRadius(context),
+      ),
       child: Container(
         padding: ResponsiveHelper.getVerticalPadding(context),
         decoration: BoxDecoration(
@@ -140,7 +342,16 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
             color: isSelected ? AppColors.primary : AppColors.borderLight,
           ),
         ),
-        child: Text(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.white : AppColors.primaryText,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
           title,
           textAlign: TextAlign.center,
           style: TextStyle(
@@ -148,27 +359,33 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
             fontWeight: FontWeight.w500,
             color: isSelected ? AppColors.white : AppColors.primaryText,
           ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildEntriesTab() {
-    return Column(
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildSummaryCards(),
-        Expanded(
-          child: _buildEntriesList(),
-        ),
+          _buildEntriesList(),
         _buildAddEntryButton(),
       ],
+      ),
     );
   }
 
   Widget _buildSummaryCards() {
     return Container(
       padding: ResponsiveHelper.getAdaptivePadding(context),
-      child: Row(
+      child: Column(
+        children: [
+          Row(
         children: [
           Expanded(
             child: _buildSummaryCard(
@@ -176,6 +393,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               '${totalWasteReduced.toStringAsFixed(1)} kg',
               Icons.delete,
               AppColors.error,
+                  'Total waste tracked',
             ),
           ),
           SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -185,15 +403,44 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               '${recyclingRate.toStringAsFixed(1)}%',
               Icons.recycling,
               AppColors.success,
-            ),
+                  'Percentage recycled',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSummaryCard(
+                  'Environmental Score',
+                  '${environmentalScore.toStringAsFixed(0)}/100',
+                  Icons.eco,
+                  AppColors.info,
+                  'Based on disposal methods',
+                ),
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Expanded(
+                child: _buildSummaryCard(
+                  'Entries',
+                  '${entries.length}',
+                  Icons.assessment,
+                  AppColors.primary,
+                  'Total entries logged',
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
-    return Card(
+  Widget _buildSummaryCard(String title, String value, IconData icon, Color color, String tooltip) {
+    return Tooltip(
+      message: tooltip,
+      child: Card(
       elevation: 4,
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
@@ -202,7 +449,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
             Icon(
               icon, 
               color: color, 
-              size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
             Text(
@@ -211,6 +458,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                 fontWeight: FontWeight.w500,
               ),
+                textAlign: TextAlign.center,
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
             Text(
@@ -219,8 +467,10 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                 fontWeight: FontWeight.bold,
               ),
+                textAlign: TextAlign.center,
             ),
           ],
+          ),
         ),
       ),
     );
@@ -228,25 +478,55 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
 
   Widget _buildEntriesList() {
     if (entries.isEmpty) {
-      return Center(
+      return SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height * 0.4,
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.add_circle_outline,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.5,
+                  color: AppColors.mutedText,
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                Text(
+                  'No entries yet',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                Padding(
+                  padding: ResponsiveHelper.getHorizontalPadding(context),
         child: Text(
-          'No entries yet. Add your first waste entry to start tracking!',
+                    'Start tracking your waste reduction journey!\nTap the button below to add your first entry.',
+                    textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontSize: ResponsiveHelper.getBodyFontSize(context),
             color: AppColors.secondaryText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: ResponsiveHelper.getAdaptivePadding(context),
-      itemCount: entries.length,
-      itemBuilder: (context, index) {
-        final entry = entries[index];
+    return Column(
+      children: entries.map((entry) {
         return Card(
           margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-          child: ListTile(
+          child: ExpansionTile(
+            key: ValueKey('entry_${entry.key}'),
             leading: CircleAvatar(
               backgroundColor: _getDisposalMethodColor(entry.disposalMethod),
               child: Icon(
@@ -263,44 +543,125 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               ),
             ),
             subtitle: Text(
-              '${entry.amount} ${entry.unit} • ${entry.disposalMethod} • ${entry.date.toString().split(' ')[0]}',
+              '${entry.amount} ${entry.unit} • ${entry.disposalMethod} • ${_formatDate(entry.date)}',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 color: AppColors.secondaryText,
               ),
             ),
-            trailing: IconButton(
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.edit,
+                    color: AppColors.info,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  onPressed: () => _editEntry(entry),
+                  tooltip: 'Edit entry',
+                ),
+                IconButton(
               icon: Icon(
                 Icons.delete, 
                 color: AppColors.error,
                 size: ResponsiveHelper.getAdaptiveIconSize(context),
               ),
               onPressed: () => _deleteEntry(entry),
+                  tooltip: 'Delete entry',
+                ),
+              ],
             ),
+            children: [
+              Padding(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (entry.notes != null && entry.notes!.isNotEmpty) ...[
+                      Text(
+                        'Notes:',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                      Text(
+                        entry.notes!,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    ],
+                    _buildEnvironmentalImpact(entry),
+                  ],
+                ),
+              ),
+            ],
           ),
         );
-      },
+      }).toList(),
+    );
+  }
+
+  Widget _buildEnvironmentalImpact(WasteEntry entry) {
+    final wasteType = wasteTypes.firstWhere(
+      (type) => type['name'] == entry.wasteType,
+      orElse: () => {'impact': 'Environmental impact varies by type'}
+    );
+    
+    final disposalMethod = disposalMethods.firstWhere(
+      (method) => method['name'] == entry.disposalMethod,
+      orElse: () => {'impact': 'Impact depends on disposal method'}
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Environmental Impact:',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        Text(
+          '• ${wasteType['impact']}',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+        Text(
+          '• ${disposalMethod['impact']}',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+            color: AppColors.secondaryText,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildAddEntryButton() {
     return Container(
+      margin: const EdgeInsets.only(top: 24, bottom: 16),
       padding: ResponsiveHelper.getHorizontalPadding(context),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton(
+        child: ElevatedButton.icon(
           onPressed: _showAddEntryDialog,
+          icon: Icon(Icons.add),
+          label: Text('Add New Entry'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
-            padding: ResponsiveHelper.getVerticalPadding(context),
-          ),
-          child: Text(
-            'Add New Entry',
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-              fontWeight: FontWeight.w500,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
           ),
         ),
       ),
@@ -314,31 +675,57 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
           padding: ResponsiveHelper.getHorizontalPadding(context),
           child: SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: _showAddGoalDialog,
+              icon: Icon(Icons.flag),
+              label: Text('Add New Goal'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.success,
                 padding: ResponsiveHelper.getVerticalPadding(context),
-              ),
-              child: Text(
-                'Add New Goal',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                  fontWeight: FontWeight.w500,
-                ),
               ),
             ),
           ),
         ),
         Expanded(
           child: goals.isEmpty
-              ? Center(
+              ? SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: MediaQuery.of(context).size.height * 0.4,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.flag_outlined,
+                            size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.5,
+                            color: AppColors.mutedText,
+                          ),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                          Text(
+                            'No goals set yet',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryText,
+                            ),
+                          ),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                          Padding(
+                            padding: ResponsiveHelper.getHorizontalPadding(context),
                   child: Text(
-                    'No goals set yet. Create your first waste reduction goal!',
+                              'Set waste reduction goals to track your progress\nand stay motivated on your sustainability journey!',
+                              textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                fontSize: ResponsiveHelper.getBodyFontSize(context),
                       color: AppColors.secondaryText,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 )
@@ -355,12 +742,36 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.flag,
+                                  color: AppColors.primary,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                ),
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                Expanded(
+                                  child: Text(
                               goal.goalType,
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                                 fontWeight: FontWeight.bold,
                               ),
+                                  ),
+                                ),
+                                if (goal.isCompleted)
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: AppColors.success,
+                                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                  ),
+                                // Add Adjust Progress IconButton
+                                IconButton(
+                                  icon: Icon(Icons.tune, color: AppColors.info),
+                                  tooltip: 'Adjust Progress',
+                                  onPressed: () => _showAdjustProgressDialog(goal),
+                                ),
+                              ],
                             ),
                             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                             LinearProgressIndicator(
@@ -369,16 +780,29 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
                             ),
                             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
                             Text(
                               '${goal.currentAmount.toStringAsFixed(1)} / ${goal.targetAmount.toStringAsFixed(1)} ${goal.unit}',
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                                 fontWeight: FontWeight.w500,
                               ),
+                                ),
+                                Text(
+                                  '${(progress * 100).toStringAsFixed(1)}%',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                              ],
                             ),
                             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                             Text(
-                              '${(progress * 100).toStringAsFixed(1)}% Complete',
+                              '${_formatDate(goal.startDate)} - ${_formatDate(goal.endDate)}',
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                                 color: AppColors.secondaryText,
@@ -398,7 +822,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Completed!',
+                                  'Goal Achieved! 🎉',
                                   style: TextStyle(
                                     color: AppColors.success, 
                                     fontWeight: FontWeight.bold,
@@ -418,37 +842,147 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   }
 
   Color _getDisposalMethodColor(String method) {
-    switch (method.toLowerCase()) {
-      case 'recycling':
-        return AppColors.success;
-      case 'composting':
-        return AppColors.warning;
-      case 'landfill':
-        return AppColors.error;
-      case 'donation':
-        return AppColors.info;
-      case 'reuse':
-        return AppColors.warning;
-      default:
-        return AppColors.mutedText;
-    }
+    final methodData = disposalMethods.firstWhere(
+      (m) => m['name'].toLowerCase() == method.toLowerCase(),
+      orElse: () => {'color': AppColors.mutedText}
+    );
+    return methodData['color'];
   }
 
   IconData _getDisposalMethodIcon(String method) {
-    switch (method.toLowerCase()) {
-      case 'recycling':
-        return Icons.recycling;
-      case 'composting':
-        return Icons.eco;
-      case 'landfill':
-        return Icons.delete;
-      case 'donation':
-        return Icons.favorite;
-      case 'reuse':
-        return Icons.refresh;
-      default:
-        return Icons.delete;
-    }
+    final methodData = disposalMethods.firstWhere(
+      (m) => m['name'].toLowerCase() == method.toLowerCase(),
+      orElse: () => {'icon': Icons.delete}
+    );
+    return methodData['icon'];
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  void _showOnboardingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.eco, color: AppColors.success),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text('Welcome to Waste Tracker!'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+            ),
+            child: StatefulBuilder(
+              builder: (context, setDialogState) => Column(
+                mainAxisSize: MainAxisSize.max,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildOnboardingStep(
+                    1,
+                    'Track Your Waste',
+                    'Log every waste item you dispose of. Include type, amount, and disposal method.',
+                    Icons.add_circle,
+                  ),
+                  _buildOnboardingStep(
+                    2,
+                    'Set Reduction Goals',
+                    'Create specific goals to reduce waste in different categories.',
+                    Icons.flag,
+                  ),
+                  _buildOnboardingStep(
+                    3,
+                    'Monitor Progress',
+                    'View your environmental impact and track progress towards your goals.',
+                    Icons.analytics,
+                  ),
+                  _buildOnboardingStep(
+                    4,
+                    'Make a Difference',
+                    'Every entry helps you understand your consumption and find ways to reduce waste.',
+                    Icons.eco,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (mounted) {
+                Navigator.pop(context);
+                setState(() => _showOnboarding = false);
+              }
+            },
+            child: Text('Get Started'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOnboardingStep(int number, String title, String description, IconData icon) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+            height: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveIconSize(context) * 0.75),
+            ),
+            child: Center(
+              child: Text(
+                '$number',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: AppColors.primary, size: ResponsiveHelper.getAdaptiveIconSize(context)),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddEntryDialog() {
@@ -457,84 +991,170 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     final amountController = TextEditingController();
     final notesController = TextEditingController();
 
-    final wasteTypes = ['Plastic', 'Paper', 'Glass', 'Metal', 'Organic', 'Electronic', 'Other'];
-    final disposalMethods = ['Recycling', 'Composting', 'Landfill', 'Donation', 'Reuse'];
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
+      barrierDismissible: false,
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) => Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            constraints: BoxConstraints(
+              maxWidth: 400,
+              maxHeight: constraints.maxHeight * 0.8,
+            ),
+            child: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setDialogState) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.add_circle, color: AppColors.success, size: 28),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
           'Add Waste Entry',
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                              fontSize: 22,
             fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Waste Type',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
+                              color: AppColors.primaryText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Divider(),
+                    const SizedBox(height: 10),
+                    Text('Waste Type *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    const SizedBox(height: 6),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: DropdownButtonFormField<String>(
               value: selectedWasteType,
-              items: wasteTypes.map((type) {
-                return DropdownMenuItem(value: type, child: Text(type));
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            prefixIcon: Icon(Icons.category),
+                            helperText: 'Select the type of waste you\'re disposing',
+                          ),
+                          items: wasteTypes.map<DropdownMenuItem<String>>((type) {
+                            return DropdownMenuItem<String>(
+                              value: type['name'] as String,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(type['icon'] as IconData, color: type['color'] as Color, size: 22),
+                                  SizedBox(width: 8),
+                                  Flexible(child: Text(type['name'] as String)),
+                                ],
+                              ),
+                            );
               }).toList(),
-              onChanged: (value) => selectedWasteType = value,
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Disposal Method',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
+                          onChanged: (value) => setDialogState(() => selectedWasteType = value),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Disposal Method *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    const SizedBox(height: 6),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceBackground,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: DropdownButtonFormField<String>(
               value: selectedDisposalMethod,
-              items: disposalMethods.map((method) {
-                return DropdownMenuItem(value: method, child: Text(method));
+                          decoration: const InputDecoration(
+                            border: InputBorder.none,
+                            prefixIcon: Icon(Icons.delete_sweep),
+                            helperText: 'Choose how you disposed of the waste',
+                          ),
+                          items: disposalMethods.map<DropdownMenuItem<String>>((method) {
+                            return DropdownMenuItem<String>(
+                              value: method['name'] as String,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(method['icon'] as IconData, color: method['color'] as Color, size: 22),
+                                  SizedBox(width: 8),
+                                  Flexible(child: Text(method['name'] as String)),
+                                ],
+                              ),
+                            );
               }).toList(),
-              onChanged: (value) => selectedDisposalMethod = value,
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          onChanged: (value) => setDialogState(() => selectedDisposalMethod = value),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Amount (kg)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    const SizedBox(height: 6),
             TextField(
               controller: amountController,
               decoration: InputDecoration(
-                labelText: 'Amount (kg)',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
+                        prefixIcon: Icon(Icons.scale, color: AppColors.primary),
+                        hintText: 'Amount (kg)',
+                        helperText: 'Use a kitchen scale or estimate the weight',
+                        filled: true,
+                        fillColor: AppColors.surfaceBackground,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    const SizedBox(height: 14),
+                    Text('Notes (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    const SizedBox(height: 6),
             TextField(
               controller: notesController,
               decoration: InputDecoration(
-                labelText: 'Notes (optional)',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
-              maxLines: 2,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-          ElevatedButton(
+                        prefixIcon: Icon(Icons.note, color: AppColors.primary),
+                        hintText: 'Notes (optional)',
+                        helperText: 'Describe the item, condition, or any special circumstances',
+                        filled: true,
+                        fillColor: AppColors.surfaceBackground,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
+                      ),
+                      maxLines: 3,
+                    ),
+                    if (selectedWasteType != null) ...[
+                      const SizedBox(height: 12),
+                      _buildWasteTypeInfo(selectedWasteType!),
+                    ],
+                    if (selectedDisposalMethod != null) ...[
+                      const SizedBox(height: 12),
+                      _buildDisposalMethodInfo(selectedDisposalMethod!),
+                    ],
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              if (mounted) Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(color: AppColors.primary),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Cancel'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
             onPressed: () async {
               if (selectedWasteType != null && 
                   selectedDisposalMethod != null && 
@@ -552,20 +1172,14 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     date: DateTime.now(),
                     notes: notesController.text.isEmpty ? null : notesController.text,
                   );
-
                   try {
                     await WasteTrackerDAO.addWasteEntry(entry);
+                                    if (mounted) {
                     Navigator.pop(context);
                     _loadData();
-                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Waste entry added successfully!',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                            ),
-                          ),
+                                          content: Text('Waste entry added successfully!'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -574,12 +1188,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Failed to add waste entry: $e',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                            ),
-                          ),
+                                          content: Text('Failed to add waste entry: $e'),
                           backgroundColor: AppColors.error,
                         ),
                       );
@@ -588,14 +1197,218 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 }
               }
             },
-            child: Text(
-              'Add',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Add Entry'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWasteTypeSelector(String? selectedValue, Function(String?) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Waste Type *',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        DropdownButtonFormField<String>(
+          value: selectedValue,
+          decoration: InputDecoration(
+            prefixIcon: Icon(Icons.category),
+            helperText: 'Select the type of waste you\'re disposing',
+          ),
+                               items: wasteTypes.map<DropdownMenuItem<String>>((type) {
+            return DropdownMenuItem<String>(
+              value: type['name'] as String,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(type['icon'] as IconData, color: type['color'] as Color, size: 20),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Flexible(child: Text(type['name'] as String)),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDisposalMethodSelector(String? selectedValue, Function(String?) onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Disposal Method *',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+        DropdownButtonFormField<String>(
+          value: selectedValue,
+          decoration: InputDecoration(
+            prefixIcon: Icon(Icons.delete_sweep),
+            helperText: 'Choose how you disposed of the waste',
+          ),
+                               items: disposalMethods.map<DropdownMenuItem<String>>((method) {
+            return DropdownMenuItem<String>(
+              value: method['name'] as String,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(method['icon'] as IconData, color: method['color'] as Color, size: 20),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Flexible(child: Text(method['name'] as String)),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWasteTypeInfo(String wasteType) {
+    final typeData = wasteTypes.firstWhere((type) => type['name'] == wasteType);
+    return Container(
+      padding: ResponsiveHelper.getAdaptivePadding(context),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBackground,
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(typeData['icon'], color: typeData['color']),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+              Text(
+                typeData['name'],
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+          Text(
+            typeData['description'],
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              color: AppColors.secondaryText,
+            ),
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+          Text(
+            'Impact: ${typeData['impact']}',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              color: AppColors.error,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+          Text(
+            'Tips:',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          ...typeData['tips'].map<Widget>((tip) => Padding(
+            padding: EdgeInsets.only(left: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            child: Text(
+              '• $tip',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: AppColors.secondaryText,
+              ),
+            ),
+          )),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDisposalMethodInfo(String disposalMethod) {
+    final methodData = disposalMethods.firstWhere((method) => method['name'] == disposalMethod);
+    return Container(
+      padding: ResponsiveHelper.getAdaptivePadding(context),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBackground,
+        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(methodData['icon'], color: methodData['color']),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+              Text(
+                methodData['name'],
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+          Text(
+            methodData['description'],
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              color: AppColors.secondaryText,
+            ),
+          ),
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+          Text(
+            'Environmental Impact: ${methodData['impact']}',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+              color: AppColors.success,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editEntry(WasteEntry entry) {
+    // Implementation for editing entry
+    // This would be similar to _showAddEntryDialog but with pre-filled values
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Edit functionality coming soon!'),
+        backgroundColor: AppColors.info,
       ),
     );
   }
@@ -605,68 +1418,151 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     final targetController = TextEditingController();
     final unitController = TextEditingController(text: 'kg');
 
-    final wasteTypes = ['Plastic', 'Paper', 'Glass', 'Metal', 'Organic', 'Electronic', 'Other'];
-
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Add Waste Reduction Goal',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Column(
+      barrierDismissible: true,
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) => Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            constraints: BoxConstraints(
+              maxWidth: 400,
+              maxHeight: constraints.maxHeight * 0.8,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
           mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Goal Type',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
+                  // Motivational tip
+                  Row(
+                    children: [
+                      Icon(Icons.flag, color: AppColors.primary, size: 28),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Set a realistic, measurable goal to reduce your waste! For example: "Reduce plastic waste by 5 kg this month."',
+                          style: TextStyle(fontSize: 13, color: AppColors.secondaryText, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Divider(),
+                  const SizedBox(height: 10),
+                  // Goal Type
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        WidgetSpan(child: Icon(Icons.category, color: AppColors.primary, size: 20)),
+                        TextSpan(text: '  '),
+                        TextSpan(text: 'Goal Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceBackground,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.borderLight),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: DropdownButtonFormField<String>(
               value: selectedGoalType,
-              items: wasteTypes.map((type) {
-                return DropdownMenuItem(value: type, child: Text('Reduce $type'));
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          helperText: 'Choose what type of waste to reduce (e.g., Plastic, Paper, etc.)',
+                        ),
+                        items: wasteTypes.map<DropdownMenuItem<String>>((type) {
+                          return DropdownMenuItem<String>(
+                            value: type['name'] as String,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(type['icon'] as IconData, color: type['color'] as Color, size: 22),
+                                SizedBox(width: 8),
+                                Flexible(child: Text(type['name'] as String)),
+                              ],
+                            ),
+                          );
               }).toList(),
               onChanged: (value) => selectedGoalType = value,
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  // Target Amount
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        WidgetSpan(child: Icon(Icons.track_changes, color: AppColors.primary, size: 20)),
+                        TextSpan(text: '  '),
+                        TextSpan(text: 'Target Amount', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
             TextField(
               controller: targetController,
               decoration: InputDecoration(
-                labelText: 'Target Amount',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
+                      hintText: 'e.g. 5',
+                      helperText: 'Set your target reduction amount (number only)',
+                      prefixIcon: Icon(Icons.track_changes, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceBackground,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
               ),
               keyboardType: TextInputType.number,
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  const SizedBox(height: 18),
+                  // Unit
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        WidgetSpan(child: Icon(Icons.straighten, color: AppColors.primary, size: 20)),
+                        TextSpan(text: '  '),
+                        TextSpan(text: 'Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
             TextField(
               controller: unitController,
               decoration: InputDecoration(
-                labelText: 'Unit',
-                labelStyle: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-          ElevatedButton(
+                      hintText: 'e.g. kg',
+                      helperText: 'Unit of measurement (kg, lbs, items, etc.)',
+                      prefixIcon: Icon(Icons.straighten, color: AppColors.primary),
+                      filled: true,
+                      fillColor: AppColors.surfaceBackground,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            if (mounted) Navigator.pop(context);
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(color: AppColors.primary),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
             onPressed: () async {
               if (selectedGoalType != null && 
                   targetController.text.isNotEmpty &&
@@ -682,20 +1578,14 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     startDate: DateTime.now(),
                     endDate: DateTime.now().add(const Duration(days: 30)),
                   );
-
                   try {
                     await WasteTrackerDAO.addWasteGoal(goal);
+                                  if (mounted) {
                     Navigator.pop(context);
                     _loadData();
-                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Goal added successfully!',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                            ),
-                          ),
+                                        content: Text('Goal added successfully!'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -704,12 +1594,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text(
-                            'Failed to add goal: $e',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                            ),
-                          ),
+                                        content: Text('Failed to add goal: $e'),
                           backgroundColor: AppColors.error,
                         ),
                       );
@@ -718,14 +1603,20 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 }
               }
             },
-            child: Text(
-              'Add',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text('Add Goal'),
             ),
           ),
         ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -733,45 +1624,37 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   void _deleteEntry(WasteEntry entry) {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Delete Entry',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Icon(Icons.delete, color: AppColors.error),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text('Delete Entry'),
+          ],
         ),
         content: Text(
-          'Are you sure you want to delete this ${entry.wasteType} entry?',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
+          'Are you sure you want to delete this ${entry.wasteType} entry? This action cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
+            onPressed: () {
+              if (mounted) {
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
               try {
                 await WasteTrackerDAO.deleteWasteEntry(entry.key);
+                if (mounted) {
                 Navigator.pop(context);
                 _loadData();
-                if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'Entry deleted successfully!',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        ),
-                      ),
+                      content: Text('Entry deleted successfully!'),
                       backgroundColor: AppColors.success,
                     ),
                   );
@@ -780,12 +1663,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(
-                        'Failed to delete entry: $e',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        ),
-                      ),
+                      content: Text('Failed to delete entry: $e'),
                       backgroundColor: AppColors.error,
                     ),
                   );
@@ -793,13 +1671,160 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: Text(
-              'Delete',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAdjustProgressDialog(WasteReductionGoal goal) {
+    double tempAmount = goal.currentAmount;
+    final controller = TextEditingController(text: tempAmount.toStringAsFixed(2));
+    String? errorText;
+    void setAmount(double value, void Function(void Function()) setDialogState) {
+      setDialogState(() {
+        tempAmount = value.clamp(0, goal.targetAmount);
+        controller.text = tempAmount.toStringAsFixed(2);
+        errorText = null;
+      });
+    }
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.tune, color: AppColors.info),
+            SizedBox(width: 8),
+            Text('Adjust Progress'),
+          ],
+        ),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Set your current progress for this goal. This will update the progress bar and percentage. You can use the slider or enter a value below.',
+                style: TextStyle(fontSize: 14, color: AppColors.secondaryText),
               ),
-            ),
+              SizedBox(height: 16),
+              Text(
+                'Progress is now auto-calculated from your entries. Manual adjustment is disabled.',
+                style: TextStyle(fontSize: 13, color: AppColors.info),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              Text(
+                '${tempAmount.toStringAsFixed(2)} / ${goal.targetAmount.toStringAsFixed(2)} ${goal.unit}',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              Slider(
+                value: tempAmount.clamp(0, goal.targetAmount),
+                min: 0,
+                max: goal.targetAmount > 0 ? goal.targetAmount : 1,
+                divisions: goal.targetAmount > 0 ? goal.targetAmount.ceil() : 1,
+                label: tempAmount.toStringAsFixed(2),
+                onChanged: null, // disabled
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        labelText: 'Current Amount',
+                        suffixText: goal.unit,
+                        errorText: errorText,
+                      ),
+                      enabled: false, // disabled
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.refresh, color: AppColors.warning),
+                    tooltip: 'Reset to zero',
+                    onPressed: null, // disabled
+                  ),
+                ],
+              ),
+              if (errorText != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(errorText!, style: TextStyle(color: AppColors.error)),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (tempAmount < 0 || tempAmount > goal.targetAmount) {
+                // Should not happen due to validation, but double check
+                return;
+              }
+              // If setting to 100%, confirm
+              if (tempAmount >= goal.targetAmount) {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Confirm Completion'),
+                    content: Text('You are setting progress to 100%. Mark this goal as completed?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text('No'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text('Yes'),
+          ),
+        ],
+      ),
+    );
+                if (confirm != true) return;
+              }
+              final updatedGoal = WasteReductionGoal(
+                key: goal.key,
+                userId: goal.userId,
+                goalType: goal.goalType,
+                targetAmount: goal.targetAmount,
+                unit: goal.unit,
+                startDate: goal.startDate,
+                endDate: goal.endDate,
+                currentAmount: tempAmount,
+                isCompleted: tempAmount >= goal.targetAmount,
+              );
+              try {
+                await WasteTrackerDAO.updateWasteGoal(updatedGoal);
+                if (mounted) {
+                  Navigator.pop(context);
+                  _loadData();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Progress updated!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update progress: ' + e.toString()),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Text('Save'),
           ),
         ],
       ),

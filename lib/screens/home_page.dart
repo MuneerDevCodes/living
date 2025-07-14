@@ -4,6 +4,7 @@ import 'package:living/widgets/header.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -71,15 +72,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 padding: ResponsiveHelper.getAdaptivePadding(context),
                 child: Column(
                   children: [
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: _buildHeroSection(context),
-                      ),
-                    ),
-                    SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
-                    _buildStatsSection(context),
+                    _buildCarouselSection(context),
                     SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
                     _buildFeatureGrid(context),
                     SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
@@ -95,43 +88,137 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildHeroSection(BuildContext context) {
+  Widget _buildCarouselSection(BuildContext context) {
     final isMobile = ResponsiveHelper.isMobile(context);
-    final isTablet = ResponsiveHelper.isTablet(context);
-    
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.primary.withValues(alpha: 0.08),
-            AppColors.secondary.withValues(alpha: 0.04),
-            AppColors.tertiary.withValues(alpha: 0.02),
-          ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadowLight,
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    final double height = isMobile ? 220 : 320;
+    final List<Map<String, dynamic>> slides = [
+      {
+        'image': 'assets/logo.png',
+        'title': 'Live Sustainably',
+        'subtitle': 'Track your carbon footprint and make eco-friendly choices.',
+        'icon': Icons.eco,
+        'color': AppColors.primary,
+        'route': '/carbon-footprint',
+      },
+      {
+        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'title': 'Reduce Waste',
+        'subtitle': 'Monitor and reduce your daily waste for a cleaner planet.',
+        'icon': Icons.recycling,
+        'color': AppColors.success,
+        'route': '/waste-tracker',
+      },
+      {
+        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'title': 'Save Energy',
+        'subtitle': 'Discover tips to save energy and lower your carbon impact.',
+        'icon': Icons.lightbulb,
+        'color': AppColors.warning,
+        'route': '/energy-tips',
+      },
+      {
+        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'title': 'Shop Green',
+        'subtitle': 'Find eco-friendly products and support sustainable brands.',
+        'icon': Icons.shopping_bag,
+        'color': AppColors.info,
+        'route': '/search',
+      },
+      {
+        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'title': 'Join Challenges',
+        'subtitle': 'Participate in sustainability challenges and earn rewards.',
+        'icon': Icons.emoji_events,
+        'color': AppColors.secondary,
+        'route': '/challenges',
+      },
+    ];
+
+    return CarouselSlider(
+      options: CarouselOptions(
+        height: height,
+        autoPlay: true,
+        enlargeCenterPage: true,
+        viewportFraction: isMobile ? 0.92 : 0.6,
+        aspectRatio: isMobile ? 1.2 : 2.5,
+        autoPlayInterval: Duration(seconds: 5),
       ),
-      padding: ResponsiveHelper.getCardPadding(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (isMobile) ...[
-            _buildMobileHeroContent(context),
-          ] else ...[
-            _buildDesktopHeroContent(context),
-          ],
-        ],
-      ),
+      items: slides.map((slide) {
+        return Builder(
+          builder: (BuildContext context) {
+            return InkWell(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+              onTap: () {
+                if (slide['route'] != null) {
+                  Navigator.pushNamed(context, slide['route']);
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                margin: EdgeInsets.symmetric(horizontal: 4.0),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [slide['color'].withOpacity(0.12), Colors.white],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: slide['color'].withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(width: 16),
+                    Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: slide['color'].withOpacity(0.13),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        slide['icon'],
+                        size: isMobile ? 48 : 64,
+                        color: slide['color'],
+                      ),
+                    ),
+                    SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            slide['title'],
+                            style: TextStyle(
+                              fontSize: isMobile ? 20 : 28,
+                              fontWeight: FontWeight.bold,
+                              color: slide['color'],
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            slide['subtitle'],
+                            style: TextStyle(
+                              fontSize: isMobile ? 14 : 18,
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      }).toList(),
     );
   }
 
@@ -331,7 +418,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDesktopHeroButtons(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: ResponsiveHelper.getAdaptiveGap(context),
+      runSpacing: ResponsiveHelper.getAdaptiveGap(context),
       children: [
         ElevatedButton.icon(
           onPressed: () => Navigator.pushNamed(context, '/auth'),
@@ -358,7 +447,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             elevation: 4,
           ),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
         OutlinedButton.icon(
           onPressed: () => Navigator.pushNamed(context, '/about-us'),
           icon: Icon(Icons.info_outline, size: ResponsiveHelper.getCompactIconSize(context)),
@@ -662,11 +750,101 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
         SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        if (ResponsiveHelper.isMobile(context))
-          _buildMobileFeatureGrid(context, features, currentUserId)
-        else
-          _buildDesktopFeatureGrid(context, features, currentUserId),
+        _buildImageGridFeature(context, features, currentUserId),
       ],
+    );
+  }
+
+  Widget _buildImageGridFeature(BuildContext context, List<Map<String, dynamic>> features, String? currentUserId) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final crossAxisCount = isMobile ? 2 : 3;
+    final double childAspectRatio = isMobile ? 1.0 : 1.1;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: childAspectRatio,
+        crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+        mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+      ),
+      itemCount: features.length,
+      itemBuilder: (context, index) {
+        final feature = features[index];
+        return InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _handleFeatureNavigation(context, feature),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.shadowLight.withOpacity(0.08),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            padding: EdgeInsets.symmetric(
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: (feature['color'] as Color).withOpacity(0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      feature['icon'] as IconData,
+                      color: feature['color'] as Color,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.3,
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Text(
+                    feature['title'] as String,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Text(
+                    feature['subtitle'] as String,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.95,
+                      color: AppColors.secondaryText,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ((feature['requiresAuth'] as bool) && currentUserId == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6.0),
+                      child: Icon(
+                        Icons.lock,
+                        color: AppColors.mutedText,
+                        size: ResponsiveHelper.getCompactIconSize(context),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -13,7 +13,12 @@ class WasteTrackerDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          entries.add(WasteEntry.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final data = child.value;
+          if (data != null) {
+            // Convert LinkedMap to Map<String, dynamic>
+            final Map<String, dynamic> jsonData = Map<String, dynamic>.from(data as Map);
+            entries.add(WasteEntry.fromJson(child.key!, jsonData));
+          }
         }
       }
       
@@ -58,7 +63,12 @@ class WasteTrackerDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          goals.add(WasteReductionGoal.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final data = child.value;
+          if (data != null) {
+            // Convert LinkedMap to Map<String, dynamic>
+            final Map<String, dynamic> jsonData = Map<String, dynamic>.from(data as Map);
+            goals.add(WasteReductionGoal.fromJson(child.key!, jsonData));
+          }
         }
       }
       
