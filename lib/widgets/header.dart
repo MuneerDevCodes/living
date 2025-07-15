@@ -103,34 +103,33 @@ class Header extends StatelessWidget {
                     ),
                   ),
                   // App name with improved styling
-                  if (!ResponsiveHelper.isMobile(context))
-                    Padding(
-                      padding: EdgeInsets.only(left: ResponsiveHelper.getAdaptiveGap(context)),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  Padding(
+                    padding: EdgeInsets.only(left: ResponsiveHelper.getAdaptiveGap(context)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Planet Care',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        if (ResponsiveHelper.isDesktop(context))
                           Text(
-                            'Living',
+                            'Sustainable Living Guide',
                             style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
+                              color: AppColors.white.withValues(alpha: 0.8),
+                              fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
+                              fontWeight: FontWeight.w300,
                             ),
                           ),
-                          if (ResponsiveHelper.isDesktop(context))
-                            Text(
-                              'Sustainable Living Guide',
-                                                             style: TextStyle(
-                                 color: AppColors.white.withValues(alpha: 0.8),
-                                 fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
-                                 fontWeight: FontWeight.w300,
-                               ),
-                            ),
-                        ],
-                      ),
+                      ],
                     ),
+                  ),
                 ],
               ),
             ),
