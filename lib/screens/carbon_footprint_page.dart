@@ -33,6 +33,9 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
   // Add a field to track the last activity impact
   CarbonFootprintEntry? lastLoggedEntry;
 
+  int _pendingTabSwitch = 0; // 0: Overview, 1: Log Activity, etc.
+  bool _highlightLastEntry = false;
+
   // Helper method for category icons
   IconData _getCategoryIcon(String category) {
     switch (category) {
@@ -49,7 +52,12 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // Changed from 4 to 3
+    _tabController.addListener(() {
+      if (_tabController.index == 0) {
+        setState(() => _highlightLastEntry = false);
+      }
+    });
     _loadData();
   }
 
@@ -59,7 +67,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool switchToOverview = false, bool highlightLast = false}) async {
     try {
       setState(() => isLoading = true);
       userId = AuthService.getCurrentUserId();
@@ -67,7 +75,6 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
         entries = await CarbonFootprintDAO.getUserEntries(userId!);
         goals = await CarbonFootprintDAO.getUserGoals(userId!);
         analytics = await CarbonFootprintDAO.getUserAnalytics(userId!);
-        // Set lastLoggedEntry to the most recent entry if available
         if (entries.isNotEmpty) {
           entries.sort((a, b) => b.date.compareTo(a.date));
           lastLoggedEntry = entries.first;
@@ -84,7 +91,13 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
       }
     } finally {
       if (mounted) {
-        setState(() => isLoading = false);
+        setState(() {
+          isLoading = false;
+          if (switchToOverview) {
+            _tabController.index = 0;
+            _highlightLastEntry = highlightLast;
+          }
+        });
       }
     }
   }
@@ -111,8 +124,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
                           _buildOverviewTab(),
                           _buildLogActivityTab(),
                           _buildAnalyticsTab(),
-                          _buildGoalsTab(),
-                        ],
+                        ], // Removed _buildGoalsTab()
                       ),
                     ),
                   ],
@@ -138,29 +150,57 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
           Tab(icon: Icon(Icons.dashboard), text: 'Overview'),
           Tab(icon: Icon(Icons.add), text: 'Log Activity'),
           Tab(icon: Icon(Icons.analytics), text: 'Analytics'),
-          Tab(icon: Icon(Icons.flag), text: 'Goals'),
-        ],
+        ], // Removed Goals tab
       ),
     );
   }
 
   Widget _buildOverviewTab() {
-    if (analytics == null) return _buildEmptyState();
-    
     return SingleChildScrollView(
       padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (lastLoggedEntry != null) _buildLastActivityImpactCard(),
-          _buildOverviewCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildRankCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildCategoryBreakdownCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildTipsCard(),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          _buildRecentEntriesCard(),
+          // Friendly explainer
+          Card(
+            color: AppColors.info.withOpacity(0.08),
+            elevation: 0,
+            margin: EdgeInsets.only(bottom: 16),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.eco, color: AppColors.primary, size: 32),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Track your daily activities and see your real environmental impact. Log activities, set goals, and watch your progress!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (lastLoggedEntry != null)
+            _buildLastActivityImpactCard(highlight: _highlightLastEntry),
+          if (analytics == null)
+            _buildEmptyState()
+          else ...[
+            _buildOverviewCard(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildRankCard(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildCategoryBreakdownCard(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildTipsCard(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildRecentEntriesCard(),
+          ],
         ],
       ),
     );
@@ -290,6 +330,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
     final categories = analytics!.categoryBreakdown.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final total = analytics!.categoryBreakdown.values.fold(0.0, (a, b) => a + b);
+    final hasData = categories.isNotEmpty && total > 0;
     return Card(
       elevation: 4,
       child: Padding(
@@ -311,65 +352,94 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
               ],
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            SizedBox(
-              height: 180,
-              child: PieChart(
-                PieChartData(
-                  sections: [
-                    for (final entry in categories)
-                      PieChartSectionData(
-                        color: _getCategoryColor(entry.key),
-                        value: entry.value,
-                        title: '${((entry.value / total) * 100).toStringAsFixed(1)}%',
-                        radius: 50,
-                        titleStyle: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
+            if (hasData) ...[
+              SizedBox(
+                height: 180,
+                child: PieChart(
+                  PieChartData(
+                    sections: [
+                      for (final entry in categories)
+                        PieChartSectionData(
+                          color: _getCategoryColor(entry.key),
+                          value: entry.value,
+                          title: '${((entry.value / total) * 100).toStringAsFixed(1)}%',
+                          radius: 50,
+                          titleStyle: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
                         ),
-                      ),
-                  ],
-                  sectionsSpace: 2,
-                  centerSpaceRadius: 32,
+                    ],
+                    sectionsSpace: 2,
+                    centerSpaceRadius: 32,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-            ...categories.take(5).map((category) => Padding(
-              padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-              child: Row(
-                children: [
-                  Container(
-                    width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
-                    height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
-                    decoration: BoxDecoration(
-                      color: _getCategoryColor(category.key),
-                      borderRadius: BorderRadius.circular(
-                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              ...categories.take(5).map((category) => Padding(
+                padding: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                child: Row(
+                  children: [
+                    Container(
+                      width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+                      height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+                      decoration: BoxDecoration(
+                        color: _getCategoryColor(category.key),
+                        borderRadius: BorderRadius.circular(
+                          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                  Expanded(
-                    child: Text(
-                      category.key,
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                    Expanded(
+                      child: Text(
+                        category.key,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${category.value.toStringAsFixed(1)} kg',
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
+                        color: _getCategoryColor(category.key),
                       ),
                     ),
-                  ),
-                  Text(
-                    '${category.value.toStringAsFixed(1)} kg',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      fontWeight: FontWeight.bold,
-                      color: _getCategoryColor(category.key),
+                  ],
+                ),
+              )),
+            ] else ...[
+              SizedBox(height: 32),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.insights, size: 48, color: AppColors.borderLight),
+                    SizedBox(height: 12),
+                    Text(
+                      'No category data yet.',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        color: AppColors.secondaryText,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 4),
+                    Text(
+                      'Log activities to see your carbon breakdown!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                        color: AppColors.secondaryText,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )),
+              SizedBox(height: 32),
+            ],
           ],
         ),
       ),
@@ -567,7 +637,33 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
     return SingleChildScrollView(
       padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Friendly explainer
+          Card(
+            color: AppColors.success.withOpacity(0.08),
+            elevation: 0,
+            margin: EdgeInsets.only(bottom: 16),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.add_circle, color: AppColors.success, size: 32),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'Log your daily activities here. Each log helps you understand and reduce your carbon footprint!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           if (lastLoggedEntry != null) _buildLastActivityImpactCard(),
           _buildEducationalHeader(),
           SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -593,11 +689,14 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
               children: [
                 Icon(Icons.school, color: AppColors.primary, size: 24),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                Text(
-                  'Understanding Carbon Footprint',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Understanding Carbon Footprint',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -626,12 +725,15 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
                     children: [
                       Icon(Icons.lightbulb, color: AppColors.info, size: 20),
                       SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-                      Text(
-                        'Why Track Your Carbon Footprint?',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.info,
+                      Expanded(
+                        child: Text(
+                          'Why Track Your Carbon Footprint?',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.info,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -670,11 +772,14 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
               children: [
                 Icon(Icons.add_circle, color: AppColors.success, size: 24),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                Text(
-                  'Log New Activity',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Log New Activity',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -877,46 +982,43 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
   }
 
   Widget _buildAnalyticsTab() {
-    if (analytics == null) return Center(
+    // Add friendly explainer at the top
+    return SingleChildScrollView(
+      padding: ResponsiveHelper.getAdaptivePadding(context),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.analytics,
-            size: 64,
-            color: AppColors.secondaryText,
-          ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          Text(
-            'No analytics yet',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-              fontWeight: FontWeight.bold,
-              color: AppColors.secondaryText,
+          Card(
+            color: AppColors.warning.withOpacity(0.08),
+            elevation: 0,
+            margin: EdgeInsets.only(bottom: 16),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.analytics, color: AppColors.warning, size: 32),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      'See your trends and breakdowns. Analytics help you spot patterns and improve your sustainability journey.',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-          Text(
-            'Log activities to unlock your analytics dashboard.',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              color: AppColors.secondaryText,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-          ElevatedButton.icon(
-            onPressed: _showActivityLogDialog,
-            icon: Icon(Icons.add),
-            label: Text('Log Activity'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: AppColors.white,
-            ),
-          ),
+          analytics == null ? _buildEmptyState() : _buildAnalyticsTabContent(),
         ],
       ),
     );
+  }
+
+  Widget _buildAnalyticsTabContent() {
     final highestCategory = analytics!.categoryBreakdown.entries.isNotEmpty
         ? analytics!.categoryBreakdown.entries.reduce((a, b) => a.value > b.value ? a : b)
         : null;
@@ -1058,357 +1160,6 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
     );
   }
 
-  Widget _buildGoalsTab() {
-    // 0. Add a friendly explainer at the top
-    final explainer = Card(
-      color: AppColors.info.withOpacity(0.08),
-      elevation: 0,
-      margin: EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.flag_circle, color: AppColors.primary, size: 32),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'How to Use Your Carbon Goal',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '1. Set a weekly carbon goal for yourself. (e.g., under 10 kg CO₂)\n'
-                    '2. Click "+ Log Activity" whenever you do something that impacts the environment (like driving, eating meat, using electricity, etc.).\n'
-                    '3. Each activity you log adds to your weekly total.\n'
-                    '4. Watch your progress bar update as you log activities.\n'
-                    '5. Get personalized tips and see your best week!\n'
-                    '6. Try to stay under your goal and celebrate your achievements!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      color: AppColors.primaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    // 1. Add a clear, friendly introduction
-    final intro = Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        children: [
-          Icon(Icons.flag, color: AppColors.primary, size: 28),
-          SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Set and track your weekly carbon reduction goals. See your progress, get personalized tips, and celebrate your achievements!',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                color: AppColors.secondaryText,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (goals.isEmpty) {
-      // No goal set: prompt user to set a goal
-      return SingleChildScrollView(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            explainer,
-            intro,
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('No goal set yet!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                    SizedBox(height: 12),
-                    Text('Set your first weekly carbon goal to start your sustainability journey.'),
-                    SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _showAddGoalDialog,
-                      icon: Icon(Icons.flag),
-                      label: Text('Set Weekly Goal'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.white),
-                    ),
-                    SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      onPressed: _showActivityLogDialog,
-                      icon: Icon(Icons.add),
-                      label: Text('Log Activity'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: AppColors.white),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    final activeGoal = goals.firstWhere((g) => g.isActive, orElse: () => goals.first);
-    final progress = (activeGoal.currentProgress / activeGoal.targetValue).clamp(0.0, 1.0);
-    final completedCount = goals.where((g) => g.status == 'completed').length;
-    final bestWeek = analytics?.weeklyTrend.values.isNotEmpty == true
-        ? analytics!.weeklyTrend.values.reduce((a, b) => a < b ? a : b)
-        : null;
-    final highestCategory = analytics?.categoryBreakdown.entries.isNotEmpty == true
-        ? analytics!.categoryBreakdown.entries.reduce((a, b) => a.value > b.value ? a : b)
-        : null;
-    // Personalized dynamic tip for goals
-    String tip = '';
-    if (highestCategory != null) {
-      switch (highestCategory.key) {
-        case 'Transportation':
-          tip = '🚗 Most of your emissions come from Transportation. Try using public transport or carpooling this week!';
-          break;
-        case 'Energy':
-          tip = '⚡ Energy is your biggest source. Switch off appliances and use efficient devices!';
-          break;
-        case 'Food':
-          tip = '🥗 Food is your top category. Choose more plant-based meals this week!';
-          break;
-        case 'Waste':
-          tip = '🗑️ Waste is high. Focus on recycling and composting!';
-          break;
-        case 'Water':
-          tip = '💧 Water use is high. Take shorter showers and fix leaks!';
-          break;
-        case 'Digital':
-          tip = '💻 Digital footprint is significant. Stream less and clean up cloud storage!';
-          break;
-        default:
-          tip = 'Keep up the good work! Every step counts.';
-      }
-    }
-    // 2. Add edit goal button
-    final editGoalButton = Align(
-      alignment: Alignment.centerRight,
-      child: TextButton.icon(
-        onPressed: _showAddGoalDialog,
-        icon: Icon(Icons.edit, color: AppColors.primary),
-        label: Text('Edit Goal', style: TextStyle(color: AppColors.primary)),
-      ),
-    );
-    // 3. Visual progress and actionable feedback
-    final progressCard = Card(
-      elevation: 4,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('Progress', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                SizedBox(width: 8),
-                Tooltip(
-                  message: 'Your progress towards your weekly carbon goal.',
-                  child: Icon(Icons.info_outline, size: 16, color: AppColors.secondaryText),
-                ),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    backgroundColor: AppColors.borderLight,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  '${activeGoal.currentProgress.toStringAsFixed(1)} / ${activeGoal.targetValue.toStringAsFixed(1)} kg CO₂',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              progress >= 1.0
-                  ? '🎉 Goal achieved!'
-                  : 'You need to reduce ${(activeGoal.targetValue - activeGoal.currentProgress).clamp(0, activeGoal.targetValue).toStringAsFixed(1)} kg CO₂ more this week.',
-              style: TextStyle(fontSize: 12, color: AppColors.secondaryText),
-            ),
-          ],
-        ),
-      ),
-    );
-    // 4. Personalized, dynamic tips
-    final tipCard = Card(
-      elevation: 4,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.lightbulb, color: AppColors.warning, size: 20),
-            SizedBox(width: 8),
-            Expanded(child: Text(tip, style: TextStyle(fontSize: 14))),
-          ],
-        ),
-      ),
-    );
-    // 5. Celebrate achievements
-    final achievementsCard = Card(
-      elevation: 4,
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            if (completedCount > 0)
-              Row(children: [
-                Icon(Icons.emoji_events, color: AppColors.success, size: 20),
-                SizedBox(width: 4),
-                Text('Goal Achieved $completedCount times this month!', style: TextStyle(fontSize: 14)),
-                SizedBox(width: 16),
-              ]),
-            if (bestWeek != null)
-              Row(children: [
-                Icon(Icons.star, color: AppColors.info, size: 20),
-                SizedBox(width: 4),
-                Text('Best week: ${bestWeek.toStringAsFixed(1)} kg CO₂', style: TextStyle(fontSize: 14)),
-              ]),
-          ],
-        ),
-      ),
-    );
-    // 6. Call to action
-    final logActivityButton = Center(
-      child: ElevatedButton.icon(
-        onPressed: _showActivityLogDialog,
-        icon: Icon(Icons.add),
-        label: Text('Log Activity'),
-        style: ElevatedButton.styleFrom(backgroundColor: AppColors.success, foregroundColor: AppColors.white),
-      ),
-    );
-    // 7. Info section
-    final infoSection = Padding(
-      padding: const EdgeInsets.only(top: 24.0),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: AppColors.secondaryText, size: 20),
-          SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'A carbon goal is a target for how much CO₂ you want to emit in a week. Lowering your carbon footprint helps fight climate change and can save you money!',
-              style: TextStyle(fontSize: 13, color: AppColors.secondaryText),
-            ),
-          ),
-        ],
-      ),
-    );
-    // After the Log Activity button, add a 'What happens next?' card
-    final whatNextCard = Card(
-      color: AppColors.success.withOpacity(0.08),
-      elevation: 0,
-      margin: EdgeInsets.only(top: 24),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.help_outline, color: AppColors.success, size: 28),
-            SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'What happens after you log an activity?',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.success,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '''• Your activity is added to your weekly total.
-• The progress bar updates to show how close you are to your goal.
-• Personalized tips may change based on your new activities.
-• If you reach your goal, you'll see a celebration!
-• You can always edit your goal or log more activities.
-
-Keep logging to track your journey and see your improvements over time!''',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      color: AppColors.primaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-    return SingleChildScrollView(
-      padding: ResponsiveHelper.getAdaptivePadding(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          explainer,
-          intro,
-          Card(
-            elevation: 4,
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Your Weekly Goal', style: TextStyle(fontSize: 16, color: AppColors.secondaryText)),
-                        SizedBox(height: 8),
-                        Text(
-                          'Under ${activeGoal.targetValue.toStringAsFixed(1)} kg CO₂',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  editGoalButton,
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: 16),
-          progressCard,
-          SizedBox(height: 16),
-          tipCard,
-          SizedBox(height: 16),
-          achievementsCard,
-          SizedBox(height: 24),
-          logActivityButton,
-          whatNextCard,
-          infoSection,
-        ],
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -1453,10 +1204,7 @@ Keep logging to track your journey and see your improvements over time!''',
   }
 
   void _showActivityLogDialog() {
-    // Unfocus any active text fields to prevent layout issues
     FocusScope.of(context).unfocus();
-    
-    // Add a small delay to ensure proper layout
     Future.delayed(Duration(milliseconds: 100), () {
       if (mounted) {
         showDialog(
@@ -1465,7 +1213,7 @@ Keep logging to track your journey and see your improvements over time!''',
           builder: (context) => ActivityLogDialog(
             onActivityLogged: () {
               Navigator.pop(context);
-              _loadData();
+              _loadData(switchToOverview: true, highlightLast: true);
             },
           ),
         );
@@ -1474,10 +1222,7 @@ Keep logging to track your journey and see your improvements over time!''',
   }
 
   void _showCategoryActivityDialog(String category) {
-    // Unfocus any active text fields to prevent layout issues
     FocusScope.of(context).unfocus();
-    
-    // Add a small delay to ensure proper layout
     Future.delayed(Duration(milliseconds: 100), () {
       if (mounted) {
         showDialog(
@@ -1487,7 +1232,7 @@ Keep logging to track your journey and see your improvements over time!''',
             category: category,
             onActivityLogged: () {
               Navigator.pop(context);
-              _loadData();
+              _loadData(switchToOverview: true, highlightLast: true);
             },
           ),
         );
@@ -1495,34 +1240,12 @@ Keep logging to track your journey and see your improvements over time!''',
     });
   }
 
-  void _showAddGoalDialog() {
-    // Unfocus any active text fields to prevent layout issues
-    FocusScope.of(context).unfocus();
-    
-    // Add a small delay to ensure proper layout
-    Future.delayed(Duration(milliseconds: 100), () {
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AddGoalDialog(
-            onGoalAdded: () {
-              Navigator.pop(context);
-              _loadData();
-            },
-          ),
-        );
-      }
-    });
-  }
-
-  // New: Last Activity Impact Card
-  Widget _buildLastActivityImpactCard() {
+  Widget _buildLastActivityImpactCard({bool highlight = false}) {
     final entry = lastLoggedEntry;
     if (entry == null) return SizedBox.shrink();
     return Card(
-      color: AppColors.success.withOpacity(0.08),
-      elevation: 4,
+      color: highlight ? AppColors.success.withOpacity(0.25) : AppColors.success.withOpacity(0.08),
+      elevation: highlight ? 8 : 4,
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
@@ -1698,11 +1421,14 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
                 children: [
                   Icon(Icons.lightbulb, color: AppColors.warning, size: 20),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-                  Text(
-                    'Why Track Your Carbon Footprint?',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Text(
+                      'Why Track Your Carbon Footprint?',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -1913,7 +1639,7 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
                   size: 24,
                 ),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-                Expanded(
+                Flexible(
                   child: Text(
                     category,
                     style: TextStyle(
@@ -1977,6 +1703,7 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                 fontWeight: FontWeight.bold,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
