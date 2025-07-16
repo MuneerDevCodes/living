@@ -26,4 +26,7 @@ const List<String> kCertificationCategories = [
   'Energy Star',
   'Forest Stewardship',
   'Marine Stewardship',
+  'Building Standards',
+  'Business Standards',
+  'Environmental Protection',
 ];

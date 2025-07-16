@@ -21,11 +21,11 @@ class Header extends StatelessWidget {
     
     // Improved responsive logo sizing
     final logoWidth = ResponsiveHelper.isMobile(context) 
-        ? screenWidth * 0.12 // Slightly larger for better visibility on mobile
+        ? screenWidth * 0.08 // Smaller for mobile
         : ResponsiveHelper.isTablet(context)
-            ? screenWidth * 0.10 // Medium for tablet
-            : screenWidth * 0.08; // Smaller for desktop
-    final logoHeight = headerHeight * 0.6; // Increased height for better proportion
+            ? screenWidth * 0.06 // Medium for tablet
+            : screenWidth * 0.05; // Smaller for desktop
+    final logoHeight = headerHeight * 0.5; // Reduced height
     
     return Container(
       height: headerHeight,
@@ -45,7 +45,7 @@ class Header extends StatelessWidget {
           // Menu button - only on mobile
           if (ResponsiveHelper.isMobile(context))
             Container(
-              margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveGap(context)),
+              margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
               child: Builder(
                 builder: (context) => IconButton(
                   icon: Icon(
@@ -71,11 +71,11 @@ class Header extends StatelessWidget {
                 children: [
                   // Logo container with better styling
                   Container(
-                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context) * 0.5),
-                                         decoration: BoxDecoration(
-                       borderRadius: BorderRadius.circular(8),
-                       color: Colors.white.withValues(alpha: 0.1),
-                     ),
+                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context) * 0.3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
                     child: Semantics(
                       label: 'Living App Logo',
                       image: true,
@@ -90,11 +90,11 @@ class Header extends StatelessWidget {
                             height: logoHeight,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Icon(
                               Icons.eco,
-                              size: logoHeight * 0.5,
+                              size: logoHeight * 0.4,
                               color: AppColors.primary,
                             ),
                           );
@@ -104,7 +104,7 @@ class Header extends StatelessWidget {
                   ),
                   // App name with improved styling
                   Padding(
-                    padding: EdgeInsets.only(left: ResponsiveHelper.getAdaptiveGap(context)),
+                    padding: EdgeInsets.only(left: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,9 +113,11 @@ class Header extends StatelessWidget {
                           'Planet Care',
                           style: TextStyle(
                             color: AppColors.white,
-                            fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                            fontSize: ResponsiveHelper.isMobile(context) 
+                                ? ResponsiveHelper.getBodyFontSize(context) * 1.1
+                                : ResponsiveHelper.getSubtitleFontSize(context),
                             fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         if (ResponsiveHelper.isDesktop(context))
@@ -123,7 +125,7 @@ class Header extends StatelessWidget {
                             'Sustainable Living Guide',
                             style: TextStyle(
                               color: AppColors.white.withValues(alpha: 0.8),
-                              fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
+                              fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
                               fontWeight: FontWeight.w300,
                             ),
                           ),
@@ -161,17 +163,20 @@ class Header extends StatelessWidget {
           icon: Icons.favorite_border,
           onPressed: () => Navigator.pushNamed(context, '/wishlist'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.3),
         _buildMobileActionButton(
           context,
           icon: Icons.shopping_cart_outlined,
           onPressed: () => Navigator.pushNamed(context, '/cart'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.3),
         _buildMobileActionButton(
           context,
-          icon: Icons.logout,
-          onPressed: () => Navigator.pushNamed(context, '/logout'),
+          icon: AuthService().currentUser != null ? Icons.logout : Icons.login,
+          onPressed: () => Navigator.pushNamed(
+            context, 
+            AuthService().currentUser != null ? '/logout' : '/auth'
+          ),
         ),
       ],
     );
@@ -187,19 +192,22 @@ class Header extends StatelessWidget {
           label: 'Wishlist',
           onPressed: () => Navigator.pushNamed(context, '/wishlist'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
         _buildTabletActionButton(
           context,
           icon: Icons.shopping_cart_outlined,
           label: 'Cart',
           onPressed: () => Navigator.pushNamed(context, '/cart'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
         _buildTabletActionButton(
           context,
-          icon: Icons.logout,
-          label: 'Logout',
-          onPressed: () => Navigator.pushNamed(context, '/logout'),
+          icon: AuthService().currentUser != null ? Icons.logout : Icons.login,
+          label: AuthService().currentUser != null ? 'Logout' : 'Login',
+          onPressed: () => Navigator.pushNamed(
+            context, 
+            AuthService().currentUser != null ? '/logout' : '/auth'
+          ),
         ),
       ],
     );
@@ -215,19 +223,22 @@ class Header extends StatelessWidget {
           label: 'Wishlist',
           onPressed: () => Navigator.pushNamed(context, '/wishlist'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
         _buildDesktopActionButton(
           context,
           icon: Icons.shopping_cart_outlined,
           label: 'Cart',
           onPressed: () => Navigator.pushNamed(context, '/cart'),
         ),
-        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
         _buildDesktopActionButton(
           context,
-          icon: Icons.logout,
-          label: 'Logout',
-          onPressed: () => Navigator.pushNamed(context, '/logout'),
+          icon: AuthService().currentUser != null ? Icons.logout : Icons.login,
+          label: AuthService().currentUser != null ? 'Logout' : 'Login',
+          onPressed: () => Navigator.pushNamed(
+            context, 
+            AuthService().currentUser != null ? '/logout' : '/auth'
+          ),
         ),
       ],
     );
@@ -245,10 +256,10 @@ class Header extends StatelessWidget {
       ),
       color: AppColors.white,
       onPressed: onPressed,
-      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context) * 0.3),
       constraints: BoxConstraints(
-        minWidth: ResponsiveHelper.getButtonHeight(context) * 0.8,
-        minHeight: ResponsiveHelper.getButtonHeight(context) * 0.8,
+        minWidth: ResponsiveHelper.getButtonHeight(context) * 0.6,
+        minHeight: ResponsiveHelper.getButtonHeight(context) * 0.6,
       ),
     );
   }
@@ -270,12 +281,15 @@ class Header extends StatelessWidget {
         label,
         style: TextStyle(
           color: AppColors.white,
-          fontSize: ResponsiveHelper.getBodyFontSize(context),
+          fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
           fontWeight: FontWeight.w500,
         ),
       ),
       style: TextButton.styleFrom(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+          vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
             ResponsiveHelper.getAdaptiveBorderRadius(context),
@@ -302,12 +316,15 @@ class Header extends StatelessWidget {
         label,
         style: TextStyle(
           color: AppColors.white,
-          fontSize: ResponsiveHelper.getBodyFontSize(context),
+          fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
           fontWeight: FontWeight.w500,
         ),
       ),
       style: TextButton.styleFrom(
-        padding: ResponsiveHelper.getAdaptivePadding(context),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+          vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(
             ResponsiveHelper.getAdaptiveBorderRadius(context),
@@ -459,6 +476,7 @@ class DrawerItems {
     DrawerItem(label: 'Orders', icon: Icons.receipt, route: '/orders'),
     DrawerItem(label: 'Wishlist', icon: Icons.favorite, route: '/wishlist'),
     DrawerItem(label: 'Profile', icon: Icons.person, route: '/profile'),
+    DrawerItem(label: 'Settings', icon: Icons.settings, route: '/settings'),
     
     // Admin Features
     DrawerItem(label: 'Manage Categories', icon: Icons.category, route: '/manage-categories'),
@@ -492,6 +510,7 @@ class DrawerItems {
     DrawerItem(label: 'Orders', icon: Icons.receipt, route: '/orders'),
     DrawerItem(label: 'Wishlist', icon: Icons.favorite, route: '/wishlist'),
     DrawerItem(label: 'Profile', icon: Icons.person, route: '/profile'),
+    DrawerItem(label: 'Settings', icon: Icons.settings, route: '/settings'),
   ];
 
   static final List<DrawerItem> guestItems = [

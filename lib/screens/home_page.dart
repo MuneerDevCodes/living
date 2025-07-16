@@ -4,6 +4,7 @@ import 'package:living/widgets/header.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:living/services/notification_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,6 +19,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -49,6 +51,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _fadeController.forward();
     _slideController.forward();
+    
+    // Check for notifications after a short delay
+    Future.delayed(Duration(seconds: 2), () {
+      if (mounted) {
+        _notificationService.checkAndShowReminders(context);
+      }
+    });
   }
 
   @override

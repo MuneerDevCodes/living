@@ -12,7 +12,11 @@ class EnergyTipDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          tips.add(EnergyTip.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            tips.add(EnergyTip.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -30,7 +34,11 @@ class EnergyTipDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          tips.add(EnergyTip.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            tips.add(EnergyTip.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -48,7 +56,11 @@ class EnergyTipDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          tips.add(EnergyTip.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            tips.add(EnergyTip.fromJson(child.key!, data));
+          }
         }
       }
       

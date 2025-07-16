@@ -12,7 +12,11 @@ class EducationalContentDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          content.add(EducationalContent.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            content.add(EducationalContent.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -30,9 +34,13 @@ class EducationalContentDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          final contentItem = EducationalContent.fromJson(child.key!, child.value as Map<String, dynamic>);
-          if (contentItem.isPublished) {
-            content.add(contentItem);
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            final contentItem = EducationalContent.fromJson(child.key!, data);
+            if (contentItem.isPublished) {
+              content.add(contentItem);
+            }
           }
         }
       }
@@ -51,9 +59,13 @@ class EducationalContentDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          final contentItem = EducationalContent.fromJson(child.key!, child.value as Map<String, dynamic>);
-          if (contentItem.isPublished) {
-            content.add(contentItem);
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            final contentItem = EducationalContent.fromJson(child.key!, data);
+            if (contentItem.isPublished) {
+              content.add(contentItem);
+            }
           }
         }
       }

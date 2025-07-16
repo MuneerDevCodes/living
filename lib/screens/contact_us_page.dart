@@ -9,6 +9,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/validate.dart';
 
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
@@ -167,22 +168,13 @@ class _ContactUsPageState extends State<ContactUsPage> {
         'ctrl': _nameController,
         'label': 'Name',
         'icon': Icons.person,
-        'validator': (String? v) =>
-            v == null || v.isEmpty ? 'Please enter your name' : null,
+        'validator': validateName,
       },
       {
         'ctrl': _emailController,
         'label': 'Email',
         'icon': Icons.email,
-        'validator': (String? v) {
-          if (v == null || v.isEmpty) {
-            return 'Please enter your email';
-          }
-          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
-            return 'Please enter a valid email address';
-          }
-          return null;
-        },
+        'validator': validateEmail,
       },
       {
         'ctrl': _subjectController,

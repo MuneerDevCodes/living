@@ -9,6 +9,7 @@ import 'package:living/widgets/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/validate.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -358,12 +359,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
+                validator: validateName,
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               TextFormField(
@@ -382,15 +378,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'Please enter a valid email address';
-                  }
-                  return null;
-                },
+                validator: validateEmail,
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               SizedBox(

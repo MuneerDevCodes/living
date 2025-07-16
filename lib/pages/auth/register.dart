@@ -8,6 +8,7 @@ import 'package:living/services/user_dao.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -22,6 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
   String? _error;
 
   Future<void> _saveUserToPrefs(String uid) async {
@@ -86,8 +88,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                 _buildFormFields(),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
                 _buildRegisterButton(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                _buildTermsAndPrivacy(),
               ],
             ),
           );
@@ -96,88 +100,359 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildFormFields() {
     return Column(
       children: [
-        TextFormField(
-          controller: _nameCtrl,
-          decoration: InputDecoration(
-            labelText: 'Username',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+        // Username field
+        _buildUsernameField(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+        // Email field
+        _buildEmailField(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+        // Password field
+        _buildPasswordField(),
+      ],
+    );
+  }
+
+  Widget _buildUsernameField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.person_outline,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+            Text(
+              'Full Name',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: _nameCtrl,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: 'Enter your full name',
+            prefixIcon: Icon(
+              Icons.person,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceBackground,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
             ),
           ),
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            color: AppColors.primaryText,
           ),
           validator: validateName,
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _emailCtrl,
-          decoration: InputDecoration(
-            labelText: 'Email',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+      ],
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.email_outlined,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+            Text(
+              'Email Address',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            hintText: 'Enter your email address',
+            prefixIcon: Icon(
+              Icons.email,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceBackground,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
             ),
           ),
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            color: AppColors.primaryText,
           ),
           validator: validateEmail,
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _passCtrl,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.lock_outline,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+            Text(
+              'Password',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: _passCtrl,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            hintText: 'Create a strong password',
+            prefixIcon: Icon(
+              Icons.lock,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                color: AppColors.primary,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceBackground,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
             ),
           ),
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            color: AppColors.primaryText,
           ),
-          obscureText: true,
           validator: validatePass,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+        // Password strength indicator
+        _buildPasswordStrengthIndicator(),
+      ],
+    );
+  }
+
+  Widget _buildPasswordStrengthIndicator() {
+    final password = _passCtrl.text;
+    Color strengthColor = AppColors.secondaryText;
+    String strengthText = 'Password strength';
+    IconData strengthIcon = Icons.info_outline;
+
+    if (password.isNotEmpty) {
+      if (password.length >= 8 && 
+          password.contains(RegExp(r'[A-Z]')) && 
+          password.contains(RegExp(r'[a-z]')) && 
+          password.contains(RegExp(r'[0-9]'))) {
+        strengthColor = AppColors.success;
+        strengthText = 'Strong password';
+        strengthIcon = Icons.check_circle;
+      } else if (password.length >= 6) {
+        strengthColor = AppColors.warning;
+        strengthText = 'Medium strength';
+        strengthIcon = Icons.warning;
+      } else {
+        strengthColor = AppColors.error;
+        strengthText = 'Weak password';
+        strengthIcon = Icons.error;
+      }
+    }
+
+    return Row(
+      children: [
+        Icon(
+          strengthIcon,
+          color: strengthColor,
+          size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.6,
+        ),
+        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.3),
+        Text(
+          strengthText,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
+            color: strengthColor,
+          ),
         ),
       ],
     );
   }
 
   Widget _buildRegisterButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      height: ResponsiveHelper.getButtonHeight(context),
       child: ElevatedButton(
         onPressed: _loading ? null : _register,
         style: ElevatedButton.styleFrom(
-          padding: ResponsiveHelper.getAdaptivePadding(context),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shadowColor: AppColors.shadowMedium,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              ResponsiveHelper.getAdaptiveBorderRadius(context),
+            ),
+          ),
         ),
         child: _loading
             ? SizedBox(
                 width: ResponsiveHelper.getAdaptiveIconSize(context),
                 height: ResponsiveHelper.getAdaptiveIconSize(context),
-                child: const Loader(),
-              )
-            : Text(
-                'Register',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                  fontWeight: FontWeight.bold,
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
                 ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.person_add,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+                  Text(
+                    'Create Account',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getBodyFontSize(context) * 1.1,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildTermsAndPrivacy() {
+    return Container(
+      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceBackground,
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+        border: Border.all(
+          color: AppColors.borderLight,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: AppColors.primary,
+            size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+          Expanded(
+            child: Text(
+              'By creating an account, you agree to our Terms of Service and Privacy Policy',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.8,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

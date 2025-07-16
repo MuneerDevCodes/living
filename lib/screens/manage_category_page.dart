@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/product_model.dart';
+import '../services/admin_service.dart';
 import '../widgets/header.dart';
 import '../widgets/footer.dart';
 import '../widgets/loader.dart';
 import '../style/responsive_helper.dart';
 import '../style/theme.dart';
+import 'package:living/services/validate.dart';
 
 class ManageCategoryPage extends StatefulWidget {
   const ManageCategoryPage({super.key});
@@ -18,9 +20,27 @@ class ManageCategoryPage extends StatefulWidget {
 class _ManageCategoryPageState extends State<ManageCategoryPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameCtrl = TextEditingController();
+  final AdminService adminService = AdminService();
   String? _editingId;
+  bool _isAdmin = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
+  }
 
   void _submit([String? id]) async {
+    if (!_isAdmin) return;
     if (!_formKey.currentState!.validate()) return;
     final ref = FirebaseDatabase.instance.ref('categories');
     if (id == null) {
@@ -34,16 +54,24 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
   }
 
   void _delete(String id) async {
+    if (!_isAdmin) return;
     await FirebaseDatabase.instance.ref('categories/$id').remove();
   }
 
   void _edit(Category cat) {
+    if (!_isAdmin) return;
     _nameCtrl.text = cat.name;
     setState(() => _editingId = cat.id);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context),
       body: Column(
@@ -54,8 +82,11 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
               padding: ResponsiveHelper.getAdaptivePadding(context),
               child: Column(
                 children: [
-                  _buildFormSection(),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  // Only show form section for admin users
+                  if (_isAdmin) ...[
+                    _buildFormSection(),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  ],
                   Expanded(
                     child: _buildCategoriesList(),
                   ),
@@ -112,7 +143,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                       ),
-                      validator: (v) => v == null || v.isEmpty ? 'Enter name' : null,
+                      validator: validateName,
                     ),
                   ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -206,7 +237,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                trailing: Row(
+                trailing: _isAdmin ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
@@ -226,7 +257,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                       onPressed: () => _delete(cat.id),
                     ),
                   ],
-                ),
+                ) : null,
               ),
             );
           },

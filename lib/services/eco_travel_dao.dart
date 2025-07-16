@@ -12,7 +12,11 @@ class EcoTravelDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          suggestions.add(EcoTravelSuggestion.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            suggestions.add(EcoTravelSuggestion.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -30,7 +34,11 @@ class EcoTravelDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          suggestions.add(EcoTravelSuggestion.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            suggestions.add(EcoTravelSuggestion.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -48,7 +56,11 @@ class EcoTravelDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          suggestions.add(EcoTravelSuggestion.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            suggestions.add(EcoTravelSuggestion.fromJson(child.key!, data));
+          }
         }
       }
       

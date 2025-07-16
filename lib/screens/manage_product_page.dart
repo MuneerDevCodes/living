@@ -2,6 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:living/models/product_model.dart';
 import 'package:living/services/product_dao.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/product_modal.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
@@ -21,12 +22,24 @@ class ManageProductPage extends StatefulWidget {
 
 class _ManageProductPageState extends State<ManageProductPage> {
   final ProductDao productDao = ProductDao();
+  final AdminService adminService = AdminService();
   final ScrollController _scrollController = ScrollController();
+  bool _isAdmin = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _testConnection();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
   }
 
   Future<void> _testConnection() async {
@@ -38,6 +51,8 @@ class _ManageProductPageState extends State<ManageProductPage> {
   }
 
   void _showProductModal({Product? product, String? key}) {
+    if (!_isAdmin) return;
+    
     showDialog(
       context: context,
       builder: (ctx) => ProductModal(
@@ -80,6 +95,8 @@ class _ManageProductPageState extends State<ManageProductPage> {
   }
 
   void _deleteProduct(String key) {
+    if (!_isAdmin) return;
+    
     productDao.deleteProduct(key);
     setState(() {});
   }
@@ -165,7 +182,7 @@ class _ManageProductPageState extends State<ManageProductPage> {
             ),
           );
         },
-        trailing: Row(
+        trailing: _isAdmin ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
@@ -187,13 +204,19 @@ class _ManageProductPageState extends State<ManageProductPage> {
               tooltip: 'Delete',
             ),
           ],
-        ),
+        ) : null,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context),
       body: Column(
@@ -269,18 +292,20 @@ class _ManageProductPageState extends State<ManageProductPage> {
                     );
                   },
                 ),
-                Positioned(
-                  bottom: ResponsiveHelper.getAdaptiveSpacing(context),
-                  right: ResponsiveHelper.getAdaptiveSpacing(context),
-                  child: FloatingActionButton(
-                    onPressed: () => _showProductModal(),
-                    tooltip: 'Add Product',
-                    child: Icon(
-                      Icons.add,
-                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                // Only show floating action button for admin users
+                if (_isAdmin)
+                  Positioned(
+                    bottom: ResponsiveHelper.getAdaptiveSpacing(context),
+                    right: ResponsiveHelper.getAdaptiveSpacing(context),
+                    child: FloatingActionButton(
+                      onPressed: () => _showProductModal(),
+                      tooltip: 'Add Product',
+                      child: Icon(
+                        Icons.add,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

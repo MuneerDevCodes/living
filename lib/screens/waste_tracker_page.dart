@@ -219,6 +219,18 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Header.buildDrawer(context),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80.0), // Move FAB higher up above nav bar
+        child: FloatingActionButton.extended(
+          onPressed: _selectedTabIndex == 0 ? _showAddEntryDialog : _showAddGoalDialog,
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.white,
+          icon: Icon(_selectedTabIndex == 0 ? Icons.add : Icons.flag),
+          label: Text(_selectedTabIndex == 0 ? 'Add Entry' : 'Add Goal'),
+          elevation: 4,
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
         children: [
@@ -374,7 +386,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
       children: [
         _buildSummaryCards(),
           _buildEntriesList(),
-        _buildAddEntryButton(),
+        // _buildAddEntryButton(), // Removed as per user request
       ],
       ),
     );
@@ -506,12 +518,49 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                 Padding(
                   padding: ResponsiveHelper.getHorizontalPadding(context),
         child: Text(
-                    'Start tracking your waste reduction journey!\nTap the button below to add your first entry.',
+                    'Start tracking your waste reduction journey!\nTap the + button below to add your first entry.',
                     textAlign: TextAlign.center,
           style: TextStyle(
                       fontSize: ResponsiveHelper.getBodyFontSize(context),
             color: AppColors.secondaryText,
                     ),
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                Container(
+                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                  margin: ResponsiveHelper.getHorizontalPadding(context),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.lightbulb_outline, color: AppColors.info, size: 20),
+                          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                          Text(
+                            'Quick Tips',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.info,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                      Text(
+                        '• Use a kitchen scale for accurate measurements\n• Start with common items like plastic bottles and paper\n• Choose the most sustainable disposal method available\n• Add notes to track patterns and improvements',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -647,45 +696,9 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     );
   }
 
-  Widget _buildAddEntryButton() {
-    return Container(
-      margin: const EdgeInsets.only(top: 24, bottom: 16),
-      padding: ResponsiveHelper.getHorizontalPadding(context),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _showAddEntryDialog,
-          icon: Icon(Icons.add),
-          label: Text('Add New Entry'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.success,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            textStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildGoalsTab() {
     return Column(
       children: [
-        Container(
-          padding: ResponsiveHelper.getHorizontalPadding(context),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _showAddGoalDialog,
-              icon: Icon(Icons.flag),
-              label: Text('Add New Goal'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                padding: ResponsiveHelper.getVerticalPadding(context),
-              ),
-            ),
-          ),
-        ),
         Expanded(
           child: goals.isEmpty
               ? SingleChildScrollView(
@@ -722,6 +735,43 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                                 fontSize: ResponsiveHelper.getBodyFontSize(context),
                       color: AppColors.secondaryText,
                               ),
+                            ),
+                          ),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                          Container(
+                            padding: ResponsiveHelper.getAdaptivePadding(context),
+                            margin: ResponsiveHelper.getHorizontalPadding(context),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.tips_and_updates, color: AppColors.success, size: 20),
+                                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                    Text(
+                                      'Goal Setting Tips',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                Text(
+                                  '• Start with realistic, achievable targets\n• Focus on one waste type at a time\n• Set time-bound goals (7, 30, or 90 days)\n• Track progress regularly to stay motivated',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                    color: AppColors.secondaryText,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -990,6 +1040,66 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     String? selectedDisposalMethod;
     final amountController = TextEditingController();
     final notesController = TextEditingController();
+    bool isFormValid = false;
+    String? validationError;
+
+    // Quick entry templates for common waste items
+    final List<Map<String, dynamic>> quickEntries = [
+      {
+        'name': 'Plastic Bottle',
+        'type': 'Plastic',
+        'method': 'Recycling',
+        'amount': '0.5',
+        'description': 'Standard 500ml plastic bottle',
+        'icon': Icons.local_drink,
+        'color': Colors.blue,
+      },
+      {
+        'name': 'Paper Bag',
+        'type': 'Paper',
+        'method': 'Recycling',
+        'amount': '0.1',
+        'description': 'Small paper shopping bag',
+        'icon': Icons.shopping_bag,
+        'color': Colors.brown,
+      },
+      {
+        'name': 'Food Scraps',
+        'type': 'Organic',
+        'method': 'Composting',
+        'amount': '0.3',
+        'description': 'Kitchen food waste',
+        'icon': Icons.eco,
+        'color': Colors.green,
+      },
+      {
+        'name': 'Aluminum Can',
+        'type': 'Metal',
+        'method': 'Recycling',
+        'amount': '0.4',
+        'description': 'Standard beverage can',
+        'icon': Icons.restaurant,
+        'color': Colors.grey,
+      },
+      {
+        'name': 'Glass Jar',
+        'type': 'Glass',
+        'method': 'Recycling',
+        'amount': '0.8',
+        'description': 'Medium glass container',
+        'icon': Icons.wine_bar,
+        'color': Colors.green,
+      },
+      {
+        'name': 'Custom Entry',
+        'type': null,
+        'method': null,
+        'amount': '',
+        'description': 'Add your own waste item',
+        'icon': Icons.add_circle,
+        'color': Colors.grey,
+      },
+    ];
 
     showDialog(
       context: context,
@@ -1001,50 +1111,202 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             constraints: BoxConstraints(
-              maxWidth: 400,
-              maxHeight: constraints.maxHeight * 0.8,
+              maxWidth: 500,
+              maxHeight: constraints.maxHeight * 0.9,
             ),
             child: SingleChildScrollView(
               child: StatefulBuilder(
-                builder: (context, setDialogState) => Column(
+                builder: (context, setDialogState) {
+                  // Validation function
+                  void validateForm() {
+                    bool valid = selectedWasteType != null && 
+                               selectedDisposalMethod != null &&
+                               amountController.text.isNotEmpty &&
+                               double.tryParse(amountController.text) != null &&
+                               double.tryParse(amountController.text)! > 0;
+                    
+                    String? error;
+                    if (selectedWasteType == null) {
+                      error = 'Please select a waste type';
+                    } else if (selectedDisposalMethod == null) {
+                      error = 'Please select a disposal method';
+                    } else if (amountController.text.isEmpty) {
+                      error = 'Please enter an amount';
+                    } else if (double.tryParse(amountController.text) == null) {
+                      error = 'Please enter a valid number';
+                    } else if (double.tryParse(amountController.text)! <= 0) {
+                      error = 'Amount must be greater than 0';
+                    }
+                    
+                    setDialogState(() {
+                      isFormValid = valid;
+                      validationError = error;
+                    });
+                  }
+
+                  return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                      // Header
                     Row(
                       children: [
                         Icon(Icons.add_circle, color: AppColors.success, size: 28),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
           'Add Waste Entry',
           style: TextStyle(
                               fontSize: 22,
             fontWeight: FontWeight.bold,
                               color: AppColors.primaryText,
                             ),
+                                ),
+                                Text(
+                                  'Track your waste disposal to understand your environmental impact',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.secondaryText,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Quick Entry Templates
+                      Text(
+                        'Quick Entry',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 100,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: quickEntries.length,
+                          itemBuilder: (context, index) {
+                            final entry = quickEntries[index];
+                            final isSelected = selectedWasteType == entry['type'] &&
+                                            selectedDisposalMethod == entry['method'] &&
+                                            amountController.text == entry['amount'];
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedWasteType = entry['type'];
+                                  selectedDisposalMethod = entry['method'];
+                                  amountController.text = entry['amount'];
+                                  validateForm();
+                                });
+                              },
+                              child: Container(
+                                width: 120,
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.success.withValues(alpha: 0.1) : AppColors.surfaceBackground,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.success : AppColors.borderLight,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          entry['icon'],
+                                          color: entry['color'],
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            entry['name'],
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryText,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      entry['description'],
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    if (entry['type'] != null)
+                                      Text(
+                                        '${entry['amount']} kg',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.success,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                     Divider(),
                     const SizedBox(height: 10),
-                    Text('Waste Type *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    const SizedBox(height: 6),
+                      
+                      // Waste Type Selection
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(child: Icon(Icons.category, color: AppColors.primary, size: 20)),
+                            TextSpan(text: '  '),
+                            TextSpan(text: 'Waste Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                     DecoratedBox(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceBackground,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: validationError != null && selectedWasteType == null 
+                                ? AppColors.error 
+                                : AppColors.borderLight,
+                          ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: DropdownButtonFormField<String>(
               value: selectedWasteType,
-                          decoration: const InputDecoration(
+                            decoration: InputDecoration(
                             border: InputBorder.none,
                             prefixIcon: Icon(Icons.category),
                             helperText: 'Select the type of waste you\'re disposing',
+                              errorText: validationError != null && selectedWasteType == null ? validationError : null,
                           ),
                           items: wasteTypes.map<DropdownMenuItem<String>>((type) {
                             return DropdownMenuItem<String>(
@@ -1053,33 +1315,54 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(type['icon'] as IconData, color: type['color'] as Color, size: 22),
-                                  SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                   Flexible(child: Text(type['name'] as String)),
                                 ],
                               ),
                             );
               }).toList(),
-                          onChanged: (value) => setDialogState(() => selectedWasteType = value),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedWasteType = value;
+                                validateForm();
+                              });
+                            },
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Text('Disposal Method *', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    const SizedBox(height: 6),
+                      const SizedBox(height: 18),
+                      
+                      // Disposal Method Selection
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(child: Icon(Icons.delete_sweep, color: AppColors.primary, size: 20)),
+                            TextSpan(text: '  '),
+                            TextSpan(text: 'Disposal Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                     DecoratedBox(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceBackground,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: validationError != null && selectedDisposalMethod == null 
+                                ? AppColors.error 
+                                : AppColors.borderLight,
+                          ),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: DropdownButtonFormField<String>(
               value: selectedDisposalMethod,
-                          decoration: const InputDecoration(
+                            decoration: InputDecoration(
                             border: InputBorder.none,
                             prefixIcon: Icon(Icons.delete_sweep),
                             helperText: 'Choose how you disposed of the waste',
+                              errorText: validationError != null && selectedDisposalMethod == null ? validationError : null,
                           ),
                           items: disposalMethods.map<DropdownMenuItem<String>>((method) {
                             return DropdownMenuItem<String>(
@@ -1088,55 +1371,172 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(method['icon'] as IconData, color: method['color'] as Color, size: 22),
-                                  SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                   Flexible(child: Text(method['name'] as String)),
                                 ],
                               ),
                             );
               }).toList(),
-                          onChanged: (value) => setDialogState(() => selectedDisposalMethod = value),
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedDisposalMethod = value;
+                                validateForm();
+                              });
+                            },
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Text('Amount (kg)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    const SizedBox(height: 6),
-            TextField(
+                      const SizedBox(height: 18),
+                      
+                      // Amount with Smart Suggestions
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(child: Icon(Icons.scale, color: AppColors.primary, size: 20)),
+                            TextSpan(text: '  '),
+                            TextSpan(text: 'Amount (kg)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
               controller: amountController,
               decoration: InputDecoration(
                         prefixIcon: Icon(Icons.scale, color: AppColors.primary),
-                        hintText: 'Amount (kg)',
+                                hintText: 'e.g. 0.5',
                         helperText: 'Use a kitchen scale or estimate the weight',
                         filled: true,
                         fillColor: AppColors.surfaceBackground,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-                    const SizedBox(height: 14),
-                    Text('Notes (optional)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                    const SizedBox(height: 6),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(
+                                    color: validationError != null && amountController.text.isEmpty 
+                                        ? AppColors.error 
+                                        : AppColors.borderLight,
+                                  ),
+                                ),
+                                errorText: validationError != null && amountController.text.isEmpty ? validationError : null,
+                              ),
+                              keyboardType: TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  validateForm();
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Quick amount buttons
+                          ...['0.1', '0.5', '1.0'].map((amount) => Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setDialogState(() {
+                                  amountController.text = amount;
+                                  validateForm();
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: amountController.text == amount 
+                                    ? AppColors.primary 
+                                    : AppColors.surfaceBackground,
+                                foregroundColor: amountController.text == amount 
+                                    ? AppColors.white 
+                                    : AppColors.primaryText,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: const Size(0, 32),
+                              ),
+                              child: Text('${amount}kg', style: TextStyle(fontSize: 12)),
+                            ),
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      
+                      // Notes
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(child: Icon(Icons.note, color: AppColors.primary, size: 20)),
+                            TextSpan(text: '  '),
+                            TextSpan(text: 'Notes (optional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
             TextField(
               controller: notesController,
               decoration: InputDecoration(
                         prefixIcon: Icon(Icons.note, color: AppColors.primary),
-                        hintText: 'Notes (optional)',
-                        helperText: 'Describe the item, condition, or any special circumstances',
+                          hintText: 'Describe the item, condition, or special circumstances',
+                          helperText: 'Optional: Add details about the waste item',
                         filled: true,
                         fillColor: AppColors.surfaceBackground,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: AppColors.borderLight),
+                          ),
                       ),
                       maxLines: 3,
                     ),
+                      
+                      // Information Cards
                     if (selectedWasteType != null) ...[
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                       _buildWasteTypeInfo(selectedWasteType!),
                     ],
                     if (selectedDisposalMethod != null) ...[
                       const SizedBox(height: 12),
                       _buildDisposalMethodInfo(selectedDisposalMethod!),
                     ],
-                    const SizedBox(height: 18),
+                      
+                      // Environmental Impact Preview
+                      if (selectedWasteType != null && selectedDisposalMethod != null && amountController.text.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.info.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.eco, color: AppColors.info),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Environmental Impact',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.info,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                                                             Text(
+                                 'By ${selectedDisposalMethod?.toLowerCase() ?? ''}ing ${amountController.text}kg of ${selectedWasteType?.toLowerCase() ?? ''}, you\'re making a positive environmental impact!',
+                                 style: TextStyle(
+                                   fontSize: 14,
+                                   color: AppColors.primaryText,
+                                 ),
+                               ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Action Buttons
                     Row(
                       children: [
                         Expanded(
@@ -1155,13 +1555,13 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-            onPressed: () async {
+                              onPressed: isFormValid ? () async {
               if (selectedWasteType != null && 
                   selectedDisposalMethod != null && 
                   amountController.text.isNotEmpty &&
                   _userId != null) {
                 final amount = double.tryParse(amountController.text);
-                if (amount != null) {
+                                  if (amount != null && amount > 0) {
                   final entry = WasteEntry(
                     key: '',
                     userId: _userId!,
@@ -1179,7 +1579,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     _loadData();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                                          content: Text('Waste entry added successfully!'),
+                                            content: Text('Waste entry added successfully! 🌱'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -1196,18 +1596,25 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                   }
                 }
               }
-            },
+                              } : null,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.success,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                            ),
-                            child: const Text('Add Entry'),
+                                disabledBackgroundColor: AppColors.mutedText,
+                              ),
+                              child: Text(
+                                isFormValid ? 'Add Entry' : 'Fill Required Fields',
+                                style: TextStyle(
+                                  color: isFormValid ? AppColors.white : AppColors.secondaryText,
+                                ),
+                              ),
                           ),
                         ),
                       ],
                     ),
                   ],
-                ),
+                  );
+                },
               ),
             ),
           ),
@@ -1417,6 +1824,54 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
     String? selectedGoalType;
     final targetController = TextEditingController();
     final unitController = TextEditingController(text: 'kg');
+    final durationController = TextEditingController(text: '30');
+    String selectedDuration = '30';
+    bool isFormValid = false;
+    String? validationError;
+
+    // Predefined goal templates for easy selection
+    final List<Map<String, dynamic>> goalTemplates = [
+      {
+        'name': 'Plastic Reduction',
+        'type': 'Plastic',
+        'target': '5',
+        'unit': 'kg',
+        'duration': '30',
+        'description': 'Reduce plastic waste by 5kg this month',
+        'icon': Icons.local_drink,
+        'color': Colors.blue,
+      },
+      {
+        'name': 'Paper Waste',
+        'type': 'Paper',
+        'target': '3',
+        'unit': 'kg',
+        'duration': '30',
+        'description': 'Reduce paper waste by 3kg this month',
+        'icon': Icons.description,
+        'color': Colors.brown,
+      },
+      {
+        'name': 'Food Waste',
+        'type': 'Organic',
+        'target': '2',
+        'unit': 'kg',
+        'duration': '30',
+        'description': 'Reduce food waste by 2kg this month',
+        'icon': Icons.eco,
+        'color': Colors.green,
+      },
+      {
+        'name': 'Custom Goal',
+        'type': null,
+        'target': '',
+        'unit': 'kg',
+        'duration': '30',
+        'description': 'Create your own custom waste reduction goal',
+        'icon': Icons.edit,
+        'color': Colors.grey,
+      },
+    ];
 
     showDialog(
       context: context,
@@ -1428,31 +1883,171 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             constraints: BoxConstraints(
-              maxWidth: 400,
-              maxHeight: constraints.maxHeight * 0.8,
+              maxWidth: 500,
+              maxHeight: constraints.maxHeight * 0.9,
             ),
             child: SingleChildScrollView(
-              child: Column(
+              child: StatefulBuilder(
+                builder: (context, setDialogState) {
+                  // Validation function
+                  void validateForm() {
+                    bool valid = selectedGoalType != null && 
+                               targetController.text.isNotEmpty &&
+                               double.tryParse(targetController.text) != null &&
+                               double.tryParse(targetController.text)! > 0;
+                    
+                    String? error;
+                    if (selectedGoalType == null) {
+                      error = 'Please select a goal type';
+                    } else if (targetController.text.isEmpty) {
+                      error = 'Please enter a target amount';
+                    } else if (double.tryParse(targetController.text) == null) {
+                      error = 'Please enter a valid number';
+                    } else if (double.tryParse(targetController.text)! <= 0) {
+                      error = 'Target amount must be greater than 0';
+                    }
+                    
+                    setDialogState(() {
+                      isFormValid = valid;
+                      validationError = error;
+                    });
+                  }
+
+                  return Column(
           mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-                  // Motivational tip
+                      // Header with progress indicator
                   Row(
                     children: [
                       Icon(Icons.flag, color: AppColors.primary, size: 28),
                       const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Create Waste Reduction Goal',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryText,
+                                  ),
+                                ),
+                                Text(
+                                  'Set a realistic, measurable goal to reduce your waste!',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.secondaryText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      
+                      // Goal Templates Section
+                      Text(
+                        'Quick Start Templates',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryText,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: goalTemplates.length,
+                          itemBuilder: (context, index) {
+                            final template = goalTemplates[index];
+                            final isSelected = selectedGoalType == template['type'] &&
+                                            targetController.text == template['target'] &&
+                                            unitController.text == template['unit'];
+                            
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedGoalType = template['type'];
+                                  targetController.text = template['target'];
+                                  unitController.text = template['unit'];
+                                  selectedDuration = template['duration'];
+                                  durationController.text = template['duration'];
+                                  validateForm();
+                                });
+                              },
+                              child: Container(
+                                width: 140,
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surfaceBackground,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected ? AppColors.primary : AppColors.borderLight,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          template['icon'],
+                                          color: template['color'],
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Set a realistic, measurable goal to reduce your waste! For example: "Reduce plastic waste by 5 kg this month."',
-                          style: TextStyle(fontSize: 13, color: AppColors.secondaryText, fontWeight: FontWeight.w500),
+                                            template['name'],
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primaryText,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      template['description'],
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.secondaryText,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    if (template['type'] != null)
+                                      Text(
+                                        '${template['target']} ${template['unit']} in ${template['duration']} days',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.success,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 20),
                   Divider(),
                   const SizedBox(height: 10),
-                  // Goal Type
+                      
+                      // Goal Type Selection
                   Text.rich(
                     TextSpan(
                       children: [
@@ -1463,20 +2058,25 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       color: AppColors.surfaceBackground,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.borderLight),
+                          border: Border.all(
+                            color: validationError != null && selectedGoalType == null 
+                                ? AppColors.error 
+                                : AppColors.borderLight,
+                          ),
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: DropdownButtonFormField<String>(
               value: selectedGoalType,
-                        decoration: const InputDecoration(
+                            decoration: InputDecoration(
                           border: InputBorder.none,
-                          helperText: 'Choose what type of waste to reduce (e.g., Plastic, Paper, etc.)',
+                              helperText: 'Choose what type of waste to reduce',
+                              errorText: validationError != null && selectedGoalType == null ? validationError : null,
                         ),
                         items: wasteTypes.map<DropdownMenuItem<String>>((type) {
                           return DropdownMenuItem<String>(
@@ -1485,18 +2085,24 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(type['icon'] as IconData, color: type['color'] as Color, size: 22),
-                                SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                 Flexible(child: Text(type['name'] as String)),
                               ],
                             ),
                           );
               }).toList(),
-              onChanged: (value) => selectedGoalType = value,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedGoalType = value;
+                                validateForm();
+                              });
+                            },
             ),
                     ),
                   ),
                   const SizedBox(height: 18),
-                  // Target Amount
+                      
+                      // Target Amount with Smart Suggestions
                   Text.rich(
                     TextSpan(
                       children: [
@@ -1507,44 +2113,204 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
+                      const SizedBox(height: 8),
             TextField(
               controller: targetController,
               decoration: InputDecoration(
                       hintText: 'e.g. 5',
-                      helperText: 'Set your target reduction amount (number only)',
+                          helperText: 'Set your target reduction amount',
                       prefixIcon: Icon(Icons.track_changes, color: AppColors.primary),
                       filled: true,
                       fillColor: AppColors.surfaceBackground,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
-              ),
-              keyboardType: TextInputType.number,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: validationError != null && targetController.text.isEmpty 
+                                  ? AppColors.error 
+                                  : AppColors.borderLight,
+                            ),
+                          ),
+                          errorText: validationError != null && targetController.text.isEmpty ? validationError : null,
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            validateForm();
+                          });
+                        },
             ),
                   const SizedBox(height: 18),
-                  // Unit
+                      
+                      // Unit Selection with Common Options
                   Text.rich(
                     TextSpan(
                       children: [
                         WidgetSpan(child: Icon(Icons.straighten, color: AppColors.primary, size: 20)),
                         TextSpan(text: '  '),
                         TextSpan(text: 'Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        TextSpan(text: ' *', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
-            TextField(
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
               controller: unitController,
               decoration: InputDecoration(
                       hintText: 'e.g. kg',
-                      helperText: 'Unit of measurement (kg, lbs, items, etc.)',
+                                helperText: 'Unit of measurement',
                       prefixIcon: Icon(Icons.straighten, color: AppColors.primary),
                       filled: true,
                       fillColor: AppColors.surfaceBackground,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: AppColors.borderLight)),
-                    ),
-                  ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(color: AppColors.borderLight),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Quick unit buttons
+                          ...['kg', 'lbs', 'items'].map((unit) => Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setDialogState(() {
+                                  unitController.text = unit;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: unitController.text == unit 
+                                    ? AppColors.primary 
+                                    : AppColors.surfaceBackground,
+                                foregroundColor: unitController.text == unit 
+                                    ? AppColors.white 
+                                    : AppColors.primaryText,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: const Size(0, 32),
+                              ),
+                              child: Text(unit, style: TextStyle(fontSize: 12)),
+                            ),
+                          )),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      
+                      // Duration Selection
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(child: Icon(Icons.calendar_today, color: AppColors.primary, size: 20)),
+                            TextSpan(text: '  '),
+                            TextSpan(text: 'Goal Duration', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: durationController,
+                              decoration: InputDecoration(
+                                hintText: '30',
+                                helperText: 'Number of days for this goal',
+                                prefixIcon: Icon(Icons.calendar_today, color: AppColors.primary),
+                                filled: true,
+                                fillColor: AppColors.surfaceBackground,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide(color: AppColors.borderLight),
+                                ),
+                              ),
+                              keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedDuration = value;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Quick duration buttons
+                          ...['7', '30', '90'].map((days) => Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setDialogState(() {
+                                  durationController.text = days;
+                                  selectedDuration = days;
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: durationController.text == days 
+                                    ? AppColors.primary 
+                                    : AppColors.surfaceBackground,
+                                foregroundColor: durationController.text == days 
+                                    ? AppColors.white 
+                                    : AppColors.primaryText,
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                minimumSize: const Size(0, 32),
+                              ),
+                              child: Text('${days}d', style: TextStyle(fontSize: 12)),
+                            ),
+                          )),
+                        ],
+                      ),
+                      
+                      // Goal Preview
+                      if (selectedGoalType != null && targetController.text.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.preview, color: AppColors.success),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Goal Preview',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Reduce ${selectedGoalType} waste by ${targetController.text} ${unitController.text} in ${durationController.text} days',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.primaryText,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Start: ${_formatDate(DateTime.now())} • End: ${_formatDate(DateTime.now().add(Duration(days: int.tryParse(durationController.text) ?? 30)))}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.secondaryText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
                   const SizedBox(height: 24),
+                      
+                      // Action Buttons
                   Row(
                     children: [
                       Expanded(
@@ -1563,12 +2329,13 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-            onPressed: () async {
+                              onPressed: isFormValid ? () async {
               if (selectedGoalType != null && 
                   targetController.text.isNotEmpty &&
                   _userId != null) {
                 final targetAmount = double.tryParse(targetController.text);
-                if (targetAmount != null) {
+                                  final duration = int.tryParse(durationController.text) ?? 30;
+                                  if (targetAmount != null && targetAmount > 0) {
                   final goal = WasteReductionGoal(
                     key: '',
                     userId: _userId!,
@@ -1576,7 +2343,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     targetAmount: targetAmount,
                     unit: unitController.text.isEmpty ? 'kg' : unitController.text,
                     startDate: DateTime.now(),
-                    endDate: DateTime.now().add(const Duration(days: 30)),
+                                      endDate: DateTime.now().add(Duration(days: duration)),
                   );
                   try {
                     await WasteTrackerDAO.addWasteGoal(goal);
@@ -1585,7 +2352,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                     _loadData();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                                        content: Text('Goal added successfully!'),
+                                            content: Text('Goal added successfully! 🎯'),
                           backgroundColor: AppColors.success,
                         ),
                       );
@@ -1602,17 +2369,25 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                   }
                 }
               }
-            },
+                              } : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.success,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text('Add Goal'),
+                                disabledBackgroundColor: AppColors.mutedText,
+                              ),
+                              child: Text(
+                                isFormValid ? 'Create Goal' : 'Fill Required Fields',
+                                style: TextStyle(
+                                  color: isFormValid ? AppColors.white : AppColors.secondaryText,
+                                ),
+                              ),
             ),
           ),
         ],
                   ),
                 ],
+                  );
+                },
               ),
             ),
           ),

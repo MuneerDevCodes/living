@@ -31,10 +31,13 @@ import 'package:living/screens/forum_page.dart';
 import 'package:living/screens/recipes_page.dart';
 import 'package:living/screens/manage_challenges_page.dart';
 import 'package:living/screens/manage_educational_content_page.dart';
+import 'package:living/screens/onboarding_page.dart';
+import 'package:living/screens/settings_page.dart';
 
 // Public routes (no authentication required)
 final Map<String, WidgetBuilder> publicRoutes = {
   '/splash': (context) => const SplashScreen(),
+  '/onboarding': (context) => const OnboardingPage(),
   '/': (context) => const HomePage(),
   '/home': (context) => const HomePage(),
   '/auth': (context) => const AuthPage(),
@@ -64,6 +67,7 @@ final Map<String, WidgetBuilder> protectedRoutes = {
   '/wishlist': (context) => const WishPage(),
   '/orders': (context) => const OrderPage(),
   '/profile': (context) => const ProfilePage(),
+  '/settings': (context) => const SettingsPage(),
   '/carbon-footprint': (context) => const CarbonFootprintPage(),
   '/carbon-history': (context) => const CarbonHistoryPage(),
   '/carbon-insights': (context) => const CarbonInsightsPage(),
@@ -94,6 +98,7 @@ final Map<String, WidgetBuilder> routes = {
 // List of routes that do NOT require authentication
 const List<String> unprotectedRoutes = [
   '/splash',
+  '/onboarding',
   '/',
   '/home',
   '/auth',
@@ -114,6 +119,7 @@ const List<String> protectedRoutesList = [
   '/wishlist',
   '/order',
   '/profile',
+  '/settings',
   '/carbon-footprint',
   '/carbon-history',
   '/carbon-insights',

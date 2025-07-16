@@ -338,8 +338,7 @@ The system supports different emission factors based on region:
 
 ### Planned Features
 1. **Carbon offset integration**: Direct offset purchases
-2. **Social sharing**: Share achievements on social media
-3. **Team challenges**: Group carbon reduction challenges
+2. **Team challenges**: Group carbon reduction challenges
 4. **Advanced analytics**: Machine learning insights
 5. **API integrations**: Connect with other sustainability apps
 6. **Gamification**: More advanced achievement system

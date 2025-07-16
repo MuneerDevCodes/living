@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:living/models/challenge_model.dart';
 import 'package:living/services/challenge_dao.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/validate.dart';
 
 class ManageChallengesPage extends StatefulWidget {
   const ManageChallengesPage({super.key});
@@ -18,11 +20,24 @@ class ManageChallengesPage extends StatefulWidget {
 class _ManageChallengesPageState extends State<ManageChallengesPage> {
   List<Challenge> challenges = [];
   bool isLoading = true;
+  final AdminService adminService = AdminService();
+  bool _isAdmin = false;
+  bool _isLoading = true;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _loadData();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadData() async {
@@ -45,6 +60,12 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context),
       body: Column(
@@ -61,7 +82,8 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: Padding(
+      // Only show floating action button for admin users
+      floatingActionButton: _isAdmin ? Padding(
         padding: EdgeInsets.only(
           bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
         ),
@@ -74,7 +96,7 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
             size: ResponsiveHelper.getAdaptiveIconSize(context),
           ),
         ),
-      ),
+      ) : null,
     );
   }
 
@@ -160,7 +182,8 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                 ),
               ],
             ),
-            trailing: PopupMenuButton(
+            // Only show popup menu for admin users
+            trailing: _isAdmin ? PopupMenuButton(
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'edit',
@@ -205,10 +228,10 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                 if (value == 'edit') {
                   _showEditChallengeDialog(challenge);
                 } else if (value == 'delete') {
-                  _deleteChallenge(challenge);
+                  _showDeleteConfirmation(challenge);
                 }
               },
-            ),
+            ) : null,
           ),
         );
       },
@@ -248,107 +271,128 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           ),
         ),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-                maxLines: 3,
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: categoryController,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: durationController,
-                      decoration: InputDecoration(
-                        labelText: 'Duration (days)',
-                        labelStyle: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  Expanded(
-                    child: TextField(
-                      controller: pointsController,
-                      decoration: InputDecoration(
-                        labelText: 'Points Reward',
-                        labelStyle: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                        ),
-                      ),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              DropdownButtonFormField<String>(
-                value: selectedDifficulty,
-                decoration: InputDecoration(
-                  labelText: 'Difficulty',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-                items: [
-                  'Easy',
-                  'Medium',
-                  'Hard',
-                ].map((difficulty) => DropdownMenuItem(
-                  value: difficulty,
-                  child: Text(
-                    difficulty,
-                    style: TextStyle(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    labelStyle: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                     ),
                   ),
-                )).toList(),
-                onChanged: (value) {
-                  selectedDifficulty = value!;
-                },
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: tasksController,
-                decoration: InputDecoration(
-                  labelText: 'Tasks (one per line)',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
+                  validator: validateName,
                 ),
-                maxLines: 5,
-              ),
-            ],
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 3,
+                  validator: (v) => v == null || v.isEmpty ? 'Please enter a description' : null,
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: categoryController,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  validator: validateName,
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: durationController,
+                        decoration: InputDecoration(
+                          labelText: 'Duration (days)',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          final value = int.tryParse(v ?? '');
+                          if (value == null || value <= 0) return 'Please enter a valid duration (positive number)';
+                          return null;
+                        },
+                      ),
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Expanded(
+                      child: TextFormField(
+                        controller: pointsController,
+                        decoration: InputDecoration(
+                          labelText: 'Points Reward',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          final value = int.tryParse(v ?? '');
+                          if (value == null || value < 0) return 'Please enter a valid points reward (non-negative number)';
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                DropdownButtonFormField<String>(
+                  value: selectedDifficulty,
+                  decoration: InputDecoration(
+                    labelText: 'Difficulty',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  items: [
+                    'Easy',
+                    'Medium',
+                    'Hard',
+                  ].map((difficulty) => DropdownMenuItem(
+                    value: difficulty,
+                    child: Text(
+                      difficulty,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    selectedDifficulty = value!;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: tasksController,
+                  decoration: InputDecoration(
+                    labelText: 'Tasks (one per line)',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 5,
+                  validator: (v) {
+                    final tasks = v?.split('\n').map((task) => task.trim()).where((task) => task.isNotEmpty).toList() ?? [];
+                    if (tasks.isEmpty) return 'Please enter at least one task';
+                    return null;
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -363,76 +407,16 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Validate form data
-              if (titleController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a title'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
+              if (!_formKey.currentState!.validate()) {
                 return;
               }
-              
-              if (descriptionController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a description'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              if (categoryController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a category'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              final duration = int.tryParse(durationController.text);
-              if (duration == null || duration <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a valid duration (positive number)'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              final points = int.tryParse(pointsController.text);
-              if (points == null || points < 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a valid points reward (non-negative number)'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              // Parse tasks
+              final duration = int.parse(durationController.text);
+              final points = int.parse(pointsController.text);
               final tasks = tasksController.text
                   .split('\n')
                   .map((task) => task.trim())
                   .where((task) => task.isNotEmpty)
                   .toList();
-              
-              if (tasks.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter at least one task'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
               try {
                 // Create challenge object
                 final challenge = Challenge(
@@ -448,29 +432,24 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                   endDate: DateTime.now().add(Duration(days: duration)),
                   isActive: true,
                 );
-                
                 // Add challenge to database
                 await ChallengeDAO.addChallenge(challenge);
-                
                 // Close dialog
-              Navigator.pop(context);
-                
+                Navigator.pop(context);
                 // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Challenge added successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Challenge added successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.success,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-                
+                );
                 // Reload challenges list
                 _loadData();
-                
               } catch (e) {
                 Navigator.pop(context);
                 showDialog(
@@ -515,107 +494,128 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           ),
         ),
         content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
                   ),
+                  validator: validateName,
                 ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
                   ),
+                  maxLines: 3,
+                  validator: (v) => v == null || v.isEmpty ? 'Please enter a description' : null,
                 ),
-                maxLines: 3,
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: categoryController,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: categoryController,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
                   ),
+                  validator: validateName,
                 ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: durationController,
-                      decoration: InputDecoration(
-                        labelText: 'Duration (days)',
-                        labelStyle: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: durationController,
+                        decoration: InputDecoration(
+                          labelText: 'Duration (days)',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
                         ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          final value = int.tryParse(v ?? '');
+                          if (value == null || value <= 0) return 'Please enter a valid duration (positive number)';
+                          return null;
+                        },
                       ),
-                      keyboardType: TextInputType.number,
                     ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  Expanded(
-                    child: TextField(
-                      controller: pointsController,
-                      decoration: InputDecoration(
-                        labelText: 'Points Reward',
-                        labelStyle: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Expanded(
+                      child: TextFormField(
+                        controller: pointsController,
+                        decoration: InputDecoration(
+                          labelText: 'Points Reward',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
                         ),
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          final value = int.tryParse(v ?? '');
+                          if (value == null || value < 0) return 'Please enter a valid points reward (non-negative number)';
+                          return null;
+                        },
                       ),
-                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                DropdownButtonFormField<String>(
+                  value: selectedDifficulty,
+                  decoration: InputDecoration(
+                    labelText: 'Difficulty',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              DropdownButtonFormField<String>(
-                value: selectedDifficulty,
-                decoration: InputDecoration(
-                  labelText: 'Difficulty',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
+                  items: [
+                    'Easy',
+                    'Medium',
+                    'Hard',
+                  ].map((difficulty) => DropdownMenuItem(
+                    value: difficulty,
+                    child: Text(
+                      difficulty,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    selectedDifficulty = value!;
+                  },
                 ),
-                items: [
-                  'Easy',
-                  'Medium',
-                  'Hard',
-                ].map((difficulty) => DropdownMenuItem(
-                  value: difficulty,
-                  child: Text(
-                    difficulty,
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: tasksController,
+                  decoration: InputDecoration(
+                    labelText: 'Tasks (one per line)',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                     ),
                   ),
-                )).toList(),
-                onChanged: (value) {
-                  selectedDifficulty = value!;
-                },
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: tasksController,
-                decoration: InputDecoration(
-                  labelText: 'Tasks (one per line)',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
+                  maxLines: 5,
+                  validator: (v) {
+                    final tasks = v?.split('\n').map((task) => task.trim()).where((task) => task.isNotEmpty).toList() ?? [];
+                    if (tasks.isEmpty) return 'Please enter at least one task';
+                    return null;
+                  },
                 ),
-                maxLines: 5,
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -630,76 +630,16 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Validate form data
-              if (titleController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a title'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
+              if (!_formKey.currentState!.validate()) {
                 return;
               }
-              
-              if (descriptionController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a description'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              if (categoryController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a category'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              final duration = int.tryParse(durationController.text);
-              if (duration == null || duration <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a valid duration (positive number)'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              final points = int.tryParse(pointsController.text);
-              if (points == null || points < 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a valid points reward (non-negative number)'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
-              // Parse tasks
+              final duration = int.parse(durationController.text);
+              final points = int.parse(pointsController.text);
               final tasks = tasksController.text
                   .split('\n')
                   .map((task) => task.trim())
                   .where((task) => task.isNotEmpty)
                   .toList();
-              
-              if (tasks.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter at least one task'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-                return;
-              }
-              
               try {
                 // Create updated challenge object
                 final updatedChallenge = Challenge(
@@ -715,29 +655,24 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
                   endDate: challenge.startDate.add(Duration(days: duration)),
                   isActive: challenge.isActive,
                 );
-                
                 // Update challenge in database
                 await ChallengeDAO.updateChallenge(updatedChallenge);
-                
                 // Close dialog
-              Navigator.pop(context);
-                
+                Navigator.pop(context);
                 // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Challenge updated successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Challenge updated successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.success,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
-                
+                );
                 // Reload challenges list
                 _loadData();
-                
               } catch (e) {
                 Navigator.pop(context);
                 showDialog(
@@ -762,7 +697,7 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
     );
   }
 
-  void _deleteChallenge(Challenge challenge) {
+  void _showDeleteConfirmation(Challenge challenge) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

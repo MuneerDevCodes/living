@@ -12,7 +12,12 @@ class CertificationDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          certifications.add(Certification.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            // Convert LinkedMap<Object?, Object?> to Map<String, dynamic>
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            certifications.add(Certification.fromJson(child.key!, data));
+          }
         }
       }
       
@@ -30,7 +35,12 @@ class CertificationDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          certifications.add(Certification.fromJson(child.key!, child.value as Map<String, dynamic>));
+          final value = child.value;
+          if (value is Map) {
+            // Convert LinkedMap<Object?, Object?> to Map<String, dynamic>
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            certifications.add(Certification.fromJson(child.key!, data));
+          }
         }
       }
       

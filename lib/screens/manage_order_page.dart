@@ -3,6 +3,7 @@ import 'package:living/models/order.dart';
 import 'package:living/services/order_dao.dart';
 import 'package:living/services/product_dao.dart';
 import 'package:living/services/user_dao.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/loader.dart';
@@ -24,10 +25,33 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
   final OrderDao orderDao = OrderDao();
   final ProductDao productDao = ProductDao();
   final UserDao userDao = UserDao();
+  final AdminService adminService = AdminService();
   final _loading = false;
+  bool _isAdmin = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context), // Add the drawer here
       body: Column(
@@ -155,77 +179,79 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
                                                         'Status: ${orderItem.status.toString().split('.').last}',
                                                       ),
                                                       const SizedBox(width: 8),
-                                                      DropdownButton<
-                                                        OrderStatus
-                                                      >(
-                                                        value: orderItem.status,
-                                                        items:
-                                                            OrderStatus.values.map((
-                                                              OrderStatus
-                                                              status,
-                                                            ) {
-                                                              return DropdownMenuItem<
+                                                      // Only show status dropdown for admin users
+                                                      if (_isAdmin)
+                                                        DropdownButton<
+                                                          OrderStatus
+                                                        >(
+                                                          value: orderItem.status,
+                                                          items:
+                                                              OrderStatus.values.map((
                                                                 OrderStatus
-                                                              >(
-                                                                value: status,
-                                                                child: Text(
-                                                                  status
-                                                                      .toString()
-                                                                      .split(
-                                                                        '.',
-                                                                      )
-                                                                      .last,
-                                                                ),
+                                                                status,
+                                                              ) {
+                                                                return DropdownMenuItem<
+                                                                  OrderStatus
+                                                                >(
+                                                                  value: status,
+                                                                  child: Text(
+                                                                    status
+                                                                        .toString()
+                                                                        .split(
+                                                                          '.',
+                                                                        )
+                                                                        .last,
+                                                                  ),
+                                                                );
+                                                              }).toList(),
+                                                          onChanged: (
+                                                            OrderStatus?
+                                                            newStatus,
+                                                          ) {
+                                                            if (newStatus !=
+                                                                    null &&
+                                                                newStatus !=
+                                                                    orderItem
+                                                                        .status) {
+                                                              final updatedItems =
+                                                                  Map<
+                                                                    String,
+                                                                    OrderItem
+                                                                  >.from(
+                                                                    order.items,
+                                                                  );
+                                                              updatedItems[itemKey] =
+                                                                  OrderItem(
+                                                                    productId:
+                                                                        orderItem
+                                                                            .productId,
+                                                                    quantity:
+                                                                        orderItem
+                                                                            .quantity,
+                                                                    price:
+                                                                        orderItem
+                                                                            .price,
+                                                                    status:
+                                                                        newStatus,
+                                                                  );
+                                                              final updatedOrder = Order(
+                                                                userId:
+                                                                    order.userId,
+                                                                items:
+                                                                    updatedItems,
+                                                                totalAmount:
+                                                                    order
+                                                                        .totalAmount,
                                                               );
-                                                            }).toList(),
-                                                        onChanged: (
-                                                          OrderStatus?
-                                                          newStatus,
-                                                        ) {
-                                                          if (newStatus !=
-                                                                  null &&
-                                                              newStatus !=
-                                                                  orderItem
-                                                                      .status) {
-                                                            final updatedItems =
-                                                                Map<
-                                                                  String,
-                                                                  OrderItem
-                                                                >.from(
-                                                                  order.items,
-                                                                );
-                                                            updatedItems[itemKey] =
-                                                                OrderItem(
-                                                                  productId:
-                                                                      orderItem
-                                                                          .productId,
-                                                                  quantity:
-                                                                      orderItem
-                                                                          .quantity,
-                                                                  price:
-                                                                      orderItem
-                                                                          .price,
-                                                                  status:
-                                                                      newStatus,
-                                                                );
-                                                            final updatedOrder = Order(
-                                                              userId:
-                                                                  order.userId,
-                                                              items:
-                                                                  updatedItems,
-                                                              totalAmount:
-                                                                  order
-                                                                      .totalAmount,
-                                                            );
-                                                            orderDao
-                                                                .updateOrder(
-                                                                  orderKey,
-                                                                  updatedOrder,
-                                                                );
-                                                            setState(() {});
-                                                          }
-                                                        },
-                                                      ),
+                                                              orderDao
+                                                                  .updateOrder(
+                                                                orderKey,
+                                                                updatedOrder,
+                                                              );
+                                                              setState(() {});
+                                                            }
+                                                          },
+                                                        ),
                                                     ],
                                                   ),
                                                 ],

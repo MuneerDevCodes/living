@@ -8,6 +8,7 @@ import 'package:living/widgets/loader.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Only for FirebaseAuthException
 import 'package:living/services/user_dao.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
+  bool _obscurePassword = true;
   String? _error;
 
   Future<void> _saveUserToPrefs(String uid) async {
@@ -84,8 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 _buildFormFields(),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
                 _buildLoginButton(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                _buildForgotPassword(),
               ],
             ),
           );
@@ -94,181 +98,355 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildFormFields() {
     return Column(
       children: [
-        TextFormField(
-          controller: _emailCtrl,
-          decoration: InputDecoration(
-            labelText: 'Email',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+        // Email field with enhanced styling
+        _buildEmailField(),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+        // Password field with enhanced styling
+        _buildPasswordField(),
+      ],
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.email_outlined,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+            Text(
+              'Email Address',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: _emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            hintText: 'Enter your email address',
+            prefixIcon: Icon(
+              Icons.email,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceBackground,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
             ),
           ),
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            color: AppColors.primaryText,
           ),
           validator: validateEmail,
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _passCtrl,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+      ],
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.lock_outline,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+            Text(
+              'Password',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryText,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ],
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: _passCtrl,
+          obscureText: _obscurePassword,
+          decoration: InputDecoration(
+            hintText: 'Enter your password',
+            prefixIcon: Icon(
+              Icons.lock,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                color: AppColors.primary,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.borderMedium),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                ResponsiveHelper.getAdaptiveBorderRadius(context),
+              ),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.surfaceBackground,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
             ),
           ),
           style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontSize: ResponsiveHelper.getBodyFontSize(context),
+            color: AppColors.primaryText,
           ),
-          obscureText: true,
           validator: validatePass,
-        ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: _loading
-                ? null
-                : () async {
-                    final emailCtrl = TextEditingController(
-                      text: _emailCtrl.text,
-                    );
-                    final result = await showDialog<String>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                          'Reset Password',
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        content: TextField(
-                          controller: emailCtrl,
-                          decoration: InputDecoration(
-                            labelText: 'Enter your email',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-                              ),
-                            ),
-                            labelStyle: TextStyle(
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                            ),
-                          ),
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                              ),
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () => Navigator.of(context).pop(emailCtrl.text),
-                            child: Text(
-                              'Send Reset Link',
-                              style: TextStyle(
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (result != null && result.isNotEmpty) {
-                      try {
-                        await AuthService().sendPasswordResetEmail(result);
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              content: AlertSuccess('Password reset email sent.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: Text(
-                                    'OK',
-                                    style: TextStyle(
-                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              content: AlertError('Failed to send reset email: $e'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: Text(
-                                    'OK',
-                                    style: TextStyle(
-                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-                      }
-                    }
-                  },
-            child: Text(
-              'Forgot Password?',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
         ),
       ],
     );
   }
 
   Widget _buildLoginButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      height: ResponsiveHelper.getButtonHeight(context),
       child: ElevatedButton(
         onPressed: _loading ? null : _login,
         style: ElevatedButton.styleFrom(
-          padding: ResponsiveHelper.getAdaptivePadding(context),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shadowColor: AppColors.shadowMedium,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(
+              ResponsiveHelper.getAdaptiveBorderRadius(context),
+            ),
+          ),
         ),
         child: _loading
             ? SizedBox(
                 width: ResponsiveHelper.getAdaptiveIconSize(context),
                 height: ResponsiveHelper.getAdaptiveIconSize(context),
-                child: const Loader(),
-              )
-            : Text(
-                'Login',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                  fontWeight: FontWeight.bold,
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
                 ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.login,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+                  Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getBodyFontSize(context) * 1.1,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
+      ),
+    );
+  }
+
+  Widget _buildForgotPassword() {
+    return Center(
+      child: TextButton.icon(
+        onPressed: _loading
+            ? null
+            : () async {
+                final emailCtrl = TextEditingController(
+                  text: _emailCtrl.text,
+                );
+                final result = await showDialog<String>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        Icon(
+                          Icons.lock_reset,
+                          color: AppColors.primary,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
+                        Text(
+                          'Reset Password',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Enter your email address and we\'ll send you a link to reset your password.',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getBodyFontSize(context),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                        TextField(
+                          controller: emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            labelText: 'Email Address',
+                            hintText: 'Enter your email',
+                            prefixIcon: Icon(
+                              Icons.email,
+                              color: AppColors.primary,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                ResponsiveHelper.getAdaptiveBorderRadius(context),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(emailCtrl.text),
+                        icon: Icon(
+                          Icons.send,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+                        ),
+                        label: Text(
+                          'Send Reset Link',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (result != null && result.isNotEmpty) {
+                  try {
+                    await AuthService().sendPasswordResetEmail(result);
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          content: AlertSuccess('Password reset email sent successfully!'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Text(
+                                'OK',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          content: AlertError('Failed to send reset email: $e'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Text(
+                                'OK',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+        icon: Icon(
+          Icons.help_outline,
+          size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.7,
+          color: AppColors.primary,
+        ),
+        label: Text(
+          'Forgot Password?',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+            color: AppColors.primary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

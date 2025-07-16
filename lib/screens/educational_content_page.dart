@@ -7,6 +7,7 @@ import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/admin_service.dart';
 
 class EducationalContentPage extends StatefulWidget {
   const EducationalContentPage({super.key});
@@ -20,6 +21,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   bool isLoading = true;
   String selectedCategory = 'All';
   String selectedContentType = 'All';
+  String? _userRole;
 
   final List<String> categories = [
     'All',
@@ -43,6 +45,7 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
   void initState() {
     super.initState();
     _loadData();
+    _fetchUserRole();
   }
 
   Future<void> _loadData() async {
@@ -60,6 +63,15 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
       if (mounted) {
         setState(() => isLoading = false);
       }
+    }
+  }
+
+  Future<void> _fetchUserRole() async {
+    final role = await AdminService().getCurrentUserRole();
+    if (mounted) {
+      setState(() {
+        _userRole = role;
+      });
     }
   }
 
@@ -103,20 +115,22 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
           Footer(),
         ],
       ),
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
-        ),
-        child: FloatingActionButton(
-          onPressed: _showAddContentDialog,
-          backgroundColor: AppColors.success,
-          foregroundColor: AppColors.white,
-          child: Icon(
-            Icons.add,
-            size: ResponsiveHelper.getAdaptiveIconSize(context),
-          ),
-        ),
-      ),
+      floatingActionButton: (_userRole != null && _userRole != 'user')
+          ? Padding(
+              padding: EdgeInsets.only(
+                bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
+              ),
+              child: FloatingActionButton(
+                onPressed: _showAddContentDialog,
+                backgroundColor: AppColors.success,
+                foregroundColor: AppColors.white,
+                child: Icon(
+                  Icons.add,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+              ),
+            )
+          : null,
     );
   }
 

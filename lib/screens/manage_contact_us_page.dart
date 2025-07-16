@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/models.dart';
 import '../models/enums.dart';
 import '../services/contact_dao.dart';
+import '../services/admin_service.dart';
 import '../widgets/header.dart';
 import '../widgets/footer.dart';
 import '../widgets/loader.dart';
@@ -19,13 +20,25 @@ class ManageContactUsPage extends StatefulWidget {
 
 class _ManageContactUsPageState extends State<ManageContactUsPage> {
   final ContactDao _contactDao = ContactDao();
+  final AdminService adminService = AdminService();
   List<Contact> contacts = [];
   bool isLoading = true;
+  bool _isAdmin = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _loadContacts();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadContacts() async {
@@ -54,6 +67,8 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
   }
 
   Future<void> _replyToContact(Contact contact) async {
+    if (!_isAdmin) return;
+    
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
       path: contact.email,
@@ -89,6 +104,8 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
     Contact contact,
     ContactStatus newStatus,
   ) async {
+    if (!_isAdmin) return;
+    
     final updatedContact = Contact(
       name: contact.name,
       email: contact.email,
@@ -117,6 +134,8 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
   }
 
   void _showStatusUpdateDialog(Contact contact) {
+    if (!_isAdmin) return;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -151,6 +170,12 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context),
       body: Column(
@@ -244,41 +269,43 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
                   ),
                 ),
                 SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _replyToContact(contact),
-                        icon: Icon(
-                          Icons.email,
-                          size: ResponsiveHelper.getAdaptiveIconSize(context),
-                        ),
-                        label: Text(
-                          'Reply',
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                // Only show admin controls for admin users
+                if (_isAdmin)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _replyToContact(contact),
+                          icon: Icon(
+                            Icons.email,
+                            size: ResponsiveHelper.getAdaptiveIconSize(context),
+                          ),
+                          label: Text(
+                            'Reply',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => _showStatusUpdateDialog(contact),
-                        icon: Icon(
-                          Icons.update,
-                          size: ResponsiveHelper.getAdaptiveIconSize(context),
-                        ),
-                        label: Text(
-                          'Update Status',
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _showStatusUpdateDialog(contact),
+                          icon: Icon(
+                            Icons.update,
+                            size: ResponsiveHelper.getAdaptiveIconSize(context),
+                          ),
+                          label: Text(
+                            'Update Status',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
           ),

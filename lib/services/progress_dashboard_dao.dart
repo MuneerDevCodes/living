@@ -13,13 +13,23 @@ class ProgressDashboardDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          progress.add(UserProgress.fromJson(child.key!, child.value as Map<String, dynamic>));
+          try {
+            // Convert LinkedMap to Map<String, dynamic> safely
+            final Map<String, dynamic> jsonData = Map<String, dynamic>.from(child.value as Map);
+            progress.add(UserProgress.fromJson(child.key!, jsonData));
+          } catch (parseError) {
+            print('Error parsing progress entry ${child.key}: $parseError');
+            // Skip this entry and continue with others
+            continue;
+          }
         }
       }
       
       return progress;
     } catch (e) {
-      throw Exception('Failed to fetch user progress: $e');
+      print('Error fetching user progress: $e');
+      // Return empty list instead of throwing exception
+      return [];
     }
   }
 
@@ -49,13 +59,22 @@ class ProgressDashboardDAO {
       
       if (snapshot.exists) {
         for (var child in snapshot.children) {
-          goals.add(ProgressGoal.fromJson(child.key!, child.value as Map<String, dynamic>));
+          try {
+            final value = Map<String, dynamic>.from(child.value as Map);
+            goals.add(ProgressGoal.fromJson(child.key!, value));
+          } catch (parseError) {
+            print('Error parsing goal entry ${child.key}: $parseError');
+            // Skip this entry and continue with others
+            continue;
+          }
         }
       }
       
       return goals;
     } catch (e) {
-      throw Exception('Failed to fetch progress goals: $e');
+      print('Error fetching user goals: $e');
+      // Return empty list instead of throwing exception
+      return [];
     }
   }
 

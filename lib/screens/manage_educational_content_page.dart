@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:living/models/educational_content_model.dart';
 import 'package:living/services/educational_content_dao.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/header.dart';
@@ -18,11 +19,23 @@ class ManageEducationalContentPage extends StatefulWidget {
 class _ManageEducationalContentPageState extends State<ManageEducationalContentPage> {
   List<EducationalContent> content = [];
   bool isLoading = true;
+  final AdminService adminService = AdminService();
+  bool _isAdmin = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkAdminStatus();
     _loadData();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+      _isLoading = false;
+    });
   }
 
   Future<void> _loadData() async {
@@ -45,6 +58,12 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: Loader()),
+      );
+    }
+
     return Scaffold(
       drawer: Header.buildDrawer(context),
       body: Column(
@@ -61,7 +80,8 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
           Footer(),
         ],
       ),
-      floatingActionButton: Padding(
+      // Only show floating action button for admin users
+      floatingActionButton: _isAdmin ? Padding(
         padding: EdgeInsets.only(
           bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
         ),
@@ -74,7 +94,7 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
             size: ResponsiveHelper.getAdaptiveIconSize(context),
           ),
         ),
-      ),
+      ) : null,
     );
   }
 
@@ -154,7 +174,8 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
                 ),
               ],
             ),
-            trailing: PopupMenuButton(
+            // Only show popup menu for admin users
+            trailing: _isAdmin ? PopupMenuButton(
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'edit',
@@ -199,10 +220,10 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
                 if (value == 'edit') {
                   _showEditContentDialog(item);
                 } else if (value == 'delete') {
-                  _deleteContent(item);
+                  _showDeleteConfirmation(item);
                 }
               },
-            ),
+            ) : null,
           ),
         );
       },
@@ -743,7 +764,7 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
     );
   }
 
-  void _deleteContent(EducationalContent content) {
+  void _showDeleteConfirmation(EducationalContent content) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
