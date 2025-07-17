@@ -499,11 +499,13 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
               children: [
                 Icon(Icons.lightbulb, color: AppColors.warning, size: 24),
                 SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                Text(
-                  'Tips to Reduce Your Footprint',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    'Tips to Reduce Your Footprint',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -1529,11 +1531,13 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
           children: [
             Icon(Icons.category, color: AppColors.info, size: 24),
             SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-            Text(
-              'Step 1: Choose Activity Category',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                fontWeight: FontWeight.bold,
+            Expanded(
+              child: Text(
+                'Step 1: Choose Activity Category',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -1572,6 +1576,7 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
                   Icon(_getCategoryIcon(category), size: 16),
                   SizedBox(width: 8),
                   Flexible(
+                    fit: FlexFit.loose,
                     child: Text(
                       category,
                       overflow: TextOverflow.ellipsis,
@@ -1740,6 +1745,7 @@ class _ActivityLogDialogState extends State<ActivityLogDialog> {
                   Text(activity.icon, style: TextStyle(fontSize: 16)),
                   SizedBox(width: 8),
                   Flexible(
+                    fit: FlexFit.loose,
                     child: Text(
                       activity.name,
                       overflow: TextOverflow.ellipsis,
@@ -2702,6 +2708,7 @@ class _CategoryActivityDialogState extends State<CategoryActivityDialog> {
                   Text(activity.icon, style: TextStyle(fontSize: 16)),
                   SizedBox(width: 8),
                   Flexible(
+                    fit: FlexFit.loose,
                     child: Text(
                       activity.name,
                       overflow: TextOverflow.ellipsis,

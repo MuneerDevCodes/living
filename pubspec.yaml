@@ -41,12 +41,13 @@ dependencies:
   shared_preferences: ^2.5.3
   intl: ^0.20.2
   url_launcher: ^6.3.1
-  image_picker: ^1.1.2
+  image_picker: ^1.0.4
   animated_splash_screen: ^1.3.0
   fl_chart: ^0.64.0
   carousel_slider: ^5.1.1
   dio: ^5.4.0
   path_provider: ^2.1.2
+  file_picker: ^10.2.0
 
 dev_dependencies:
   flutter_test:

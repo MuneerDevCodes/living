@@ -4,45 +4,6 @@ import '../models/forum_post_model.dart';
 class ForumPostDao {
   final _databaseRef = FirebaseDatabase.instance.ref("forumPosts");
 
-  void saveForumPost(ForumPost post) {
-    _databaseRef.push().set(post.toJson());
-  }
-
-  Query getForumPostList() {
-    return _databaseRef;
-  }
-
-  void deleteForumPost(String key) {
-    _databaseRef.child(key).remove();
-  }
-
-  void updateForumPost(String key, ForumPost post) {
-    _databaseRef.child(key).update(post.toMap());
-  }
-
-  Future<ForumPost?> getForumPostById(String postId) async {
-    final snapshot = await _databaseRef.child(postId).get();
-    if (snapshot.exists) {
-      return ForumPost.fromJson(postId, snapshot.value as Map<dynamic, dynamic>);
-    }
-    return null;
-  }
-
-  // New methods for the forum page
-  Future<List<ForumPost>> getPublishedPosts() async {
-    final snapshot = await _databaseRef.get();
-    final List<ForumPost> posts = [];
-    
-    if (snapshot.exists) {
-      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
-      data.forEach((key, value) {
-        posts.add(ForumPost.fromJson(key.toString(), value as Map<dynamic, dynamic>));
-      });
-    }
-    
-    return posts;
-  }
-
   Future<void> addPost(ForumPost post) async {
     await _databaseRef.push().set(post.toJson());
   }
@@ -53,5 +14,39 @@ class ForumPostDao {
 
   Future<void> deletePost(String key) async {
     await _databaseRef.child(key).remove();
+  }
+
+  Future<List<ForumPost>> getPublishedPosts() async {
+    final snapshot = await _databaseRef.get();
+    final List<ForumPost> posts = [];
+    if (snapshot.exists) {
+      final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
+      data.forEach((key, value) {
+        posts.add(ForumPost.fromJson(key.toString(), value as Map<dynamic, dynamic>));
+      });
+    }
+    return posts;
+  }
+
+  Future<ForumPost?> getForumPostById(String postId) async {
+    final snapshot = await _databaseRef.child(postId).get();
+    if (snapshot.exists) {
+      return ForumPost.fromJson(postId, snapshot.value as Map<dynamic, dynamic>);
+    }
+    return null;
+  }
+
+  Future<void> updateLikes(String key, int newLikes) async {
+    await _databaseRef.child(key).update({'likes': newLikes});
+  }
+
+  Future<void> addComment(String postKey, ForumComment comment) async {
+    final snapshot = await _databaseRef.child(postKey).child('comments').get();
+    List<dynamic> comments = [];
+    if (snapshot.exists) {
+      comments = List<dynamic>.from(snapshot.value as List<dynamic>);
+    }
+    comments.add(comment.toJson());
+    await _databaseRef.child(postKey).update({'comments': comments});
   }
 }

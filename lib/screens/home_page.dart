@@ -869,19 +869,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           child: InkWell(
             borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
             onTap: () => _handleFeatureNavigation(context, feature),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    (feature['color'] as Color).withValues(alpha: 0.02),
-                  ],
-                ),
-              ),
-              padding: ResponsiveHelper.getCardPadding(context),
+            child: IntrinsicHeight(
               child: Row(
                 children: [
                   Container(
@@ -910,6 +898,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
                   Expanded(
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(

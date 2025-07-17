@@ -462,13 +462,13 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
     );
   }
 
-  void _showAddTipDialog() {
+  Future<void> _showAddTipDialog() async {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
-    String selectedCategory = 'Home Energy';
+    String selectedCategory = categories.firstWhere((cat) => cat != 'All', orElse: () => 'Home Energy');
     String selectedDifficulty = 'Easy';
 
-    showDialog(
+    final newTip = await showDialog<EnergyTip>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
@@ -565,19 +565,29 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              // Add tip logic here
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Energy tip added successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              if (titleController.text.trim().isEmpty || descriptionController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please fill in all fields.',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.error,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
+                );
+                return;
+              }
+              final tip = EnergyTip(
+                title: titleController.text.trim(),
+                description: descriptionController.text.trim(),
+                category: selectedCategory,
+                isVerified: false,
+                energySavings: 0.0,
+                difficulty: selectedDifficulty,
               );
+              Navigator.pop(context, tip);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -593,5 +603,22 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
         ],
       ),
     );
+
+    if (newTip != null) {
+      setState(() {
+        tips.add(newTip);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Energy tip added successfully!',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 } 

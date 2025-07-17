@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:living/models/forum_post_model.dart';
 import 'package:living/services/forum_post_dao.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/alert_success.dart';
@@ -22,6 +23,12 @@ class _ForumPageState extends State<ForumPage> {
   bool isLoading = true;
   String? userId;
   String selectedCategory = 'All';
+  bool isLiking = false;
+  bool isCommenting = false;
+  Set<String> likedPostKeys = {};
+  String? userRole;
+  bool isAdmin = false;
+  String? validationError;
 
   final List<String> categories = [
     'All',
@@ -36,6 +43,7 @@ class _ForumPageState extends State<ForumPage> {
   void initState() {
     super.initState();
     _loadData();
+    _loadRole();
   }
 
   Future<void> _loadData() async {
@@ -57,11 +65,19 @@ class _ForumPageState extends State<ForumPage> {
     }
   }
 
+  Future<void> _loadRole() async {
+    final role = await AdminService().getCurrentUserRole();
+    setState(() {
+      userRole = role;
+      isAdmin = role == 'admin';
+    });
+  }
+
   List<ForumPost> get filteredPosts {
     if (selectedCategory == 'All') {
       return posts;
     }
-    return posts.where((post) => selectedCategory == 'All').toList();
+    return posts.where((post) => post.category == selectedCategory).toList();
   }
 
   @override
@@ -166,6 +182,7 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   Widget _buildPostCard(ForumPost post) {
+    final isOwner = userId == post.userId;
     return Card(
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
       child: InkWell(
@@ -193,12 +210,34 @@ class _ForumPageState extends State<ForumPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post.userId,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              post.userId,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              ),
+                            ),
+                            if (isAdmin && isOwner) ...[
+                              SizedBox(width: 8),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'ADMIN',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         Text(
                           post.timestamp,
@@ -210,47 +249,49 @@ class _ForumPageState extends State<ForumPage> {
                       ],
                     ),
                   ),
-                  if (userId == post.userId)
+                  if (isOwner || isAdmin)
                     PopupMenuButton(
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.edit,
-                                size: ResponsiveHelper.getAdaptiveIconSize(context),
-                              ),
-                              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                              Text(
-                                'Edit',
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        if (isOwner || isAdmin)
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                                Text(
+                                  isAdmin && !isOwner ? 'Edit (Admin)' : 'Edit',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.delete,
-                                color: AppColors.error,
-                                size: ResponsiveHelper.getAdaptiveIconSize(context),
-                              ),
-                              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                              Text(
-                                'Delete',
-                                style: TextStyle(
+                        if (isOwner || isAdmin)
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete,
                                   color: AppColors.error,
-                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
                                 ),
-                              ),
-                            ],
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                                Text(
+                                  isAdmin && !isOwner ? 'Delete (Admin)' : 'Delete',
+                                  style: TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
                       ],
                       onSelected: (value) {
                         if (value == 'edit') {
@@ -304,7 +345,7 @@ class _ForumPageState extends State<ForumPage> {
                         ),
                         SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
                         Text(
-                          'General',
+                          post.category,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                             color: AppColors.success,
@@ -317,17 +358,100 @@ class _ForumPageState extends State<ForumPage> {
                   const Spacer(),
                   Row(
                     children: [
-                      Icon(
-                        Icons.thumb_up_outlined,
-                        size: ResponsiveHelper.getAdaptiveIconSize(context),
-                        color: AppColors.secondaryText,
-                      ),
-                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
-                      Text(
-                        '0',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                          color: AppColors.secondaryText,
+                      GestureDetector(
+                        onTap: isLiking || likedPostKeys.contains(post.key) ? null : () async {
+                          if (userId == null) {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Login Required'),
+                                content: const Text('Please log in to like posts.'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      Navigator.pushNamed(context, '/auth');
+                                    },
+                                    child: const Text('Login'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return;
+                          }
+                          setState(() => isLiking = true);
+                          try {
+                            final newLikes = post.likes + 1;
+                            await ForumPostDao().updateLikes(post.key, newLikes);
+                            setState(() {
+                              posts = posts.map((p) => p.key == post.key ? ForumPost(
+                                key: p.key,
+                                userId: p.userId,
+                                title: p.title,
+                                content: p.content,
+                                author: p.author,
+                                authorId: p.authorId,
+                                authorName: p.authorName,
+                                category: p.category,
+                                createdAt: p.createdAt,
+                                likes: newLikes,
+                                comments: p.comments,
+                                timestamp: p.timestamp,
+                              ) : p).toList();
+                              likedPostKeys.add(post.key);
+                            });
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('You liked this post!')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AlertError('Failed to like post: $e'),
+                              );
+                            }
+                          } finally {
+                            if (mounted) setState(() => isLiking = false);
+                          }
+                        },
+                        child: AnimatedContainer(
+                          duration: Duration(milliseconds: 200),
+                          curve: Curves.easeInOut,
+                          child: isLiking && !likedPostKeys.contains(post.key)
+                            ? SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Row(
+                                children: [
+                                  Icon(
+                                    likedPostKeys.contains(post.key)
+                                      ? Icons.thumb_up
+                                      : Icons.thumb_up_outlined,
+                                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                    color: likedPostKeys.contains(post.key)
+                                      ? AppColors.success
+                                      : AppColors.secondaryText,
+                                  ),
+                                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
+                                  Text(
+                                    post.likes.toString(),
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                      color: likedPostKeys.contains(post.key)
+                                        ? AppColors.success
+                                        : AppColors.secondaryText,
+                                    ),
+                                  ),
+                                ],
+                              ),
                         ),
                       ),
                       SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
@@ -338,7 +462,7 @@ class _ForumPageState extends State<ForumPage> {
                       ),
                       SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
                       Text(
-                        '0',
+                        post.comments.length.toString(),
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                           color: AppColors.secondaryText,
@@ -356,86 +480,207 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   void _showPostDetail(ForumPost post) {
+    final commentController = TextEditingController();
+    String? localValidationError;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          post.title,
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            post.title,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Text(
-                      post.userId[0].toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.userId,
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        post.userId[0].toUpperCase(),
                         style: TextStyle(
+                          color: AppColors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                         ),
                       ),
-                      Text(
-                        post.timestamp,
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                          color: AppColors.secondaryText,
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          post.userId,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        Text(
+                          post.timestamp,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            color: AppColors.secondaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Text(
+                  post.content,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Divider(),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Text(
+                  'Comments:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                ...post.comments.map((comment) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.person, size: 18, color: AppColors.secondaryText),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              comment.author,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                              ),
+                            ),
+                            Text(
+                              comment.content,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                            Text(
+                              comment.timestamp.toString(),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
+                )),
+                if (userId != null) ...[
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  if (localValidationError != null) ...[
+                    Text(
+                      localValidationError!,
+                      style: TextStyle(color: AppColors.error, fontSize: 13),
+                    ),
+                    SizedBox(height: 8),
+                  ],
+                  TextField(
+                    controller: commentController,
+                    decoration: InputDecoration(
+                      labelText: 'Add a comment',
+                      labelStyle: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    maxLines: 2,
+                  ),
+                  SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: isCommenting ? null : () async {
+                      if (commentController.text.trim().length < 2) {
+                        setState(() => localValidationError = 'Comment must be at least 2 characters.');
+                        return;
+                      }
+                      setState(() => localValidationError = null);
+                      setState(() => isCommenting = true);
+                      try {
+                        final newComment = ForumComment(
+                          author: userId!,
+                          content: commentController.text.trim(),
+                          timestamp: DateTime.now(),
+                        );
+                        await ForumPostDao().addComment(post.key, newComment);
+                        Navigator.pop(context);
+                        _loadData();
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Comment added!')),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertError('Failed to add comment: $e'),
+                          );
+                        }
+                      } finally {
+                        if (mounted) setState(() => isCommenting = false);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                    ),
+                    child: isCommenting
+                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                      : Text(
+                          'Post Comment',
+                          style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                  ),
                 ],
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              Text(
-                post.content,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  color: AppColors.secondaryText,
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              Text(
-                'No comments available',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  color: AppColors.secondaryText,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Close',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
+                if (userId == null) ...[
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Text(
+                    'Login to add a comment.',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -468,79 +713,101 @@ class _ForumPageState extends State<ForumPage> {
     final titleController = TextEditingController();
     final contentController = TextEditingController();
     String selectedCategory = 'General Discussion';
+    String? localValidationError;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Create New Post',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Create New Post',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (localValidationError != null) ...[
+                  Text(
+                    localValidationError!,
+                    style: TextStyle(color: AppColors.error, fontSize: 13),
                   ),
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-                items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(
-                    category,
-                    style: TextStyle(
+                  SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    labelStyle: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                     ),
                   ),
-                )).toList(),
-                onChanged: (value) {
-                  selectedCategory = value!;
-                },
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: contentController,
-                decoration: InputDecoration(
-                  labelText: 'Content',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
                 ),
-                maxLines: 5,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    selectedCategory = value!;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextField(
+                  controller: contentController,
+                  decoration: InputDecoration(
+                    labelText: 'Content',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 5,
+                ),
+              ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validation
+                if (titleController.text.trim().length < 5) {
+                  setState(() => localValidationError = 'Title must be at least 5 characters.');
+                  return;
+                }
+                if (contentController.text.trim().length < 10) {
+                  setState(() => localValidationError = 'Content must be at least 10 characters.');
+                  return;
+                }
+                if (selectedCategory.isEmpty) {
+                  setState(() => localValidationError = 'Please select a category.');
+                  return;
+                }
+                setState(() => localValidationError = null);
                 final post = ForumPost(
                   key: DateTime.now().millisecondsSinceEpoch.toString(),
                   userId: userId!,
@@ -561,9 +828,8 @@ class _ForumPageState extends State<ForumPage> {
                   Navigator.pop(context);
                   _loadData();
                   if (mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const AlertSuccess('Post created successfully!'),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Post created successfully!')),
                     );
                   }
                 } catch (e) {
@@ -574,20 +840,20 @@ class _ForumPageState extends State<ForumPage> {
                     );
                   }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
-            child: Text(
-              'Create Post',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: Text(
+                'Create Post',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -596,79 +862,101 @@ class _ForumPageState extends State<ForumPage> {
     final titleController = TextEditingController(text: post.title);
     final contentController = TextEditingController(text: post.content);
     String selectedCategory = post.category;
+    String? localValidationError;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Edit Post',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(
+            'Edit Post',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  labelText: 'Title',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (localValidationError != null) ...[
+                  Text(
+                    localValidationError!,
+                    style: TextStyle(color: AppColors.error, fontSize: 13),
                   ),
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: InputDecoration(
-                  labelText: 'Category',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-                items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
-                  value: category,
-                  child: Text(
-                    category,
-                    style: TextStyle(
+                  SizedBox(height: 8),
+                ],
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Title',
+                    labelStyle: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                     ),
                   ),
-                )).toList(),
-                onChanged: (value) {
-                  selectedCategory = value!;
-                },
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-              TextField(
-                controller: contentController,
-                decoration: InputDecoration(
-                  labelText: 'Content',
-                  labelStyle: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
                 ),
-                maxLines: 5,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    selectedCategory = value!;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextField(
+                  controller: contentController,
+                  decoration: InputDecoration(
+                    labelText: 'Content',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 5,
+                ),
+              ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Validation
+                if (titleController.text.trim().length < 5) {
+                  setState(() => localValidationError = 'Title must be at least 5 characters.');
+                  return;
+                }
+                if (contentController.text.trim().length < 10) {
+                  setState(() => localValidationError = 'Content must be at least 10 characters.');
+                  return;
+                }
+                if (selectedCategory.isEmpty) {
+                  setState(() => localValidationError = 'Please select a category.');
+                  return;
+                }
+                setState(() => localValidationError = null);
                 final updatedPost = ForumPost(
                   key: post.key,
                   userId: post.userId,
@@ -689,9 +977,8 @@ class _ForumPageState extends State<ForumPage> {
                   Navigator.pop(context);
                   _loadData();
                   if (mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => const AlertSuccess('Post updated successfully!'),
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Post updated successfully!')),
                     );
                   }
                 } catch (e) {
@@ -702,20 +989,20 @@ class _ForumPageState extends State<ForumPage> {
                     );
                   }
                 }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
-            child: Text(
-              'Update',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: Text(
+                'Update',
+                style: TextStyle(
+                  color: AppColors.white,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
