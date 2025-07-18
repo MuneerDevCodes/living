@@ -6,9 +6,7 @@ import 'package:living/style/theme.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
-import 'package:living/widgets/local_image_widget.dart';
-
+import 'dart:io' show File;
 /// GalleryPage displays a gallery of community images, using responsive and theme-driven design.
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -201,7 +199,11 @@ class _GalleryPageState extends State<GalleryPage> {
                             fit: BoxFit.cover,
                           )
                         : item['isLocal'] == true && !kIsWeb
-                            ? LocalImageWidget(item['imageUrl'])
+                            ? Image.file(
+                                File(item['imageUrl']),
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              )
                             : item['isLocal'] == true && kIsWeb
                                 ? Container(
                                     color: AppColors.borderLight,
@@ -338,7 +340,10 @@ class _GalleryPageState extends State<GalleryPage> {
                           fit: BoxFit.cover,
                         )
                       : item['isLocal'] == true && !kIsWeb
-                          ? LocalImageWidget(item['imageUrl'])
+                          ? Image.file(
+                              File(item['imageUrl']),
+                              fit: BoxFit.cover,
+                            )
                           : item['isLocal'] == true && kIsWeb
                               ? Center(
                                   child: Text(
@@ -568,7 +573,10 @@ class _GalleryPageState extends State<GalleryPage> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: LocalImageWidget(file.path),
+                              child: Image.file(
+                                File(file.path),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           );
                         } else if (file != null && kIsWeb) {

@@ -3,7 +3,6 @@ import 'package:living/models/carbon_footprint_model.dart';
 import 'package:living/services/carbon_footprint_dao.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
-import 'package:intl/intl.dart';
 
 class CarbonDashboardWidget extends StatefulWidget {
   final String userId;
