@@ -11,6 +11,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/validate.dart';
 
+/// ProfilePage displays and allows editing of the user's profile, using responsive and theme-driven design.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
   static const String routeName = '/profile';
@@ -93,7 +94,13 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated')),
+          SnackBar(
+            content: Text('Profile updated'),
+            backgroundColor: AppColors.success,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -117,9 +124,13 @@ class _ProfilePageState extends State<ProfilePage> {
       await AuthService().updateEmail(_emailCtrl.text);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
               'Verification email sent to the new email. Please verify to complete the update.',
+            ),
+            backgroundColor: AppColors.info,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
             ),
           ),
         );
@@ -145,7 +156,13 @@ class _ProfilePageState extends State<ProfilePage> {
       await AuthService().updatePassword(_newPassCtrl.text);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated successfully')),
+          SnackBar(
+            content: Text('Password updated successfully'),
+            backgroundColor: AppColors.success,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            ),
+          ),
         );
         _newPassCtrl.clear();
       }
@@ -216,11 +233,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  /// Build method for the profile page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Center(child: Loader()),
         ),
@@ -228,7 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: SafeArea(
         child: Column(

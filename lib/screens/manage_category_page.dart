@@ -9,6 +9,7 @@ import '../style/responsive_helper.dart';
 import '../style/theme.dart';
 import 'package:living/services/validate.dart';
 
+/// ManageCategoryPage allows admins to manage product categories, using responsive and theme-driven design.
 class ManageCategoryPage extends StatefulWidget {
   const ManageCategoryPage({super.key});
   static const String routeName = '/manage-categories';
@@ -64,6 +65,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
     setState(() => _editingId = cat.id);
   }
 
+  /// Build method for the manage category page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -73,6 +75,7 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

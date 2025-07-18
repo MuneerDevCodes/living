@@ -15,6 +15,7 @@ import 'package:living/style/theme.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
+/// ProgressDashboardPage displays the user's sustainability progress dashboard, using responsive and theme-driven design.
 class ProgressDashboardPage extends StatefulWidget {
   const ProgressDashboardPage({super.key});
 
@@ -261,34 +262,24 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
     return progress.fold(0, (sum, p) => sum + p.totalPoints);
   }
 
+  /// Build method for the progress dashboard page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
-          // Removed the green header/banner here
+          const Header(),
           Expanded(
             child: Stack(
               children: [
                 if (isLoading) const Positioned.fill(child: Loader()),
-                Column(
-                  children: [
-                    Expanded(
-                      child: _buildOverviewTab(),
-                    ),
-                  ],
-                ),
+                // Revert to the original logic: use the main dashboard content widget
+                // If _buildDashboardContent does not exist, use the main Column or content widget here.
+                _buildOverviewTab(),
               ],
             ),
-          ),
-          // Motivational Tip at the bottom
-          Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.7,
-              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
-            ),
-            child: _buildMotivationalTip(),
           ),
           Footer(),
         ],
@@ -335,7 +326,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
         children: [
           Row(
             children: [
-              Icon(Icons.eco, color: AppColors.primary, size: 28),
+              Icon(Icons.eco, color: AppColors.primary, size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.8),
               SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
               Expanded(
                 child: Text(
@@ -415,7 +406,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: badges.length,
-            separatorBuilder: (_, __) => SizedBox(width: 16),
+            separatorBuilder: (_, __) => SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
             itemBuilder: (context, i) {
               final badge = badges[i];
               final bool earned = badge['earned'] == true;
@@ -432,14 +423,14 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
                           ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 8, offset: Offset(0, 4))]
                           : [],
                     ),
-                    padding: EdgeInsets.all(14),
+                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.4),
                     child: Icon(
                       icon,
                       color: earned ? Colors.white : Colors.grey[400],
-                      size: 28,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.8,
                     ),
                   ),
-                  SizedBox(height: 6),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
                   Text(
                     label,
                     style: TextStyle(
@@ -517,14 +508,14 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
           ),
         ],
       ),
-      margin: EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+      margin: EdgeInsets.symmetric(vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2, horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(10),
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.4),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.18),
                 shape: BoxShape.circle,
@@ -532,7 +523,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
               child: Icon(
                 data['icon'],
                 color: Colors.white,
-                size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.0,
               ),
             ),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
@@ -603,7 +594,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
                   gridData: FlGridData(show: true, drawVerticalLine: false),
                   titlesData: FlTitlesData(
                     leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true, reservedSize: 36),
+                      sideTitles: SideTitles(showTitles: true, reservedSize: ResponsiveHelper.getAdaptiveSpacing(context) * 3.6),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
@@ -654,9 +645,9 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildChartLegend(AppColors.info, 'Carbon'),
-                SizedBox(width: 16),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 _buildChartLegend(AppColors.success, 'Waste'),
-                SizedBox(width: 16),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                 _buildChartLegend(AppColors.warning, 'Energy'),
               ],
             ),
@@ -670,14 +661,14 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
     return Row(
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: ResponsiveHelper.getAdaptiveSpacing(context) * 1.4,
+          height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.4,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
           ),
         ),
-        SizedBox(width: 6),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
         Text(
           label,
           style: TextStyle(
@@ -760,8 +751,8 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
             Column(
               children: [
                 Container(
-                  width: 32,
-                  height: 32,
+                  width: ResponsiveHelper.getAdaptiveSpacing(context) * 3.2,
+                  height: ResponsiveHelper.getAdaptiveSpacing(context) * 3.2,
                   decoration: BoxDecoration(
                     color: items.isNotEmpty ? (items[0]['color'] as Color) : AppColors.borderLight,
                     shape: BoxShape.circle,
@@ -769,18 +760,18 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
                   child: Icon(
                     items.isNotEmpty ? (items[0]['icon'] as IconData) : Icons.check,
                     color: Colors.white,
-                    size: 20,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.0,
                   ),
                 ),
                 if (items.length > 1)
                   Container(
-                    width: 4,
-                    height: 24.0 * (items.length - 1),
+                    width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                    height: ResponsiveHelper.getAdaptiveSpacing(context) * 2.4 * (items.length - 1),
                     color: AppColors.borderLight,
                   ),
               ],
             ),
-            SizedBox(width: 12),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,8 +788,8 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
                         padding: const EdgeInsets.only(top: 2.0, bottom: 2.0),
                         child: Row(
                           children: [
-                            Icon(item['icon'] as IconData, color: item['color'] as Color, size: 16),
-                            SizedBox(width: 6),
+                            Icon(item['icon'] as IconData, color: item['color'] as Color, size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.6),
+                            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
                             Expanded(
                               child: Text(
                                 item['label'] as String,
@@ -834,8 +825,8 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
     tips.shuffle();
     return Row(
       children: [
-        Icon(Icons.lightbulb, color: AppColors.warning, size: 22),
-        SizedBox(width: 10),
+        Icon(Icons.lightbulb, color: AppColors.warning, size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.2),
+        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 1.0),
         Expanded(
           child: Text(
             tips.first,

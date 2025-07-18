@@ -9,6 +9,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// ChallengesPage displays sustainability challenges and user progress, using responsive and theme-driven design.
 class ChallengesPage extends StatefulWidget {
   const ChallengesPage({super.key});
 
@@ -67,12 +68,13 @@ class _ChallengesPageState extends State<ChallengesPage> {
     return availableChallenges.where((challenge) => challenge.category == selectedCategory).toList();
   }
 
+  /// Build method for the challenges page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         drawer: Header.buildDrawer(context),
         body: Column(
           children: [
@@ -1081,7 +1083,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
               ),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
+                color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(
                   ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                 ),

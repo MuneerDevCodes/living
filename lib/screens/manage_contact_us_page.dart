@@ -10,6 +10,7 @@ import '../widgets/loader.dart';
 import '../style/responsive_helper.dart';
 import '../style/theme.dart';
 
+/// ManageContactUsPage allows admins to manage contact submissions, using responsive and theme-driven design.
 class ManageContactUsPage extends StatefulWidget {
   const ManageContactUsPage({super.key});
   static const String routeName = '/manage-contact-us';
@@ -168,6 +169,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
     );
   }
 
+  /// Build method for the manage contact us page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -177,6 +179,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -190,6 +193,7 @@ class _ManageContactUsPageState extends State<ManageContactUsPage> {
                           'No contact submissions yet',
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            color: AppColors.secondaryText,
                           ),
                         ),
                       )

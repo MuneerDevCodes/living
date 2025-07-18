@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'package:living/widgets/local_image_widget.dart';
 
+/// GalleryPage displays a gallery of community images, using responsive and theme-driven design.
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
 
@@ -71,9 +72,11 @@ class _GalleryPageState extends State<GalleryPage> {
   // Add a variable to store picked image bytes for web
   Uint8List? _webImageBytes;
 
+  /// Build method for the gallery page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -276,32 +279,20 @@ class _GalleryPageState extends State<GalleryPage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item['category'],
-                          style: TextStyle(
-                            color: AppColors.success,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      item['category'],
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
-                      Spacer(),
-                      Icon(Icons.favorite, size: 16, color: Colors.redAccent),
-                      SizedBox(width: 4),
-                      Text('${item['likes']}', style: TextStyle(fontSize: 12)),
-                      SizedBox(width: 10),
-                      Icon(Icons.comment, size: 16, color: AppColors.mutedText),
-                      SizedBox(width: 4),
-                      Text('${item['comments']}', style: TextStyle(fontSize: 12)),
-                    ],
+                    ),
                   ),
                 ],
               ),

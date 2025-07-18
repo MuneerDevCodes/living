@@ -11,6 +11,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/validate.dart';
 
+/// ContactUsPage displays a contact form for users to reach out, using responsive and theme-driven design.
 class ContactUsPage extends StatefulWidget {
   const ContactUsPage({super.key});
   static const String routeName = '/contact-us';
@@ -82,10 +83,11 @@ class _ContactUsPageState extends State<ContactUsPage> {
     }
   }
 
+  /// Build method for the contact us page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -118,6 +120,7 @@ class _ContactUsPageState extends State<ContactUsPage> {
                                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                                       fontWeight: FontWeight.bold,
                                       letterSpacing: 0.5,
+                                      color: AppColors.primaryText,
                                     ),
                                   ),
                                   SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),

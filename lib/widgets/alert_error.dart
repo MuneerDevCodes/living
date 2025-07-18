@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// An error alert widget with responsive design and theme colors.
 class AlertError extends StatelessWidget {
   final String message;
   final VoidCallback? onClose;
@@ -13,7 +14,7 @@ class AlertError extends StatelessWidget {
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
       padding: ResponsiveHelper.getAdaptivePadding(context),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.1),
+        color: AppColors.error.withOpacity(0.1),
         borderRadius: BorderRadius.circular(
           ResponsiveHelper.getAdaptiveBorderRadius(context),
         ),

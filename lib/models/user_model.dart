@@ -4,9 +4,6 @@ class User {
   final String displayname;
   final String? shippingAddress;
   final String? paymentMethod;
-  final CarbonFootprint? carbonFootprint;
-  final WasteTracking? wasteTracking;
-  final Challenges? challenges;
   final Preferences? preferences;
   final Map<String, ActivityLog>? activityLog;
 
@@ -16,9 +13,6 @@ class User {
     required this.displayname,
     this.shippingAddress,
     this.paymentMethod,
-    this.carbonFootprint,
-    this.wasteTracking,
-    this.challenges,
     this.preferences,
     this.activityLog,
   });
@@ -29,15 +23,6 @@ class User {
         displayname = json['displayname'] as String,
         shippingAddress = json['shippingAddress'] as String?,
         paymentMethod = json['paymentMethod'] as String?,
-        carbonFootprint = json['carbonFootprint'] != null
-            ? CarbonFootprint.fromJson(json['carbonFootprint'] as Map<dynamic, dynamic>)
-            : null,
-        wasteTracking = json['wasteTracking'] != null
-            ? WasteTracking.fromJson(json['wasteTracking'] as Map<dynamic, dynamic>)
-            : null,
-        challenges = json['challenges'] != null
-            ? Challenges.fromJson(json['challenges'] as Map<dynamic, dynamic>)
-            : null,
         preferences = json['preferences'] != null
             ? Preferences.fromJson(json['preferences'] as Map<dynamic, dynamic>)
             : null,
@@ -56,9 +41,6 @@ class User {
         'displayname': displayname,
         'shippingAddress': shippingAddress,
         'paymentMethod': paymentMethod,
-        'carbonFootprint': carbonFootprint?.toJson(),
-        'wasteTracking': wasteTracking?.toJson(),
-        'challenges': challenges?.toJson(),
         'preferences': preferences?.toJson(),
         'activityLog': activityLog?.map((key, value) => MapEntry(key, value.toJson())),
       };
@@ -69,98 +51,8 @@ class User {
         'displayname': displayname,
         'shippingAddress': shippingAddress,
         'paymentMethod': paymentMethod,
-        'carbonFootprint': carbonFootprint?.toMap(),
-        'wasteTracking': wasteTracking?.toMap(),
-        'challenges': challenges?.toMap(),
         'preferences': preferences?.toMap(),
         'activityLog': activityLog?.map((key, value) => MapEntry(key, value.toMap())),
-      };
-}
-
-class CarbonFootprint {
-  final double? transport;
-  final double? energy;
-  final double? food;
-  final double? total;
-
-  CarbonFootprint({
-    this.transport,
-    this.energy,
-    this.food,
-    this.total,
-  });
-
-  CarbonFootprint.fromJson(Map<dynamic, dynamic> json)
-      : transport = json['transport'] as double?,
-        energy = json['energy'] as double?,
-        food = json['food'] as double?,
-        total = json['total'] as double?;
-
-  Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
-        'transport': transport,
-        'energy': energy,
-        'food': food,
-        'total': total,
-      };
-
-  Map<String, dynamic> toMap() => <String, dynamic>{
-        'transport': transport,
-        'energy': energy,
-        'food': food,
-        'total': total,
-      };
-}
-
-class WasteTracking {
-  final int? recycled;
-  final int? composted;
-  final int? plasticReduced;
-
-  WasteTracking({
-    this.recycled,
-    this.composted,
-    this.plasticReduced,
-  });
-
-  WasteTracking.fromJson(Map<dynamic, dynamic> json)
-      : recycled = json['recycled'] as int?,
-        composted = json['composted'] as int?,
-        plasticReduced = json['plasticReduced'] as int?;
-
-  Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
-        'recycled': recycled,
-        'composted': composted,
-        'plasticReduced': plasticReduced,
-      };
-
-  Map<String, dynamic> toMap() => <String, dynamic>{
-        'recycled': recycled,
-        'composted': composted,
-        'plasticReduced': plasticReduced,
-      };
-}
-
-class Challenges {
-  final String? plasticFreeWeek;
-  final String? bikeToWork;
-
-  Challenges({
-    this.plasticFreeWeek,
-    this.bikeToWork,
-  });
-
-  Challenges.fromJson(Map<dynamic, dynamic> json)
-      : plasticFreeWeek = json['plasticFreeWeek'] as String?,
-        bikeToWork = json['bikeToWork'] as String?;
-
-  Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
-        'plasticFreeWeek': plasticFreeWeek,
-        'bikeToWork': bikeToWork,
-      };
-
-  Map<String, dynamic> toMap() => <String, dynamic>{
-        'plasticFreeWeek': plasticFreeWeek,
-        'bikeToWork': bikeToWork,
       };
 }
 

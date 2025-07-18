@@ -16,13 +16,17 @@ class ForumPostDao {
     await _databaseRef.child(key).remove();
   }
 
-  Future<List<ForumPost>> getPublishedPosts() async {
+  Future<List<ForumPost>> getPublishedPosts({List<String>? tags, String? status}) async {
     final snapshot = await _databaseRef.get();
     final List<ForumPost> posts = [];
     if (snapshot.exists) {
       final Map<dynamic, dynamic> data = snapshot.value as Map<dynamic, dynamic>;
       data.forEach((key, value) {
-        posts.add(ForumPost.fromJson(key.toString(), value as Map<dynamic, dynamic>));
+        final post = ForumPost.fromJson(key.toString(), Map<String, dynamic>.from(value as Map));
+        if ((tags == null || tags.any((tag) => post.tags.contains(tag))) &&
+            (status == null || post.status == status)) {
+          posts.add(post);
+        }
       });
     }
     return posts;
@@ -31,7 +35,7 @@ class ForumPostDao {
   Future<ForumPost?> getForumPostById(String postId) async {
     final snapshot = await _databaseRef.child(postId).get();
     if (snapshot.exists) {
-      return ForumPost.fromJson(postId, snapshot.value as Map<dynamic, dynamic>);
+      return ForumPost.fromJson(postId, Map<String, dynamic>.from(snapshot.value as Map));
     }
     return null;
   }
@@ -40,13 +44,37 @@ class ForumPostDao {
     await _databaseRef.child(key).update({'likes': newLikes});
   }
 
-  Future<void> addComment(String postKey, ForumComment comment) async {
-    final snapshot = await _databaseRef.child(postKey).child('comments').get();
-    List<dynamic> comments = [];
-    if (snapshot.exists) {
-      comments = List<dynamic>.from(snapshot.value as List<dynamic>);
+  // Comments as sub-nodes
+  DatabaseReference _commentsRef(String postKey) => _databaseRef.child(postKey).child('comments');
+
+  Future<List<ForumComment>> getComments(String postKey, {int? limit, String? startAfterKey}) async {
+    Query query = _commentsRef(postKey);
+    if (limit != null) {
+      query = query.limitToFirst(limit);
     }
-    comments.add(comment.toJson());
-    await _databaseRef.child(postKey).update({'comments': comments});
+    final snapshot = await query.get();
+    final List<ForumComment> comments = [];
+    if (snapshot.exists) {
+      final data = snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        data.forEach((key, value) {
+          comments.add(ForumComment.fromJson({...Map<String, dynamic>.from(value as Map), 'key': key}));
+        });
+      }
+    }
+    return comments;
+  }
+
+  Future<void> addComment(String postKey, ForumComment comment) async {
+    final newCommentRef = _commentsRef(postKey).push();
+    await newCommentRef.set(comment.toJson());
+  }
+
+  Future<void> updateComment(String postKey, String commentKey, ForumComment comment) async {
+    await _commentsRef(postKey).child(commentKey).update(Map<String, Object?>.from(comment.toJson()));
+  }
+
+  Future<void> deleteComment(String postKey, String commentKey) async {
+    await _commentsRef(postKey).child(commentKey).remove();
   }
 }

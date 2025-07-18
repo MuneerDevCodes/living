@@ -10,6 +10,7 @@ import 'package:living/widgets/loader.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// RegisterScreen provides a responsive, theme-driven registration form.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -70,6 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  /// Build method for the registration form, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return _loading

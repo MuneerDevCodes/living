@@ -9,6 +9,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/admin_service.dart';
 
+/// EducationalContentPage displays educational articles, videos, and infographics, using responsive and theme-driven design.
 class EducationalContentPage extends StatefulWidget {
   const EducationalContentPage({super.key});
 
@@ -83,10 +84,11 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
     }).toList();
   }
 
+  /// Build method for the educational content page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

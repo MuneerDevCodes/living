@@ -5,6 +5,7 @@ import 'package:living/services/auth_helper.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/widgets/loader.dart';
 
+/// Responsive, theme-driven header for all screen sizes.
 class Header extends StatelessWidget {
   const Header({super.key});
 
@@ -74,7 +75,7 @@ class Header extends StatelessWidget {
                     padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context) * 0.3),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(6),
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withOpacity(0.1),
                     ),
                     child: Semantics(
                       label: 'Living App Logo',
@@ -111,22 +112,19 @@ class Header extends StatelessWidget {
                       children: [
                         Text(
                           'Planet Care',
-                          style: TextStyle(
+                          style: AppTheme.headline.copyWith(
                             color: AppColors.white,
                             fontSize: ResponsiveHelper.isMobile(context) 
                                 ? ResponsiveHelper.getBodyFontSize(context) * 1.1
                                 : ResponsiveHelper.getSubtitleFontSize(context),
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.3,
                           ),
                         ),
                         if (ResponsiveHelper.isDesktop(context))
                           Text(
                             'Sustainable Living Guide',
-                            style: TextStyle(
-                              color: AppColors.white.withValues(alpha: 0.8),
+                            style: AppTheme.caption.copyWith(
+                              color: AppColors.white.withOpacity(0.8),
                               fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
-                              fontWeight: FontWeight.w300,
                             ),
                           ),
                       ],

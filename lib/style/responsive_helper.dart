@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// ResponsiveHelper provides utilities for responsive layouts, sizing, spacing, and device detection.
+/// Use these helpers in all pages and widgets for consistent, adaptive UI.
 class ResponsiveHelper {
   // Screen dimensions
   static double getScreenWidth(BuildContext context) {
@@ -10,23 +12,35 @@ class ResponsiveHelper {
     return MediaQuery.of(context).size.height;
   }
 
-  // Device type detection
+  /// Returns true if the current device is mobile (width < 600).
   static bool isMobile(BuildContext context) {
     return getScreenWidth(context) < 600;
   }
 
+  /// Returns true if the current device is a tablet (600 <= width < 1024).
   static bool isTablet(BuildContext context) {
     final width = getScreenWidth(context);
     return width >= 600 && width < 1024;
   }
 
+  /// Returns true if the current device is a desktop (width >= 1024).
   static bool isDesktop(BuildContext context) {
     return getScreenWidth(context) >= 1024;
   }
 
+  /// Returns true if the current device is a large screen (width >= 1440).
   static bool isLargeScreen(BuildContext context) {
     return getScreenWidth(context) >= 1440;
   }
+
+  /// Returns true if the widget should be visible on mobile devices.
+  static bool isVisibleOnMobile(BuildContext context) => isMobile(context);
+
+  /// Returns true if the widget should be visible on tablet devices.
+  static bool isVisibleOnTablet(BuildContext context) => isTablet(context);
+
+  /// Returns true if the widget should be visible on desktop devices.
+  static bool isVisibleOnDesktop(BuildContext context) => isDesktop(context);
 
   // Responsive breakpoints
   static double getBreakpoint(BuildContext context) {
@@ -250,7 +264,7 @@ class ResponsiveHelper {
     }
   }
 
-  // Responsive header/footer height
+  /// Returns the responsive header/footer height for the current device.
   static double getHeaderFooterHeight(BuildContext context) {
     if (isMobile(context)) {
       return 60.0;

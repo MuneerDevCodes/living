@@ -4,12 +4,11 @@ import 'package:living/widgets/header.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/auth_helper.dart';
-import 'package:living/services/notification_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
+/// HomePage is the main landing page, fully responsive and theme-driven.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
   @override
   State<HomePage> createState() => _HomePageState();
 }
@@ -19,7 +18,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  final NotificationService _notificationService = NotificationService();
+  //final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
@@ -52,12 +51,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _fadeController.forward();
     _slideController.forward();
     
-    // Check for notifications after a short delay
-    Future.delayed(Duration(seconds: 2), () {
-      if (mounted) {
-        _notificationService.checkAndShowReminders(context);
-      }
-    });
   }
 
   @override
@@ -67,6 +60,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  /// Build method for the home page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,7 +104,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'route': '/carbon-footprint',
       },
       {
-        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'image': 'assets/icons/',
         'title': 'Reduce Waste',
         'subtitle': 'Monitor and reduce your daily waste for a cleaner planet.',
         'icon': Icons.recycling,
@@ -118,7 +112,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'route': '/waste-tracker',
       },
       {
-        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'image': 'assets/icons/',
         'title': 'Save Energy',
         'subtitle': 'Discover tips to save energy and lower your carbon impact.',
         'icon': Icons.lightbulb,
@@ -126,7 +120,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'route': '/energy-tips',
       },
       {
-        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'image': 'assets/icons/',
         'title': 'Shop Green',
         'subtitle': 'Find eco-friendly products and support sustainable brands.',
         'icon': Icons.shopping_bag,
@@ -134,7 +128,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'route': '/search',
       },
       {
-        'image': 'assets/icons/', // Placeholder, replace with actual asset if available
+        'image': 'assets/icons/',
         'title': 'Join Challenges',
         'subtitle': 'Participate in sustainability challenges and earn rewards.',
         'icon': Icons.emoji_events,
@@ -142,7 +136,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'route': '/challenges',
       },
     ];
-
     return CarouselSlider(
       options: CarouselOptions(
         height: height,
@@ -150,7 +143,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         enlargeCenterPage: true,
         viewportFraction: isMobile ? 0.92 : 0.6,
         aspectRatio: isMobile ? 1.2 : 2.5,
-        autoPlayInterval: Duration(seconds: 5),
+        autoPlayInterval: const Duration(seconds: 5),
       ),
       items: slides.map((slide) {
         return Builder(
@@ -164,10 +157,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               },
               child: Container(
                 width: double.infinity,
-                margin: EdgeInsets.symmetric(horizontal: 4.0),
+                margin: EdgeInsets.symmetric(horizontal: AppTheme.spacingSmall),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [slide['color'].withOpacity(0.12), Colors.white],
+                    colors: [slide['color'].withOpacity(0.12), AppColors.white],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -176,15 +169,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     BoxShadow(
                       color: slide['color'].withOpacity(0.08),
                       blurRadius: 12,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
                 child: Row(
                   children: [
-                    SizedBox(width: 16),
+                    SizedBox(width: AppTheme.spacingSmall * 2),
                     Container(
-                      padding: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(AppTheme.spacingMedium),
                       decoration: BoxDecoration(
                         color: slide['color'].withOpacity(0.13),
                         shape: BoxShape.circle,
@@ -195,7 +188,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         color: slide['color'],
                       ),
                     ),
-                    SizedBox(width: 24),
+                    SizedBox(width: AppTheme.spacingLarge * 0.75),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -203,16 +196,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         children: [
                           Text(
                             slide['title'],
-                            style: TextStyle(
+                            style: AppTheme.headline.copyWith(
                               fontSize: isMobile ? 20 : 28,
-                              fontWeight: FontWeight.bold,
-                              color: slide['color'],
+                              color: AppColors.primaryText,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: AppTheme.spacingSmall),
                           Text(
                             slide['subtitle'],
-                            style: TextStyle(
+                            style: AppTheme.subtitle.copyWith(
                               fontSize: isMobile ? 14 : 18,
                               color: AppColors.secondaryText,
                             ),
@@ -220,7 +212,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    SizedBox(width: 16),
                   ],
                 ),
               ),
@@ -645,6 +636,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': true,
         'color': AppColors.primary,
         'gradient': [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
+        'category': 'Tracking',
+        'badge': 'Popular',
       },
       {
         'title': 'Sustainable Challenges',
@@ -654,6 +647,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': true,
         'color': AppColors.success,
         'gradient': [AppColors.success, AppColors.success.withValues(alpha: 0.7)],
+        'category': 'Engagement',
+        'badge': 'New',
       },
       {
         'title': 'Waste Reduction Tracker',
@@ -663,6 +658,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': true,
         'color': AppColors.info,
         'gradient': [AppColors.info, AppColors.info.withValues(alpha: 0.7)],
+        'category': 'Tracking',
       },
       {
         'title': 'Progress Dashboard',
@@ -672,6 +668,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': true,
         'color': AppColors.warning,
         'gradient': [AppColors.warning, AppColors.warning.withValues(alpha: 0.7)],
+        'category': 'Analytics',
       },
       {
         'title': 'Green Certifications',
@@ -681,6 +678,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.success,
         'gradient': [AppColors.success, AppColors.success.withValues(alpha: 0.7)],
+        'category': 'Education',
       },
       {
         'title': 'Energy Conservation Tips',
@@ -690,6 +688,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.warning,
         'gradient': [AppColors.warning, AppColors.warning.withValues(alpha: 0.7)],
+        'category': 'Tips',
       },
       {
         'title': 'Eco-Travel Guide',
@@ -699,6 +698,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.info,
         'gradient': [AppColors.info, AppColors.info.withValues(alpha: 0.7)],
+        'category': 'Travel',
       },
       {
         'title': 'Educational Content',
@@ -708,6 +708,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.primary,
         'gradient': [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
+        'category': 'Education',
       },
       {
         'title': 'Sustainable Recipes',
@@ -717,6 +718,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.success,
         'gradient': [AppColors.success, AppColors.success.withValues(alpha: 0.7)],
+        'category': 'Lifestyle',
       },
       {
         'title': 'Community Forum',
@@ -726,6 +728,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': true,
         'color': AppColors.info,
         'gradient': [AppColors.info, AppColors.info.withValues(alpha: 0.7)],
+        'category': 'Community',
       },
       {
         'title': 'Image Gallery',
@@ -735,6 +738,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.warning,
         'gradient': [AppColors.warning, AppColors.warning.withValues(alpha: 0.7)],
+        'category': 'Inspiration',
       },
       {
         'title': 'Eco-Friendly Products',
@@ -744,22 +748,89 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         'requiresAuth': false,
         'color': AppColors.primary,
         'gradient': [AppColors.primary, AppColors.primary.withValues(alpha: 0.7)],
+        'category': 'Shopping',
       },
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Explore Features',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryText,
+        // Enhanced header section
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: ResponsiveHelper.getAdaptiveSpacing(context),
+            vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.primary.withOpacity(0.05),
+                AppColors.secondary.withOpacity(0.03),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            border: Border.all(
+              color: AppColors.primary.withOpacity(0.1),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.explore,
+                      color: AppColors.primary,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Explore Features',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getTitleFontSize(context),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Discover tools and resources to enhance your sustainable lifestyle',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getBodyFontSize(context),
+                            color: AppColors.secondaryText,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        _buildImageGridFeature(context, features, currentUserId),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5),
+        
+        // Enhanced feature grid
+        ResponsiveHelper.isMobile(context) 
+          ? _buildMobileFeatureGrid(context, features, currentUserId)
+          : _buildDesktopFeatureGrid(context, features, currentUserId),
       ],
     );
   }
@@ -768,6 +839,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final isMobile = ResponsiveHelper.isMobile(context);
     final crossAxisCount = isMobile ? 2 : 3;
     final double childAspectRatio = isMobile ? 1.0 : 1.1;
+    
     return GridView.builder(
       shrinkWrap: true,
       physics: NeverScrollableScrollPhysics(),
@@ -780,163 +852,250 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       itemCount: features.length,
       itemBuilder: (context, index) {
         final feature = features[index];
-        return InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () => _handleFeatureNavigation(context, feature),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowLight.withOpacity(0.08),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
+        return _buildEnhancedFeatureCard(context, feature, currentUserId, index);
+      },
+    );
+  }
+
+  Widget _buildEnhancedFeatureCard(BuildContext context, Map<String, dynamic> feature, String? currentUserId, int index) {
+    final isMobile = ResponsiveHelper.isMobile(context);
+    final hasBadge = feature['badge'] != null;
+    final requiresAuth = feature['requiresAuth'] as bool;
+    final isLocked = requiresAuth && currentUserId == null;
+    
+    return AnimatedContainer(
+      duration: Duration(milliseconds: 300 + (index * 50)),
+      curve: Curves.easeOutCubic,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => _handleFeatureNavigation(context, feature),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: (feature['color'] as Color).withOpacity(0.1),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.shadowLight.withOpacity(0.08),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: (feature['color'] as Color).withOpacity(0.03),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+                spreadRadius: 0,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              // Background gradient overlay
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        (feature['color'] as Color).withOpacity(0.02),
+                        Colors.transparent,
+                        (feature['color'] as Color).withOpacity(0.01),
+                      ],
+                    ),
+                  ),
                 ),
-              ],
-            ),
-            padding: EdgeInsets.symmetric(
-              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5,
-              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(18),
+              ),
+              
+              // Badge
+              if (hasBadge)
+                Positioned(
+                  top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                  right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                    ),
                     decoration: BoxDecoration(
-                      color: (feature['color'] as Color).withOpacity(0.10),
-                      shape: BoxShape.circle,
+                      color: feature['badge'] == 'Popular' 
+                        ? AppColors.warning 
+                        : AppColors.success,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (feature['badge'] == 'Popular' 
+                            ? AppColors.warning 
+                            : AppColors.success).withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Icon(
-                      feature['icon'] as IconData,
-                      color: feature['color'] as Color,
-                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.3,
-                    ),
-                  ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  Text(
-                    feature['title'] as String,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryText,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-                  Text(
-                    feature['subtitle'] as String,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.95,
-                      color: AppColors.secondaryText,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if ((feature['requiresAuth'] as bool) && currentUserId == null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6.0),
-                      child: Icon(
-                        Icons.lock,
-                        color: AppColors.mutedText,
-                        size: ResponsiveHelper.getCompactIconSize(context),
+                    child: Text(
+                      feature['badge'] as String,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
-                ],
+                  ),
+                ),
+              
+              // Main content
+              Padding(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Category label
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: (feature['color'] as Color).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        feature['category'] as String,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
+                          fontWeight: FontWeight.w600,
+                          color: feature['color'] as Color,
+                        ),
+                      ),
+                    ),
+                    
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    
+                    // Icon container with enhanced design
+                    Container(
+                      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            (feature['color'] as Color).withOpacity(0.15),
+                            (feature['color'] as Color).withOpacity(0.08),
+                          ],
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: (feature['color'] as Color).withOpacity(0.2),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        feature['icon'] as IconData,
+                        color: feature['color'] as Color,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.4,
+                      ),
+                    ),
+                    
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
+                    
+                    // Title with enhanced typography
+                    Text(
+                      feature['title'] as String,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
+                        height: 1.2,
+                        letterSpacing: -0.3,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                    
+                    // Subtitle with improved readability
+                    Text(
+                      feature['subtitle'] as String,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
+                        color: AppColors.secondaryText,
+                        height: 1.4,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                    
+                    // Action indicator
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (isLocked)
+                          Icon(
+                            Icons.lock,
+                            color: AppColors.mutedText,
+                            size: ResponsiveHelper.getCompactIconSize(context),
+                          )
+                        else
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: (feature['color'] as Color).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.arrow_forward,
+                                  color: feature['color'] as Color,
+                                  size: ResponsiveHelper.getCompactIconSize(context) * 0.8,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Explore',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
+                                    fontWeight: FontWeight.w600,
+                                    color: feature['color'] as Color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Widget _buildMobileFeatureGrid(BuildContext context, List<Map<String, dynamic>> features, String? currentUserId) {
     return Column(
-      children: features.map((feature) {
-        return Card(
-          margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-          elevation: ResponsiveHelper.getAdaptiveElevation(context),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-            onTap: () => _handleFeatureNavigation(context, feature),
-            child: IntrinsicHeight(
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context)),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: feature['gradient'] as List<Color>,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (feature['color'] as Color).withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      feature['icon'] as IconData,
-                      color: Colors.white,
-                      size: ResponsiveHelper.getAdaptiveIconSize(context),
-                    ),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveGap(context)),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                feature['title'] as String,
-                                style: TextStyle(
-                                  fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryText,
-                                ),
-                              ),
-                            ),
-                            if ((feature['requiresAuth'] as bool) && currentUserId == null)
-                              Icon(
-                                Icons.lock,
-                                color: AppColors.mutedText,
-                                size: ResponsiveHelper.getCompactIconSize(context),
-                              ),
-                          ],
-                        ),
-                        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.25),
-                        Text(
-                          feature['subtitle'] as String,
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getBodyFontSize(context),
-                            color: AppColors.secondaryText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+      children: features.asMap().entries.map((entry) {
+        final index = entry.key;
+        final feature = entry.value;
+        return _buildEnhancedFeatureCard(context, feature, currentUserId, index);
       }).toList(),
     );
   }
@@ -957,92 +1116,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       itemCount: features.length,
       itemBuilder: (context, index) {
         final feature = features[index];
-        return Card(
-          elevation: ResponsiveHelper.getAdaptiveElevation(context),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-          ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-            onTap: () => _handleFeatureNavigation(context, feature),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white,
-                    (feature['color'] as Color).withValues(alpha: 0.02),
-                  ],
-                ),
-              ),
-              padding: ResponsiveHelper.getCardPadding(context),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveGap(context)),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: feature['gradient'] as List<Color>,
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (feature['color'] as Color).withValues(alpha: 0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      feature['icon'] as IconData,
-                      color: Colors.white,
-                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
-                    ),
-                  ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          feature['title'] as String,
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryText,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      if ((feature['requiresAuth'] as bool) && currentUserId == null)
-                        Icon(
-                          Icons.lock,
-                          color: AppColors.mutedText,
-                          size: ResponsiveHelper.getCompactIconSize(context),
-                        ),
-                    ],
-                  ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                  Text(
-                    feature['subtitle'] as String,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getBodyFontSize(context),
-                      color: AppColors.secondaryText,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+        return _buildEnhancedFeatureCard(context, feature, currentUserId, index);
       },
     );
   }

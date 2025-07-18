@@ -7,6 +7,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/style/responsive_helper.dart';
 
+/// AuthPage provides a responsive, theme-driven authentication screen with login and register forms.
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
   static const String routeName = '/auth';
@@ -35,10 +36,11 @@ class _AuthPageState extends State<AuthPage> {
     });
   }
 
+  /// Build method for the authentication page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -50,8 +52,8 @@ class _AuthPageState extends State<AuthPage> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppColors.primary.withValues(alpha: 0.05),
-                    Colors.white,
+                    AppColors.primary.withOpacity(0.05),
+                    AppColors.background,
                   ],
                 ),
               ),
@@ -229,8 +231,8 @@ class _AuthPageState extends State<AuthPage> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Colors.white,
-              AppColors.primary.withValues(alpha: 0.02),
+              AppColors.white,
+              AppColors.primary.withOpacity(0.02),
             ],
           ),
         ),
@@ -244,106 +246,39 @@ class _AuthPageState extends State<AuthPage> {
                 vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
               ),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: AppColors.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(
                   ResponsiveHelper.getAdaptiveBorderRadius(context),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    showLogin ? Icons.login : Icons.person_add,
-                    color: AppColors.primary,
-                    size: ResponsiveHelper.getAdaptiveIconSize(context),
-                  ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveGap(context) * 0.5),
-                  Text(
-                    showLogin ? 'Sign In' : 'Create Account',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: ResponsiveHelper.getBodyFontSize(context),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+              child: Text(
+                showLogin ? 'Login' : 'Register',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getSubtitleFontSize(context),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5),
-            
-            // Title
-            Text(
-              showLogin ? 'Welcome Back!' : 'Join Our Community',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getSubtitleFontSize(context),
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryText,
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            showLogin
+                ? LoginScreen()
+                : RegisterScreen(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            TextButton(
+              onPressed: toggle,
+              child: Text(
+                showLogin
+                    ? "Don't have an account? Register"
+                    : "Already have an account? Login",
+                style: TextStyle(
+                  color: AppColors.linkColor,
+                  fontSize: ResponsiveHelper.getBodyFontSize(context),
+                ),
               ),
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-            
-            Text(
-              showLogin 
-                ? 'Sign in to continue your sustainable journey'
-                : 'Create your account to start your eco-friendly adventure',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
-                color: AppColors.secondaryText,
-              ),
-            ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5),
-            
-            // Auth form
-            showLogin ? const LoginScreen() : const RegisterScreen(),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.5),
-            
-            // Toggle button
-            _buildToggleButton(),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildToggleButton() {
-    return Container(
-      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceBackground,
-        borderRadius: BorderRadius.circular(
-          ResponsiveHelper.getAdaptiveBorderRadius(context),
-        ),
-        border: Border.all(
-          color: AppColors.borderLight,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            showLogin
-                ? "Don't have an account? "
-                : "Already have an account? ",
-            style: TextStyle(
-              color: AppColors.secondaryText,
-              fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
-            ),
-          ),
-          GestureDetector(
-            onTap: toggle,
-            child: Text(
-              showLogin ? "Sign Up" : "Sign In",
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.9,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

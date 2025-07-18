@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:living/models/carbon_footprint_model.dart';
 import 'package:living/services/carbon_footprint_dao.dart';
 import 'package:living/services/auth_helper.dart';
-
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/header.dart';
@@ -12,6 +11,7 @@ import 'package:living/style/theme.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+/// CarbonFootprintPage displays the user's carbon footprint analytics and logging, using responsive and theme-driven design.
 class CarbonFootprintPage extends StatefulWidget {
   const CarbonFootprintPage({super.key});
 
@@ -103,10 +103,11 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
     }
   }
 
+  /// Build method for the carbon footprint page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -125,7 +126,7 @@ class _CarbonFootprintPageState extends State<CarbonFootprintPage> with TickerPr
                           _buildOverviewTab(),
                           _buildLogActivityTab(),
                           _buildAnalyticsTab(),
-                        ], // Removed _buildGoalsTab()
+                        ],
                       ),
                     ),
                   ],

@@ -8,6 +8,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// CarbonInsightsPage displays the user's carbon insights, achievements, and recommendations, using responsive and theme-driven design.
 class CarbonInsightsPage extends StatefulWidget {
   const CarbonInsightsPage({super.key});
 
@@ -59,10 +60,11 @@ class _CarbonInsightsPageState extends State<CarbonInsightsPage> with TickerProv
     }
   }
 
+  /// Build method for the carbon insights page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

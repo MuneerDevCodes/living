@@ -12,7 +12,9 @@ import 'package:living/models/product_model.dart';
 import 'package:living/models/user_model.dart';
 import 'dart:convert';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
+/// ManageOrderPage allows admins to manage user orders, using responsive and theme-driven design.
 class ManageOrderPage extends StatefulWidget {
   const ManageOrderPage({super.key});
   static const String routeName = '/manage-orders';
@@ -44,6 +46,7 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
     });
   }
 
+  /// Build method for the manage order page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -53,7 +56,8 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
     }
 
     return Scaffold(
-      drawer: Header.buildDrawer(context), // Add the drawer here
+      backgroundColor: AppColors.background,
+      drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
@@ -68,11 +72,11 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
                       return const Loader();
                     }
                     if (snapshot.hasError) {
-                      return const Center(child: Text('Error loading orders.'));
+                      return const Center(child: Text('Error loading orders.', style: TextStyle(color: AppColors.error)));
                     }
                     final data = snapshot.data?.snapshot.value;
                     if (data == null) {
-                      return const Center(child: Text('No orders found.'));
+                      return const Center(child: Text('No orders found.', style: TextStyle(color: AppColors.secondaryText)));
                     }
                     final orders = (data as Map).entries.toList();
                     return ListView.builder(
@@ -105,17 +109,19 @@ class _ManageOrderPageState extends State<ManageOrderPage> {
                                       'User: ${user.displayname}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryText,
                                       ),
                                     ),
                                     Text(
                                       'Address: ${user.shippingAddress}',
-                                      style: const TextStyle(),
+                                      style: const TextStyle(color: AppColors.secondaryText),
                                     ),
                                     const SizedBox(height: 8),
                                     const Text(
                                       'Items:',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryText,
                                       ),
                                     ),
                                     ListView.builder(

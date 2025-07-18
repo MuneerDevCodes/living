@@ -10,6 +10,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:intl/intl.dart';
 
+/// CarbonHistoryPage displays the user's carbon footprint history, using responsive and theme-driven design.
 class CarbonHistoryPage extends StatefulWidget {
   const CarbonHistoryPage({super.key});
 
@@ -106,10 +107,11 @@ class _CarbonHistoryPageState extends State<CarbonHistoryPage> {
     filteredEntries.sort((a, b) => b.date.compareTo(a.date));
   }
 
+  /// Build method for the carbon history page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

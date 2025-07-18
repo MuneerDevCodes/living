@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../screens/home_page.dart';
+import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -137,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
                   },
                 ),
                 
-                const SizedBox(height: 40),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 4.0),
                 
                 // Welcome text with animation
                 AnimatedBuilder(
@@ -152,39 +154,39 @@ class _SplashScreenState extends State<SplashScreen>
                         opacity: opacity,
                         child: Column(
                           children: [
-                            const Text(
+                            Text(
                               'Welcome to',
                               style: TextStyle(
-                                fontSize: 24,
-                                color: Colors.white,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
+                                color: AppColors.white,
                                 fontWeight: FontWeight.w300,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            const Text(
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                            Text(
                               'Living',
                               style: TextStyle(
-                                fontSize: 48,
-                                color: Colors.white,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 48),
+                                color: AppColors.white,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 2.0,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.6),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 8,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 2.0,
+                                vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: AppColors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Your Sustainable Living Companion',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                  color: AppColors.white,
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -196,7 +198,7 @@ class _SplashScreenState extends State<SplashScreen>
                   },
                 ),
                 
-                const SizedBox(height: 60),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 6.0),
                 
                 // Loading indicator
                 AnimatedBuilder(
@@ -206,11 +208,11 @@ class _SplashScreenState extends State<SplashScreen>
                     
                     return Opacity(
                       opacity: opacity,
-                      child: const SizedBox(
-                        width: 40,
-                        height: 40,
+                      child: SizedBox(
+                        width: ResponsiveHelper.getAdaptiveSpacing(context) * 4.0,
+                        height: ResponsiveHelper.getAdaptiveSpacing(context) * 4.0,
                         child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
                           strokeWidth: 3,
                         ),
                       ),

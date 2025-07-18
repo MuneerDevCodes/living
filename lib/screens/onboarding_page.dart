@@ -4,6 +4,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// OnboardingPage displays the onboarding flow for new users, using responsive and theme-driven design.
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
@@ -73,10 +74,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
+  /// Build method for the onboarding page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -112,7 +114,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             width: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
             height: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
             decoration: BoxDecoration(
-              color: step.color.withValues(alpha: 0.1),
+              color: step.color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(
                 ResponsiveHelper.getAdaptiveImageSize(context),
               ),

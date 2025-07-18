@@ -34,6 +34,7 @@ class _ProductModalState extends State<ProductModal> {
 
   late Category? _selectedCategory;
   List<Category> _categories = [];
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -86,352 +87,462 @@ class _ProductModalState extends State<ProductModal> {
 
   Future<void> _fetchCategories() async {
     try {
-      print('Fetching categories...');
-      final snap = await FirebaseDatabase.instance.ref('categories').get();
-      final data = snap.value;
-      print('Categories data: $data');
-      if (data != null) {
-        final map = Map<String, dynamic>.from(data as dynamic);
-        print('Categories map: $map');
+      final ref = FirebaseDatabase.instance.ref('categories');
+      final snapshot = await ref.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        final categories = data.values.map((v) => Category.fromJson(Map<String, dynamic>.from(v))).toList();
         setState(() {
-          _categories =
-              map.values
-                  .map((v) => Category.fromJson(Map<String, dynamic>.from(v)))
-                  .toList();
-          print('Parsed categories: ${_categories.map((c) => c.name).toList()}');
-          if (_selectedCategory == null && _categories.isNotEmpty) {
-            _selectedCategory = _categories.first;
-            print('Selected default category: ${_selectedCategory?.name}');
-          }
-        });
-      } else {
-        print('No categories data found');
-        setState(() {
-          _categories = [
-            Category(id: 'default', name: 'General'),
-          ];
-          if (_selectedCategory == null) {
-            _selectedCategory = _categories.first;
-          }
+          _categories = categories;
         });
       }
     } catch (e) {
       print('Error fetching categories: $e');
-      // Set a default category if fetching fails
-      setState(() {
-        _categories = [
-          Category(id: 'default', name: 'General'),
-        ];
-        if (_selectedCategory == null) {
-          _selectedCategory = _categories.first;
-        }
-      });
     }
   }
 
   Widget _imagePreview() {
-    return FormField<String>(
-      validator: (value) {
-        // Make image optional for now
-        return null;
-      },
-      builder: (field) {
-        final imageSize = ResponsiveHelper.getAdaptiveImageSize(context) * 3;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    if (_webImage != null) {
+      return Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(_webImage!, fit: BoxFit.cover),
+        ),
+      );
+    } else if (_selectedImage != null) {
+      return Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(_selectedImage!, fit: BoxFit.cover),
+        ),
+      );
+    } else {
+      return Container(
+        width: 120,
+        height: 120,
+        decoration: BoxDecoration(
+          color: AppColors.borderLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTap: _pickImage,
-              child: SizedBox(
-                width: imageSize,
-                height: imageSize,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    ResponsiveHelper.getAdaptiveBorderRadius(context),
-                  ),
-                  child: Container(
-                    color: AppColors.borderLight,
-                    child: _webImage != null
-                        ? Semantics(
-                            label: 'Product image',
-                            image: true,
-                            child: Image.memory(_webImage!, fit: BoxFit.cover),
-                          )
-                        : _selectedImage != null
-                            ? Semantics(
-                                label: 'Product image',
-                                image: true,
-                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                              )
-                            : Icon(
-                                Icons.camera_alt,
-                                size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
-                                color: AppColors.mutedText,
-                              ),
-                  ),
-                ),
+            Icon(
+              Icons.add_a_photo,
+              color: AppColors.mutedText,
+              size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Text(
+              'Add Photo',
+              style: TextStyle(
+                color: AppColors.mutedText,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
               ),
             ),
-            if (field.hasError)
-              Padding(
-                padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
-                child: Text(
-                  field.errorText!,
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    String? hintText,
+    Widget? prefixIcon,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hintText,
+            prefixIcon: prefixIcon,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.error),
+            ),
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+            ),
+          ),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+          validator: validator,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+      ],
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Category *',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryText,
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+        DropdownButtonFormField<Category>(
+          value: _selectedCategory,
+          items: _categories.map((cat) => DropdownMenuItem(
+            value: cat,
+            child: Row(
+              children: [
+                Icon(Icons.category, color: AppColors.primary, size: 20),
+                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                Text(
+                  cat.name,
                   style: TextStyle(
-                    color: AppColors.error,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   ),
                 ),
-              ),
-          ],
-        );
-      },
+              ],
+            ),
+          )).toList(),
+          onChanged: (cat) {
+            setState(() => _selectedCategory = cat);
+          },
+          decoration: InputDecoration(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+            filled: true,
+            fillColor: AppColors.white,
+            contentPadding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+            ),
+          ),
+          validator: (v) => v == null ? 'Please select a category' : null,
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+      ],
     );
   }
 
   Future<void> _submit() async {
-    print('Starting form submission...');
-    print('Form key exists: ${_formKey.currentState != null}');
-    print('Form validation: ${_formKey.currentState!.validate()}');
-    print('Name: ${_nameCtrl.text}');
-    print('Description: ${_descCtrl.text}');
-    print('Price: ${_priceCtrl.text}');
-    print('Eco Rating: ${_ecoRatingCtrl.text}');
-    print('Selected Category: ${_selectedCategory?.name}');
-    print('Image Base64: ${_imageBase64 != null ? 'present' : 'null'}');
-    
     if (_formKey.currentState!.validate()) {
+      setState(() => _isSubmitting = true);
       try {
-        print('Creating product with name: ${_nameCtrl.text}');
-        print('Selected category: ${_selectedCategory?.name}');
-        print('Price: ${_priceCtrl.text}');
-        print('Eco rating: ${_ecoRatingCtrl.text}');
-        print('Image base64: ${_imageBase64 != null ? 'present' : 'null'}');
-        
         final product = Product(
-          name: _nameCtrl.text,
+          name: _nameCtrl.text.trim(),
           category: _selectedCategory!,
-          description: _descCtrl.text,
+          description: _descCtrl.text.trim(),
           price: double.tryParse(_priceCtrl.text) ?? 0.0,
           ecoRating: double.tryParse(_ecoRatingCtrl.text) ?? 0.0,
           imageUrl: _imageBase64 ?? '',
           ratings: widget.product?.ratings ?? Ratings(average: 0.0, count: 0),
           reviews: widget.product?.reviews ?? {},
         );
-        print('Product created, calling onSubmit');
+        
         await widget.onSubmit(product);
-        print('onSubmit completed, closing modal');
         Navigator.of(context).pop();
-      } catch (e) {
-        print('Error creating product: $e');
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating product: $e'),
-            backgroundColor: Colors.red,
+            content: Text(
+              widget.product == null ? 'Product added successfully!' : 'Product updated successfully!',
+              style: TextStyle(color: AppColors.white),
+            ),
+            backgroundColor: AppColors.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        );
+      } finally {
+        setState(() => _isSubmitting = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(
-        widget.product == null ? 'Add Product' : 'Edit Product',
-        style: TextStyle(
-          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-          fontWeight: FontWeight.bold,
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        width: ResponsiveHelper.getScreenWidth(context) * 0.9,
+        constraints: BoxConstraints(
+          maxHeight: ResponsiveHelper.getScreenHeight(context) * 0.8,
         ),
-      ),
-      content: SizedBox(
-        width: ResponsiveHelper.getScreenWidth(context) * 0.8,
-        child: SingleChildScrollView(
-                      child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context)),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Row(
                 children: [
-                  Text(
-                    '* Required fields',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                      color: Colors.grey,
+                  Icon(
+                    widget.product == null ? Icons.add_shopping_cart : Icons.edit,
+                    color: AppColors.white,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.2,
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                  Expanded(
+                    child: Text(
+                      widget.product == null ? 'Add New Product' : 'Edit Product',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
                     ),
                   ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: GestureDetector(
-                      onTap: _pickImage,
-                      child: _imagePreview(),
-                    ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: Icon(Icons.close, color: AppColors.white),
                   ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  _buildFormFields(),
                 ],
               ),
             ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'Cancel',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-        ),
-        Semantics(
-          label: 'Submit product',
-          button: true,
-          child: ElevatedButton(
-            onPressed: () async {
-              await _submit();
-            },
-            child: Text(
-              widget.product == null ? 'Add' : 'Save',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFormFields() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _nameCtrl,
-          decoration: InputDecoration(
-            labelText: 'Product Name *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-              ),
-            ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
-          validator: (v) => v == null || v.isEmpty ? 'Enter name' : null,
-        ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        DropdownButtonFormField<Category>(
-          value: _selectedCategory,
-          items: _categories
-              .map(
-                (cat) => DropdownMenuItem(
-                  value: cat,
-                  child: Text(
-                    cat.name,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                    ),
+            
+            // Form Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context)),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image Section
+                      Center(
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: _imagePreview(),
+                            ),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                            Text(
+                              'Tap to add product image',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                color: AppColors.secondaryText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                      
+                      // Form Fields
+                      _buildFormField(
+                        controller: _nameCtrl,
+                        label: 'Product Name *',
+                        hintText: 'Enter product name',
+                        prefixIcon: Icon(Icons.shopping_bag, color: AppColors.primary),
+                        validator: (v) => v?.trim().isEmpty == true ? 'Product name is required' : null,
+                      ),
+                      
+                      _buildCategoryDropdown(),
+                      
+                      _buildFormField(
+                        controller: _descCtrl,
+                        label: 'Description *',
+                        hintText: 'Describe the product and its eco-friendly features',
+                        maxLines: 4,
+                        prefixIcon: Icon(Icons.description, color: AppColors.primary),
+                        validator: (v) => v?.trim().isEmpty == true ? 'Description is required' : null,
+                      ),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildFormField(
+                              controller: _priceCtrl,
+                              label: 'Price (\$) *',
+                              hintText: '0.00',
+                              keyboardType: TextInputType.number,
+                              prefixIcon: Icon(Icons.attach_money, color: AppColors.primary),
+                              validator: (v) {
+                                if (v?.trim().isEmpty == true) return 'Price is required';
+                                final price = double.tryParse(v!);
+                                if (price == null || price < 0) return 'Enter a valid price';
+                                return null;
+                              },
+                            ),
+                          ),
+                          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          Expanded(
+                            child: _buildFormField(
+                              controller: _ecoRatingCtrl,
+                              label: 'Eco Rating (1-5) *',
+                              hintText: '4.5',
+                              keyboardType: TextInputType.number,
+                              prefixIcon: Icon(Icons.eco, color: AppColors.success),
+                              validator: (v) {
+                                if (v?.trim().isEmpty == true) return 'Eco rating is required';
+                                final rating = double.tryParse(v!);
+                                if (rating == null || rating < 1 || rating > 5) {
+                                  return 'Enter rating between 1-5';
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              )
-              .toList(),
-          onChanged: (cat) {
-            print('Category changed to: ${cat?.name}');
-            setState(() => _selectedCategory = cat);
-          },
-          decoration: InputDecoration(
-            labelText: 'Category *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-          validator: (v) => v == null ? 'Select category' : null,
-        ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _descCtrl,
-          decoration: InputDecoration(
-            labelText: 'Description *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+            
+            // Action Buttons
+            Container(
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context)),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: AppColors.borderLight),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: EdgeInsets.symmetric(vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: _isSubmitting
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  widget.product == null ? Icons.add : Icons.save,
+                                  color: AppColors.white,
+                                  size: 20,
+                                ),
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                Text(
+                                  widget.product == null ? 'Add Product' : 'Save Changes',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    color: AppColors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
-          maxLines: 3,
-          validator: (v) => v == null || v.isEmpty ? 'Enter description' : null,
+          ],
         ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _priceCtrl,
-          decoration: InputDecoration(
-            labelText: 'Price *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-              ),
-            ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
-          keyboardType: TextInputType.number,
-          validator: (v) {
-            if (v == null || v.isEmpty) return 'Enter price';
-            final price = double.tryParse(v);
-            if (price == null || price < 0) {
-              return 'Enter a valid price';
-            }
-            return null;
-          },
-        ),
-        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-        TextFormField(
-          controller: _ecoRatingCtrl,
-          decoration: InputDecoration(
-            labelText: 'Eco Rating (0.0 - 5.0) *',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(
-                ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
-              ),
-            ),
-            labelStyle: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-            ),
-          ),
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-          ),
-          keyboardType: TextInputType.number,
-          validator: (v) {
-            if (v == null || v.isEmpty) return 'Enter eco rating';
-            final rating = double.tryParse(v);
-            if (rating == null || rating < 0 || rating > 5) {
-              return 'Enter a valid rating between 0.0 and 5.0';
-            }
-            return null;
-          },
-        ),
-      ],
+      ),
     );
   }
 }

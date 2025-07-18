@@ -20,8 +20,15 @@ class ProductDao {
     return _databaseRef;
   }
 
-  void deleteProduct(String key) {
-    _databaseRef.child(key).remove();
+  Future<void> deleteProduct(String key) async {
+    try {
+      print('Deleting product with key: $key');
+      await _databaseRef.child(key).remove();
+      print('Product deleted successfully');
+    } catch (e) {
+      print('Error deleting product: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateProduct(String key, Product product) async {

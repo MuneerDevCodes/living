@@ -5,6 +5,7 @@ import 'package:living/widgets/alert_success.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/widgets/loader.dart';
 
+/// Logout widget handles user sign-out and shows a responsive loader and success alert.
 class Logout extends StatefulWidget {
   const Logout({super.key});
 
@@ -52,6 +53,7 @@ class _LogoutState extends State<Logout> {
     }
   }
 
+  /// Build method for the logout screen, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(

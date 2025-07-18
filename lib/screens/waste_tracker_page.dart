@@ -292,21 +292,7 @@ class _WasteTrackerPageState extends State<WasteTrackerPage> {
                       ),
                     ),
                   ),
-                  if (_showOnboarding)
-                    IconButton(
-                      icon: Icon(Icons.help_outline, color: AppColors.info),
-                      onPressed: _showOnboardingDialog,
-                      tooltip: 'Get started guide',
-                    ),
                 ],
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
-              Text(
-                'Track your waste reduction journey and make a positive environmental impact. Every entry helps you understand your consumption patterns and find ways to reduce waste.',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getBodyFontSize(context),
-                  color: AppColors.secondaryText,
-                ),
               ),
             ],
           ),

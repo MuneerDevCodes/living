@@ -10,6 +10,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/validate.dart';
 
+/// ManageChallengesPage allows admins to manage sustainability challenges, using responsive and theme-driven design.
 class ManageChallengesPage extends StatefulWidget {
   const ManageChallengesPage({super.key});
 
@@ -58,6 +59,7 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
     }
   }
 
+  /// Build method for the manage challenges page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -67,6 +69,7 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -82,7 +85,6 @@ class _ManageChallengesPageState extends State<ManageChallengesPage> {
           Footer(),
         ],
       ),
-      // Only show floating action button for admin users
       floatingActionButton: _isAdmin ? Padding(
         padding: EdgeInsets.only(
           bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,

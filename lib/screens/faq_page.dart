@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
+/// FAQPage displays frequently asked questions, using responsive and theme-driven design.
 class FAQPage extends StatelessWidget {
   const FAQPage({super.key});
   static const String routeName = '/faq';
 
+  /// Build method for the FAQ page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     final faqs = [
@@ -53,6 +56,7 @@ class FAQPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -70,6 +74,7 @@ class FAQPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 24),
                         fontWeight: FontWeight.bold,
+                        color: AppColors.primaryText,
                       ),
                     ),
                     SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -87,6 +92,7 @@ class FAQPage extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              color: AppColors.primaryText,
                             ),
                           ),
                           children: [
@@ -97,6 +103,7 @@ class FAQPage extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                                   height: 1.5,
+                                  color: AppColors.secondaryText,
                                 ),
                               ),
                             ),

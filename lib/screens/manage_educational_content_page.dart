@@ -9,6 +9,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// ManageEducationalContentPage allows admins to manage educational content, using responsive and theme-driven design.
 class ManageEducationalContentPage extends StatefulWidget {
   const ManageEducationalContentPage({super.key});
 
@@ -56,6 +57,7 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
     }
   }
 
+  /// Build method for the manage educational content page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -65,6 +67,7 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -80,7 +83,6 @@ class _ManageEducationalContentPageState extends State<ManageEducationalContentP
           Footer(),
         ],
       ),
-      // Only show floating action button for admin users
       floatingActionButton: _isAdmin ? Padding(
         padding: EdgeInsets.only(
           bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,

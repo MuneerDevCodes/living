@@ -15,6 +15,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'dart:convert';
 
+/// CartPage displays the user's shopping cart, using responsive and theme-driven design.
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
   static const String routeName = '/cart';
@@ -376,10 +377,11 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
+  /// Build method for the cart page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

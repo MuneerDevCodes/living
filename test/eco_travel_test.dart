@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:living/models/eco_travel_model.dart';
-import 'package:living/services/eco_travel_dao.dart';
 
 void main() {
   group('EcoTravelSuggestion Model Tests', () {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// A success alert widget with responsive design and theme colors.
 class AlertSuccess extends StatelessWidget {
   final String message;
   final VoidCallback? onClose;
@@ -13,7 +14,7 @@ class AlertSuccess extends StatelessWidget {
       margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
       padding: ResponsiveHelper.getAdaptivePadding(context),
       decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.1),
+        color: AppColors.success.withOpacity(0.1),
         borderRadius: BorderRadius.circular(
           ResponsiveHelper.getAdaptiveBorderRadius(context),
         ),
@@ -39,11 +40,11 @@ class AlertSuccess extends StatelessWidget {
           ),
           if (onClose != null)
             IconButton(
-                            icon: Icon(
+              icon: Icon(
                 Icons.close,
                 color: AppColors.success,
                 size: ResponsiveHelper.getAdaptiveIconSize(context),
-          ),
+              ),
               splashRadius: ResponsiveHelper.getAdaptiveIconSize(context),
               onPressed: onClose,
               tooltip: 'Close',

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
+import 'package:living/style/theme.dart';
 
+/// AboutUsPage displays information about the app and its team, using responsive and theme-driven design.
 class AboutUsPage extends StatelessWidget {
   const AboutUsPage({super.key});
   static const String routeName = '/about-us';
 
+  /// Build method for the about us page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     final teamMembers = [
@@ -14,12 +17,12 @@ class AboutUsPage extends StatelessWidget {
         'name': 'Muneer Raja',
         'role': 'Project Lead & Sustainability Expert',
         'bio':
-            'A passionate advocate for sustainable living, Ayesha brings over a decade of experience in environmental education and project management.',
+            'A passionate advocate for sustainable living, Muneer Raja brings over a decade of experience in environmental education and project management.',
       },
     ];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -47,6 +50,7 @@ class AboutUsPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                               fontWeight: FontWeight.bold,
+                              color: AppColors.primaryText,
                             ),
                           ),
                           SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -54,6 +58,7 @@ class AboutUsPage extends StatelessWidget {
                            'Sustainable Living Guide is your all-in-one platform for adopting eco-friendly habits and making a positive impact on the planet. Our mission is to simplify sustainable living by providing tools to track your carbon footprint, discover green products, and connect with a like-minded community.',
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              color: AppColors.primaryText,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -63,6 +68,7 @@ class AboutUsPage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                               fontWeight: FontWeight.bold,
+                              color: AppColors.primaryText,
                             ),
                           ),
                           SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
@@ -72,11 +78,13 @@ class AboutUsPage extends StatelessWidget {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   radius: ResponsiveHelper.getAdaptiveIconSize(context),
+                                  backgroundColor: AppColors.primary.withOpacity(0.1),
                                   child: Text(
                                     m['name']![0],
                                     style: TextStyle(
                                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                                       fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -85,12 +93,14 @@ class AboutUsPage extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                                     fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryText,
                                   ),
                                 ),
                                 subtitle: Text(
                                   '${m['role']}\n${m['bio']}',
                                   style: TextStyle(
                                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    color: AppColors.secondaryText,
                                   ),
                                 ),
                                 isThreeLine: true,

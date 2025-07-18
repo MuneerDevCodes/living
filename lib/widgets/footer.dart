@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/style/responsive_helper.dart';
 
+/// Responsive, theme-driven footer for all screen sizes.
 class Footer extends StatefulWidget {
   const Footer({super.key});
 
@@ -70,14 +71,14 @@ class FooterState extends State<Footer> {
                   children: [
                     Icon(
                       icon,
-                      color: active ? AppColors.white : AppColors.white.withValues(alpha: 0.7),
+                      color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
                       size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
                     ),
                     SizedBox(height: ResponsiveHelper.getAdaptiveGap(context) * 0.25),
                     Text(
                       label,
-                      style: TextStyle(
-                        color: active ? AppColors.white : AppColors.white.withValues(alpha: 0.7),
+                      style: AppTheme.caption.copyWith(
+                        color: active ? AppColors.white : AppColors.white.withOpacity(0.7),
                         fontSize: ResponsiveHelper.getBodyFontSize(context) * 0.7,
                         fontWeight: active ? FontWeight.bold : FontWeight.normal,
                       ),
@@ -97,13 +98,13 @@ class FooterState extends State<Footer> {
         color: AppColors.footerBackground,
         border: Border(
           top: BorderSide(
-            color: AppColors.secondary.withAlpha((0.18 * 255).toInt()),
+            color: AppColors.secondary.withOpacity(0.18),
             width: ResponsiveHelper.getDividerThickness(context),
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withAlpha((0.08 * 255).toInt()),
+            color: AppColors.primary.withOpacity(0.08),
             blurRadius: ResponsiveHelper.getAdaptiveElevation(context) * 2,
             offset: const Offset(0, -2),
           ),

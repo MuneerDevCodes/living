@@ -10,6 +10,7 @@ import 'package:living/services/user_dao.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// LoginScreen provides a responsive, theme-driven login form.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -68,6 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// Build method for the login form, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return _loading

@@ -23,6 +23,7 @@ class EnergyTip {
   });
 }
 
+/// EnergyTipsPage displays energy-saving tips, using responsive and theme-driven design.
 class EnergyTipsPage extends StatefulWidget {
   const EnergyTipsPage({super.key});
 
@@ -120,10 +121,11 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
     return tips.where((tip) => tip.category == selectedCategory).toList();
   }
 
+  /// Build method for the energy tips page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

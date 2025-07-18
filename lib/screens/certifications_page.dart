@@ -8,6 +8,7 @@ import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/category_constants.dart';
 
+/// CertificationsPage displays a list of green certifications, using responsive and theme-driven design.
 class CertificationsPage extends StatefulWidget {
   const CertificationsPage({super.key});
 
@@ -162,10 +163,11 @@ class _CertificationsPageState extends State<CertificationsPage> {
     return certifications.where((cert) => cert.category == selectedCategory).toList();
   }
 
+  /// Build method for the certifications page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [

@@ -9,6 +9,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// EcoTravelPage displays eco-friendly travel suggestions, using responsive and theme-driven design.
 class EcoTravelPage extends StatefulWidget {
   const EcoTravelPage({super.key});
 
@@ -114,10 +115,11 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
     }
   }
 
+  /// Build method for the eco travel page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -163,6 +165,7 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
             'Add Suggestion',
             style: TextStyle(
               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              color: AppColors.white,
             ),
           ),
         ),

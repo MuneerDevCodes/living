@@ -11,6 +11,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// ForumPage displays the community forum, using responsive and theme-driven design.
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
 
@@ -23,12 +24,14 @@ class _ForumPageState extends State<ForumPage> {
   bool isLoading = true;
   String? userId;
   String selectedCategory = 'All';
+  String? selectedTag;
   bool isLiking = false;
   bool isCommenting = false;
   Set<String> likedPostKeys = {};
   String? userRole;
   bool isAdmin = false;
   String? validationError;
+  List<String> allTags = [];
 
   final List<String> categories = [
     'All',
@@ -49,8 +52,14 @@ class _ForumPageState extends State<ForumPage> {
   Future<void> _loadData() async {
     try {
       setState(() => isLoading = true);
-      posts = await ForumPostDao().getPublishedPosts();
+      posts = await ForumPostDao().getPublishedPosts(tags: selectedTag != null && selectedTag != 'All' ? [selectedTag!] : null);
       userId = AuthService.getCurrentUserId();
+      // Collect all tags from posts
+      final tagSet = <String>{};
+      for (final post in posts) {
+        tagSet.addAll(post.tags);
+      }
+      allTags = tagSet.toList();
     } catch (e) {
       if (mounted) {
         showDialog(
@@ -74,15 +83,21 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   List<ForumPost> get filteredPosts {
-    if (selectedCategory == 'All') {
-      return posts;
+    var filtered = posts;
+    if (selectedCategory != 'All') {
+      filtered = filtered.where((post) => post.category == selectedCategory).toList();
     }
-    return posts.where((post) => post.category == selectedCategory).toList();
+    if (selectedTag != null && selectedTag != 'All') {
+      filtered = filtered.where((post) => post.tags.contains(selectedTag)).toList();
+    }
+    return filtered;
   }
 
+  /// Build method for the forum page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -94,6 +109,7 @@ class _ForumPageState extends State<ForumPage> {
                 Column(
                   children: [
                     _buildCategoryFilter(),
+                    _buildTagFilter(),
                     Expanded(
                       child: _buildPostsList(),
                     ),
@@ -147,6 +163,7 @@ class _ForumPageState extends State<ForumPage> {
               onSelected: (selected) {
                 setState(() {
                   selectedCategory = category;
+                  _loadData(); // Reload data when category changes
                 });
               },
               selectedColor: AppColors.success,
@@ -154,6 +171,42 @@ class _ForumPageState extends State<ForumPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildTagFilter() {
+    if (allTags.isEmpty) return SizedBox.shrink();
+    return Container(
+      height: 40,
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          FilterChip(
+            label: Text('All'),
+            selected: selectedTag == null || selectedTag == 'All',
+            onSelected: (_) {
+              setState(() {
+                selectedTag = 'All';
+                _loadData();
+              });
+            },
+          ),
+          ...allTags.map((tag) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilterChip(
+              label: Text(tag),
+              selected: selectedTag == tag,
+              onSelected: (_) {
+                setState(() {
+                  selectedTag = tag;
+                  _loadData();
+                });
+              },
+            ),
+          )),
+        ],
       ),
     );
   }
@@ -194,17 +247,21 @@ class _ForumPageState extends State<ForumPage> {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primary,
-                    child: Text(
-                      post.userId[0].toUpperCase(),
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      ),
-                    ),
-                  ),
+                  post.authorProfileImageUrl != null && post.authorProfileImageUrl!.isNotEmpty
+                      ? CircleAvatar(
+                          backgroundImage: NetworkImage(post.authorProfileImageUrl!),
+                        )
+                      : CircleAvatar(
+                          backgroundColor: AppColors.primary,
+                          child: Text(
+                            post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                            ),
+                          ),
+                        ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                   Expanded(
                     child: Column(
@@ -213,7 +270,7 @@ class _ForumPageState extends State<ForumPage> {
                         Row(
                           children: [
                             Text(
-                              post.userId,
+                              post.authorName,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
@@ -249,60 +306,27 @@ class _ForumPageState extends State<ForumPage> {
                       ],
                     ),
                   ),
-                  if (isOwner || isAdmin)
-                    PopupMenuButton(
-                      itemBuilder: (context) => [
-                        if (isOwner || isAdmin)
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.edit,
-                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
-                                ),
-                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                                Text(
-                                  isAdmin && !isOwner ? 'Edit (Admin)' : 'Edit',
-                                  style: TextStyle(
-                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        if (isOwner || isAdmin)
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.delete,
-                                  color: AppColors.error,
-                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
-                                ),
-                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                                Text(
-                                  isAdmin && !isOwner ? 'Delete (Admin)' : 'Delete',
-                                  style: TextStyle(
-                                    color: AppColors.error,
-                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 'edit') {
-                          _showEditPostDialog(post);
-                        } else if (value == 'delete') {
-                          _deletePost(post);
-                        }
-                      },
+                  if (post.status == 'closed')
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Chip(
+                        label: Text('Closed', style: TextStyle(color: Colors.white)),
+                        backgroundColor: AppColors.error,
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                 ],
               ),
+              if (post.postImageUrl != null && post.postImageUrl!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Image.network(post.postImageUrl!, height: 180, fit: BoxFit.cover),
+                ),
+              if (post.attachmentUrls.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  children: post.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
+                ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
               Text(
                 post.title,
@@ -322,6 +346,11 @@ class _ForumPageState extends State<ForumPage> {
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+              Wrap(
+                spacing: 6,
+                children: post.tags.map((tag) => Chip(label: Text(tag))).toList(),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
               Row(
                 children: [
                   Container(
@@ -330,7 +359,7 @@ class _ForumPageState extends State<ForumPage> {
                       vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.success.withValues(alpha: 0.1),
+                      color: AppColors.success.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(
                         ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
                       ),
@@ -399,8 +428,12 @@ class _ForumPageState extends State<ForumPage> {
                                 category: p.category,
                                 createdAt: p.createdAt,
                                 likes: newLikes,
-                                comments: p.comments,
                                 timestamp: p.timestamp,
+                                status: p.status,
+                                tags: p.tags,
+                                postImageUrl: p.postImageUrl,
+                                attachmentUrls: p.attachmentUrls,
+                                authorProfileImageUrl: p.authorProfileImageUrl,
                               ) : p).toList();
                               likedPostKeys.add(post.key);
                             });
@@ -462,7 +495,7 @@ class _ForumPageState extends State<ForumPage> {
                       ),
                       SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
                       Text(
-                        post.comments.length.toString(),
+                        'View Comments',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                           color: AppColors.secondaryText,
@@ -479,9 +512,30 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
+  Widget _buildAttachmentPreview(String url) {
+    if (url.endsWith('.jpg') || url.endsWith('.jpeg') || url.endsWith('.png') || url.endsWith('.gif')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(url, width: 60, height: 60, fit: BoxFit.cover),
+      );
+    }
+    return InkWell(
+      onTap: () {
+        // Placeholder: open file
+      },
+      child: Chip(label: Text('File'), avatar: Icon(Icons.attach_file)),
+    );
+  }
+
   void _showPostDetail(ForumPost post) {
     final commentController = TextEditingController();
     String? localValidationError;
+    List<ForumComment> comments = [];
+    bool loadingComments = true;
+    // Fetch comments on demand
+    ForumPostDao().getComments(post.key).then((fetched) {
+      if (mounted) setState(() { comments = fetched; loadingComments = false; });
+    });
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -500,23 +554,27 @@ class _ForumPageState extends State<ForumPage> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: AppColors.primary,
-                      child: Text(
-                        post.userId[0].toUpperCase(),
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                        ),
-                      ),
-                    ),
+                    post.authorProfileImageUrl != null && post.authorProfileImageUrl!.isNotEmpty
+                        ? CircleAvatar(
+                            backgroundImage: NetworkImage(post.authorProfileImageUrl!),
+                          )
+                        : CircleAvatar(
+                            backgroundColor: AppColors.primary,
+                            child: Text(
+                              post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                              ),
+                            ),
+                          ),
                     SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          post.userId,
+                          post.authorName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
@@ -541,6 +599,16 @@ class _ForumPageState extends State<ForumPage> {
                     color: AppColors.secondaryText,
                   ),
                 ),
+                if (post.postImageUrl != null && post.postImageUrl!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Image.network(post.postImageUrl!, height: 180, fit: BoxFit.cover),
+                  ),
+                if (post.attachmentUrls.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    children: post.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
+                  ),
                 SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                 Divider(),
                 SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -551,12 +619,31 @@ class _ForumPageState extends State<ForumPage> {
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   ),
                 ),
-                ...post.comments.map((comment) => Padding(
+                if (loadingComments)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                ...comments.map((comment) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.person, size: 18, color: AppColors.secondaryText),
+                      comment.authorProfileImageUrl != null && comment.authorProfileImageUrl!.isNotEmpty
+                          ? CircleAvatar(
+                              backgroundImage: NetworkImage(comment.authorProfileImageUrl!),
+                            )
+                          : CircleAvatar(
+                              backgroundColor: AppColors.primary,
+                              child: Text(
+                                comment.author.isNotEmpty ? comment.author[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                ),
+                              ),
+                            ),
                       SizedBox(width: 8),
                       Expanded(
                         child: Column(
@@ -577,12 +664,17 @@ class _ForumPageState extends State<ForumPage> {
                               ),
                             ),
                             Text(
-                              comment.timestamp.toString(),
+                              comment.createdAt.toString(),
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
                                 color: AppColors.secondaryText,
                               ),
                             ),
+                            if (comment.attachmentUrls.isNotEmpty)
+                              Wrap(
+                                spacing: 8,
+                                children: comment.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
+                              ),
                           ],
                         ),
                       ),
@@ -619,9 +711,15 @@ class _ForumPageState extends State<ForumPage> {
                       setState(() => isCommenting = true);
                       try {
                         final newComment = ForumComment(
+                          key: DateTime.now().millisecondsSinceEpoch.toString(),
+                          postId: post.key,
                           author: userId!,
+                          authorId: userId!,
+                          authorProfileImageUrl: null, // Add logic to get user profile image
                           content: commentController.text.trim(),
-                          timestamp: DateTime.now(),
+                          createdAt: DateTime.now(),
+                          lastEdited: null,
+                          attachmentUrls: [], // Add logic for attachments
                         );
                         await ForumPostDao().addComment(post.key, newComment);
                         Navigator.pop(context);
@@ -819,8 +917,12 @@ class _ForumPageState extends State<ForumPage> {
                   category: selectedCategory,
                   createdAt: DateTime.now(),
                   likes: 0,
-                  comments: [],
                   timestamp: DateTime.now().toString(),
+                  status: 'open', // Default status
+                  tags: [], // Default tags
+                  postImageUrl: null, // Default image
+                  attachmentUrls: [], // Default attachments
+                  authorProfileImageUrl: null, // Default profile image
                 );
 
                 try {
@@ -968,8 +1070,12 @@ class _ForumPageState extends State<ForumPage> {
                   category: selectedCategory,
                   createdAt: post.createdAt,
                   likes: post.likes,
-                  comments: post.comments,
                   timestamp: post.timestamp,
+                  status: post.status,
+                  tags: post.tags,
+                  postImageUrl: post.postImageUrl,
+                  attachmentUrls: post.attachmentUrls,
+                  authorProfileImageUrl: post.authorProfileImageUrl,
                 );
 
                 try {

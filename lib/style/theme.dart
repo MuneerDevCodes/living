@@ -1,5 +1,6 @@
 // lib/style/theme.dart
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // Primary Colors - Green-focused sustainable theme
 const Color primaryGreen = Color(0xFF2E7D32); // Deep green
@@ -7,7 +8,7 @@ const Color secondaryGreen = Color(0xFF4CAF50); // Medium green
 const Color lightGreen = Color(0xFF81C784); // Light green
 const Color bgColor = Color(0xFFF8FBF8); // Very light green tint
 
-// Extended Color Palette
+/// AppColors provides a centralized color palette for the app.
 class AppColors {
   // Primary Colors
   static const Color primary = primaryGreen;
@@ -76,8 +77,9 @@ class AppColors {
   );
 }
 
-// Theme Data
+/// AppTheme provides the main ThemeData for the app.
 class AppTheme {
+  /// Returns the light theme for the app.
   static ThemeData get lightTheme {
     return ThemeData(
       primarySwatch: AppColors.primarySwatch,
@@ -94,22 +96,24 @@ class AppTheme {
         onSurface: AppColors.primaryText,
         onError: Colors.white,
       ),
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(color: AppColors.primaryText),
-        displayMedium: TextStyle(color: AppColors.primaryText),
-        displaySmall: TextStyle(color: AppColors.primaryText),
-        headlineLarge: TextStyle(color: AppColors.primaryText),
-        headlineMedium: TextStyle(color: AppColors.primaryText),
-        headlineSmall: TextStyle(color: AppColors.primaryText),
-        titleLarge: TextStyle(color: AppColors.primaryText),
-        titleMedium: TextStyle(color: AppColors.primaryText),
-        titleSmall: TextStyle(color: AppColors.primaryText),
-        bodyLarge: TextStyle(color: AppColors.primaryText),
-        bodyMedium: TextStyle(color: AppColors.primaryText),
-        bodySmall: TextStyle(color: AppColors.secondaryText),
-        labelLarge: TextStyle(color: AppColors.primaryText),
-        labelMedium: TextStyle(color: AppColors.primaryText),
-        labelSmall: TextStyle(color: AppColors.secondaryText),
+      textTheme: GoogleFonts.notoSansTextTheme(
+        const TextTheme(
+          displayLarge: TextStyle(color: AppColors.primaryText),
+          displayMedium: TextStyle(color: AppColors.primaryText),
+          displaySmall: TextStyle(color: AppColors.primaryText),
+          headlineLarge: TextStyle(color: AppColors.primaryText),
+          headlineMedium: TextStyle(color: AppColors.primaryText),
+          headlineSmall: TextStyle(color: AppColors.primaryText),
+          titleLarge: TextStyle(color: AppColors.primaryText),
+          titleMedium: TextStyle(color: AppColors.primaryText),
+          titleSmall: TextStyle(color: AppColors.primaryText),
+          bodyLarge: TextStyle(color: AppColors.primaryText),
+          bodyMedium: TextStyle(color: AppColors.primaryText),
+          bodySmall: TextStyle(color: AppColors.secondaryText),
+          labelLarge: TextStyle(color: AppColors.primaryText),
+          labelMedium: TextStyle(color: AppColors.primaryText),
+          labelSmall: TextStyle(color: AppColors.secondaryText),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -177,6 +181,28 @@ class AppTheme {
       ),
     );
   }
+
+  /// Example text style helpers for custom text (use in widgets/pages)
+  static TextStyle get headline => GoogleFonts.notoSans(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: AppColors.primaryText,
+      );
+  static TextStyle get subtitle => GoogleFonts.notoSans(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        color: AppColors.secondaryText,
+      );
+  static TextStyle get caption => GoogleFonts.notoSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: AppColors.mutedText,
+      );
+
+  /// Example spacing constants for consistent use
+  static const double spacingSmall = 8.0;
+  static const double spacingMedium = 16.0;
+  static const double spacingLarge = 32.0;
 }
 
 class NoScrollbarBehavior extends ScrollBehavior {

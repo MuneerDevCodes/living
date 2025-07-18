@@ -13,6 +13,7 @@ import 'package:living/widgets/loader.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// ProductDetailPage displays details for a specific product, using responsive and theme-driven design.
 class ProductDetailPage extends StatefulWidget {
   final String productKey;
   const ProductDetailPage({super.key, required this.productKey});
@@ -131,6 +132,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     }
   }
 
+  /// Build method for the product detail page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -144,6 +146,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             'Error',
             style: TextStyle(
               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+              color: AppColors.error,
             ),
           ),
         ),
@@ -168,17 +171,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         product.imageUrl.isNotEmpty
             ? Image.memory(
               base64Decode(product.imageUrl),
-              width: 120,
-              height: 160,
+              width: ResponsiveHelper.getAdaptiveImageSize(context),
+              height: ResponsiveHelper.getAdaptiveImageSize(context) * 1.33,
               fit: BoxFit.cover,
             )
             : Container(
-              width: 120,
-              height: 160,
-              color: Colors.grey[300],
+              width: ResponsiveHelper.getAdaptiveImageSize(context),
+              height: ResponsiveHelper.getAdaptiveImageSize(context) * 1.33,
+              color: AppColors.borderLight,
               child: Icon(
                 Icons.shopping_bag,
-                size: 60,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
                 color: AppColors.mutedText,
               ),
             );
@@ -188,53 +191,56 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     final canReview = _user != null;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
           const Header(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(18),
+              padding: ResponsiveHelper.getAdaptivePadding(context),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       cover,
-                      const SizedBox(width: 18),
+                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               product.name,
-                              style: const TextStyle(
-                                fontSize: 22,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 22),
                                 fontWeight: FontWeight.bold,
+                                color: AppColors.primaryText,
                               ),
                             ),
                             Text(
                               'Category: ${product.category.name}',
-                              style: const TextStyle(fontSize: 16),
+                              style: TextStyle(fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16), color: AppColors.secondaryText),
                             ),
-                            const SizedBox(height: 8),
-                            Text('Price: \$${product.price.toStringAsFixed(2)}'),
-                            Text('Eco Rating: ${product.ecoRating.toStringAsFixed(1)}★'),
-                            const SizedBox(height: 8),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                            Text('Price: \$${product.price.toStringAsFixed(2)}', style: TextStyle(color: AppColors.primary)),
+                            Text('Eco Rating: ${product.ecoRating.toStringAsFixed(1)} ★', style: TextStyle(color: AppColors.success)),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                             Row(
                               children: [
                                 Icon(
                                   Icons.star,
                                   color: Colors.amber[700],
-                                  size: 20,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
                                 ),
-                                const SizedBox(width: 4),
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                                 Text(
                                   '${product.ratings.average.toStringAsFixed(1)} (${product.ratings.count} reviews)',
+                                  style: TextStyle(color: AppColors.secondaryText),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                             Row(
                               children: [
                                 IconButton(
@@ -255,7 +261,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
                                                     'Added to cart',
                                                   ),
@@ -281,7 +287,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
                                                     'Added to wishlist',
                                                   ),
@@ -297,26 +303,26 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 18),
-                  Text(product.description, style: const TextStyle(fontSize: 15)),
-                  const SizedBox(height: 18),
-                  const Divider(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Text(product.description, style: TextStyle(fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15))),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Divider(),
                   Text(
                     'Reviews',
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                   if (reviews.isEmpty)
-                    const Text(
+                    Text(
                       'No reviews yet.',
                       style: TextStyle(color: Colors.grey),
                     ),
                   ...reviews.map(
                     (r) => Card(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      margin: EdgeInsets.symmetric(vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
                       child: ListTile(
                         leading: CircleAvatar(
                           child: Text(
@@ -332,7 +338,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               (i) => Icon(
                                 i < r.rating ? Icons.star : Icons.star_border,
                                 color: Colors.amber[700],
-                                size: 18,
+                                size: ResponsiveHelper.getAdaptiveIconSize(context),
                               ),
                             ),
                           ],
@@ -354,9 +360,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                                 _rating = r.rating;
                                               });
                                             },
-                                    child: const Text(
+                                    child: Text(
                                       'Edit',
-                                      style: TextStyle(fontSize: 12),
+                                      style: TextStyle(fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12)),
                                     ),
                                   ),
                                   TextButton(
@@ -406,10 +412,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                                 _rating = 0;
                                               });
                                             },
-                                    child: const Text(
+                                    child: Text(
                                       'Delete',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                                         color: Colors.red,
                                       ),
                                     ),
@@ -422,22 +428,22 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           DateTime.fromMillisecondsSinceEpoch(
                             r.createdAt,
                           ).toLocal().toString().split(' ')[0],
-                          style: const TextStyle(
-                            fontSize: 11,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
                             color: Colors.grey,
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                   if (canReview) ...[
-                    const Divider(),
+                    Divider(),
                     Text(
                       'Add Your Review',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                     Row(
                       children: [
                         ...List.generate(
@@ -457,7 +463,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     TextField(
                       controller: _reviewCtrl,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Your review',
                         border: OutlineInputBorder(),
                       ),
@@ -467,27 +473,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     ),
                     if (_error != null)
                       Padding(
-                        padding: const EdgeInsets.only(top: 8),
+                        padding: EdgeInsets.only(top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
                         child: Text(
                           _error!,
-                          style: const TextStyle(color: Colors.red),
+                          style: TextStyle(color: AppColors.error),
                         ),
                       ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                     ElevatedButton(
                       onPressed: _loading ? null : _submitReview,
                       child:
                           _loading
-                              ? const SizedBox(
-                                width: 18,
-                                height: 18,
+                              ? SizedBox(
+                                width: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2,
+                                height: ResponsiveHelper.getAdaptiveSpacing(context) * 1.2,
                                 child: Loader(),
                               )
-                              : const Text('Submit Review'),
+                              : Text('Submit Review'),
                     ),
                   ] else ...[
-                    const Divider(),
-                    const Text(
+                    Divider(),
+                    Text(
                       'Login to add your review.',
                       style: TextStyle(color: Colors.grey),
                     ),

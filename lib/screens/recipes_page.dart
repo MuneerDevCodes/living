@@ -7,6 +7,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 
+/// RecipesPage displays eco-friendly recipes, using responsive and theme-driven design.
 class RecipesPage extends StatefulWidget {
   const RecipesPage({super.key});
 
@@ -103,9 +104,11 @@ class _RecipesPageState extends State<RecipesPage> {
     return AppColors.error;
   }
 
+  /// Build method for the recipes page, using only ResponsiveHelper and AppTheme/AppColors.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       drawer: Header.buildDrawer(context),
       body: Column(
         children: [
@@ -233,7 +236,7 @@ class _RecipesPageState extends State<RecipesPage> {
                               vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                             ),
                             decoration: BoxDecoration(
-                              color: carbonColor.withValues(alpha: 0.1),
+                              color: carbonColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(
                                 ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
                               ),
@@ -403,11 +406,11 @@ class _RecipesPageState extends State<RecipesPage> {
                   vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
                 ),
                 decoration: BoxDecoration(
-                                      color: carbonColor.withValues(alpha: 0.1),
+                                      color: carbonColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(
                     ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
                   ),
-                  border: Border.all(color: carbonColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: carbonColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

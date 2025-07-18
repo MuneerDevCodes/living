@@ -7,7 +7,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:living/main.dart';
 import 'package:living/screens/home_page.dart';
 import 'package:living/style/responsive_helper.dart';
 

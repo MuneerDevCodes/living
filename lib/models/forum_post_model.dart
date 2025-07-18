@@ -6,10 +6,15 @@ class ForumPost {
   final String author;
   final String authorId;
   final String authorName;
+  final String? authorProfileImageUrl;
   final String category;
   final DateTime createdAt;
+  final DateTime? lastEdited;
   final int likes;
-  final List<ForumComment> comments;
+  final List<String> tags;
+  final String status; // 'open', 'closed'
+  final List<String> attachmentUrls;
+  final String? postImageUrl;
   final String timestamp;
 
   ForumPost({
@@ -20,10 +25,15 @@ class ForumPost {
     required this.author,
     required this.authorId,
     required this.authorName,
+    this.authorProfileImageUrl,
     required this.category,
     required this.createdAt,
+    this.lastEdited,
     required this.likes,
-    required this.comments,
+    this.tags = const [],
+    this.status = 'open',
+    this.attachmentUrls = const [],
+    this.postImageUrl,
     required this.timestamp,
   });
 
@@ -35,10 +45,15 @@ class ForumPost {
         author = json['author'] as String? ?? '',
         authorId = json['authorId'] as String? ?? '',
         authorName = json['authorName'] as String? ?? '',
+        authorProfileImageUrl = json['authorProfileImageUrl'] as String?,
         category = json['category'] as String? ?? '',
         createdAt = DateTime.parse(json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+        lastEdited = json['lastEdited'] != null ? DateTime.parse(json['lastEdited']) : null,
         likes = json['likes'] as int? ?? 0,
-        comments = (json['comments'] as List<dynamic>? ?? []).map((comment) => ForumComment.fromJson(comment)).toList(),
+        tags = List<String>.from(json['tags'] ?? []),
+        status = json['status'] as String? ?? 'open',
+        attachmentUrls = List<String>.from(json['attachmentUrls'] ?? []),
+        postImageUrl = json['postImageUrl'] as String?,
         timestamp = json['timestamp'] as String? ?? DateTime.now().toIso8601String();
 
   Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
@@ -48,10 +63,15 @@ class ForumPost {
         'author': author,
         'authorId': authorId,
         'authorName': authorName,
+        'authorProfileImageUrl': authorProfileImageUrl,
         'category': category,
         'createdAt': createdAt.toIso8601String(),
+        'lastEdited': lastEdited?.toIso8601String(),
         'likes': likes,
-        'comments': comments.map((comment) => comment.toJson()).toList(),
+        'tags': tags,
+        'status': status,
+        'attachmentUrls': attachmentUrls,
+        'postImageUrl': postImageUrl,
         'timestamp': timestamp,
       };
 
@@ -62,33 +82,62 @@ class ForumPost {
         'author': author,
         'authorId': authorId,
         'authorName': authorName,
+        'authorProfileImageUrl': authorProfileImageUrl,
         'category': category,
         'createdAt': createdAt.toIso8601String(),
+        'lastEdited': lastEdited?.toIso8601String(),
         'likes': likes,
-        'comments': comments.map((comment) => comment.toJson()).toList(),
+        'tags': tags,
+        'status': status,
+        'attachmentUrls': attachmentUrls,
+        'postImageUrl': postImageUrl,
         'timestamp': timestamp,
       };
 }
 
 class ForumComment {
+  final String key;
+  final String postId;
   final String author;
+  final String authorId;
+  final String? authorProfileImageUrl;
   final String content;
-  final DateTime timestamp;
+  final DateTime createdAt;
+  final DateTime? lastEdited;
+  final List<String> attachmentUrls;
 
   ForumComment({
+    required this.key,
+    required this.postId,
     required this.author,
+    required this.authorId,
+    this.authorProfileImageUrl,
     required this.content,
-    required this.timestamp,
+    required this.createdAt,
+    this.lastEdited,
+    this.attachmentUrls = const [],
   });
 
   ForumComment.fromJson(Map<dynamic, dynamic> json)
-      : author = json['author'] as String? ?? '',
+      : key = json['key'] as String? ?? '',
+        postId = json['postId'] as String? ?? '',
+        author = json['author'] as String? ?? '',
+        authorId = json['authorId'] as String? ?? '',
+        authorProfileImageUrl = json['authorProfileImageUrl'] as String?,
         content = json['content'] as String? ?? '',
-        timestamp = DateTime.parse(json['timestamp'] as String? ?? DateTime.now().toIso8601String());
+        createdAt = DateTime.parse(json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
+        lastEdited = json['lastEdited'] != null ? DateTime.parse(json['lastEdited']) : null,
+        attachmentUrls = List<String>.from(json['attachmentUrls'] ?? []);
 
   Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
+        'key': key,
+        'postId': postId,
         'author': author,
+        'authorId': authorId,
+        'authorProfileImageUrl': authorProfileImageUrl,
         'content': content,
-        'timestamp': timestamp.toIso8601String(),
+        'createdAt': createdAt.toIso8601String(),
+        'lastEdited': lastEdited?.toIso8601String(),
+        'attachmentUrls': attachmentUrls,
       };
 }
