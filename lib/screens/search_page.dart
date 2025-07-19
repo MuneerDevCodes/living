@@ -9,6 +9,9 @@ import 'package:living/screens/product_detail_page.dart';
 import 'package:living/services/category_constants.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:living/services/admin_service.dart';
+import 'package:living/screens/manage_category_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -18,7 +21,7 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
+class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin, WidgetsBindingObserver {
   String _query = '';
   final TextEditingController _controller = TextEditingController();
   bool _loading = false;
@@ -36,7 +39,12 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
     'Name: A to Z',
     'Name: Z to A',
   ];
-  final List<ProductCategory> _categories = kProductCategories;
+  
+  // Dynamic categories from Firebase
+  List<Category> _dynamicCategories = [];
+  bool _loadingCategories = true;
+  bool _isAdmin = false;
+  final AdminService _adminService = AdminService();
 
   @override
   void initState() {
@@ -59,13 +67,79 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
     
     _fadeController.forward();
     _slideController.forward();
+    
+    // Load dynamic categories
+    _loadCategories();
+    
+    // Setup real-time listener for categories
+    _setupCategoryListener();
+    
+    // Check admin status
+    _checkAdminStatus();
+    
+    // Add observer for app lifecycle
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  Future<void> _checkAdminStatus() async {
+    final isAdmin = await _adminService.isAdmin();
+    setState(() {
+      _isAdmin = isAdmin;
+    });
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCategories = true);
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('categories').onValue.first;
+      final data = snapshot.snapshot.value;
+      if (data != null) {
+        final map = Map<String, dynamic>.from(data as dynamic);
+        final categories = <Category>[];
+        map.forEach((key, value) {
+          categories.add(Category.fromJson(Map<String, dynamic>.from(value)));
+        });
+        setState(() {
+          _dynamicCategories = categories;
+          _loadingCategories = false;
+        });
+      } else {
+        setState(() => _loadingCategories = false);
+      }
+    } catch (e) {
+      debugPrint("Error loading categories: $e");
+      setState(() => _loadingCategories = false);
+    }
+  }
+
+  void _setupCategoryListener() {
+    FirebaseDatabase.instance.ref('categories').onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null) {
+        final map = Map<String, dynamic>.from(data as dynamic);
+        final categories = <Category>[];
+        map.forEach((key, value) {
+          categories.add(Category.fromJson(Map<String, dynamic>.from(value)));
+        });
+        setState(() {
+          _dynamicCategories = categories;
+          _loadingCategories = false;
+        });
+      } else {
+        setState(() {
+          _dynamicCategories = [];
+          _loadingCategories = false;
+        });
+      }
+    });
   }
 
   @override
@@ -77,6 +151,15 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
       fetchProducts();
     }
     super.didChangeDependencies();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh categories when app is resumed
+      _loadCategories();
+    }
+    super.didChangeAppLifecycleState(state);
   }
 
   List<MapEntry<String, Product>> _applySearchAndSort(
@@ -133,6 +216,34 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
       debugPrint("Error fetching products: $e");
     } finally {
       setState(() => _loading = false);
+    }
+  }
+
+  // Get icon for category based on name
+  IconData _getCategoryIcon(String categoryName) {
+    final name = categoryName.toLowerCase();
+    if (name.contains('eco') || name.contains('green') || name.contains('sustainable')) {
+      return Icons.eco;
+    } else if (name.contains('home') || name.contains('garden')) {
+      return Icons.home;
+    } else if (name.contains('kitchen') || name.contains('dining')) {
+      return Icons.kitchen;
+    } else if (name.contains('bath') || name.contains('personal') || name.contains('care')) {
+      return Icons.cleaning_services;
+    } else if (name.contains('clothing') || name.contains('fashion')) {
+      return Icons.checkroom;
+    } else if (name.contains('electronic')) {
+      return Icons.devices;
+    } else if (name.contains('sport') || name.contains('outdoor')) {
+      return Icons.sports_soccer;
+    } else if (name.contains('book') || name.contains('media')) {
+      return Icons.menu_book;
+    } else if (name.contains('toy') || name.contains('game')) {
+      return Icons.toys;
+    } else if (name.contains('health') || name.contains('wellness')) {
+      return Icons.favorite;
+    } else {
+      return Icons.category;
     }
   }
 
@@ -680,30 +791,70 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
                   color: AppColors.primaryText,
                 ),
               ),
+              const Spacer(),
+              if (_loadingCategories)
+                SizedBox(
+                  width: ResponsiveHelper.getAdaptiveIconSize(context),
+                  height: ResponsiveHelper.getAdaptiveIconSize(context),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                  ),
+                )
+              else ...[
+                IconButton(
+                  icon: Icon(
+                    Icons.refresh,
+                    color: AppColors.primary,
+                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                  ),
+                  onPressed: _loadCategories,
+                  tooltip: 'Refresh categories',
+                ),
+                if (_isAdmin)
+                  IconButton(
+                    icon: Icon(
+                      Icons.admin_panel_settings,
+                      color: AppColors.primary,
+                      size: ResponsiveHelper.getAdaptiveIconSize(context),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ManageCategoryPage(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Manage categories',
+                  ),
+              ],
             ],
           ),
         ),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _categories.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 
-                           ResponsiveHelper.isTablet(context) ? 3 : 4,
-            mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
-            crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
-            childAspectRatio: ResponsiveHelper.isMobile(context) ? 1.2 : 1.5,
-          ),
-          itemBuilder: (context, i) {
-            final cat = _categories[i];
-            return _buildCategoryCard(cat);
-          },
-        ),
+        _dynamicCategories.isEmpty && !_loadingCategories
+            ? _buildDefaultCategories()
+            : GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _dynamicCategories.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 
+                                 ResponsiveHelper.isTablet(context) ? 3 : 4,
+                  mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+                  crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+                  childAspectRatio: ResponsiveHelper.isMobile(context) ? 1.2 : 1.5,
+                ),
+                itemBuilder: (context, i) {
+                  final cat = _dynamicCategories[i];
+                  return _buildCategoryCard(cat);
+                },
+              ),
       ],
     );
   }
 
-  Widget _buildCategoryCard(ProductCategory cat) {
+  Widget _buildCategoryCard(Category cat) {
     return Card(
       elevation: 2,
       shadowColor: AppColors.shadowLight,
@@ -713,8 +864,8 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
       child: InkWell(
         borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
         onTap: () {
-          _controller.text = cat.label;
-          setState(() => _query = cat.label);
+          _controller.text = cat.name;
+          setState(() => _query = cat.name);
           fetchProducts();
         },
         child: Container(
@@ -740,14 +891,14 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
                   borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
                 ),
                 child: Icon(
-                  cat.icon,
+                  _getCategoryIcon(cat.name),
                   color: AppColors.primary,
                   size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.2,
                 ),
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
               Text(
-                cat.label,
+                cat.name,
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: ResponsiveHelper.getBodyFontSize(context),
@@ -761,6 +912,114 @@ class _SearchPageState extends State<SearchPage> with TickerProviderStateMixin {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDefaultCategories() {
+    return Column(
+      children: [
+        Container(
+          padding: ResponsiveHelper.getCardPadding(context),
+          decoration: BoxDecoration(
+            color: AppColors.warning.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: AppColors.warning,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Expanded(
+                child: Text(
+                  'No categories found. Please add categories in the admin panel.',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getBodyFontSize(context),
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: kProductCategories.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: ResponsiveHelper.isMobile(context) ? 2 : 
+                           ResponsiveHelper.isTablet(context) ? 3 : 4,
+            mainAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+            crossAxisSpacing: ResponsiveHelper.getAdaptiveSpacing(context),
+            childAspectRatio: ResponsiveHelper.isMobile(context) ? 1.2 : 1.5,
+          ),
+          itemBuilder: (context, i) {
+            final cat = kProductCategories[i];
+            return Card(
+              elevation: 2,
+              shadowColor: AppColors.shadowLight,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+              ),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                onTap: () {
+                  _controller.text = cat.label;
+                  setState(() => _query = cat.label);
+                  fetchProducts();
+                },
+                child: Container(
+                  padding: ResponsiveHelper.getCardPadding(context),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.primary.withValues(alpha: 0.05),
+                        AppColors.secondary.withValues(alpha: 0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+                        ),
+                        child: Icon(
+                          cat.icon,
+                          color: AppColors.primary,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.2,
+                        ),
+                      ),
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                      Text(
+                        cat.label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: ResponsiveHelper.getBodyFontSize(context),
+                          color: AppColors.primaryText,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

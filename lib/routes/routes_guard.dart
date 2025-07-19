@@ -23,22 +23,30 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
 
   // If route doesn't exist, return unknown route
   if (builder == null) {
-    return MaterialPageRoute(
-      builder:
-          (_) => const Scaffold(body: Center(child: Text('Unknown route'))),
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => 
+          const Scaffold(body: Center(child: Text('Unknown route'))),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
     );
   }
 
   // If route is unprotected, return it directly
   if (unprotectedRoutes.contains(name)) {
-    return MaterialPageRoute(builder: builder);
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
+    );
   }
 
   // If route is admin-only, check authentication and role
   if (adminOnlyRoutes.contains(name)) {
-    return MaterialPageRoute(
-      builder:
-          (context) => FutureBuilder<bool>(
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => 
+          FutureBuilder<bool>(
             future: _isAuthenticated(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -78,14 +86,17 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
               );
             },
           ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
     );
   }
 
   // If route is protected, check authentication
   if (protectedRoutesList.contains(name)) {
-    return MaterialPageRoute(
-      builder:
-          (context) => FutureBuilder<bool>(
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => 
+          FutureBuilder<bool>(
             future: _isAuthenticated(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
@@ -104,9 +115,17 @@ Route<dynamic>? guardedRoute(RouteSettings settings) {
               return builder(context);
             },
           ),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(opacity: animation, child: child);
+      },
     );
   }
 
   // Route exists but is not in either list - treat as unprotected by default
-  return MaterialPageRoute(builder: builder);
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) => builder(context),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  );
 }

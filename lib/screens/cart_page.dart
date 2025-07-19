@@ -14,6 +14,8 @@ import 'package:living/models/enums.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'dart:convert';
+import 'package:living/models/user_model.dart' as app_user;
+import 'package:living/services/user_dao.dart';
 
 /// CartPage displays the user's shopping cart, using responsive and theme-driven design.
 class CartPage extends StatefulWidget {
@@ -154,10 +156,20 @@ class _CartPageState extends State<CartPage> {
         status: OrderStatus.pending,
       ),
     };
+    final subtotal = (item.quantity ?? 1) * product.price;
+    final shippingCost = 5.99;
+    final totalAmount = subtotal + shippingCost;
+    
     final order = Order(
       userId: cart.userId,
       items: orderItems,
-      totalAmount: (item.quantity ?? 1) * product.price,
+      subtotal: subtotal,
+      shippingCost: shippingCost,
+      totalAmount: totalAmount,
+      shippingAddress: 'Default Address', // This should be user's address
+      paymentMethod: 'Default Payment', // This should be user's payment method
+      status: OrderStatus.pending,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
     );
     orderDao.saveOrder(order);
     await _deleteItem(cartKey, cart, productId);
@@ -181,39 +193,253 @@ class _CartPageState extends State<CartPage> {
     setState(() {
       _loading = true;
     });
-    final orderItems = <String, OrderItem>{};
-    for (final entry in cart.items.entries) {
-      final product = await _getProduct(entry.key);
-      if (product != null) {
-        orderItems[entry.key] = OrderItem(
-          productId: entry.key,
-          quantity: entry.value.quantity ?? 1,
-          price: product.price,
-          status: OrderStatus.pending,
-        );
-      }
+    
+    // Get user information for shipping and payment
+    final user = await _getCurrentUser();
+    if (user == null) {
+      setState(() {
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please complete your profile with shipping and payment information',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
     }
-    final order = Order(
-      userId: cart.userId,
-      items: orderItems,
-      totalAmount: cart.totalAmount,
-    );
-    orderDao.saveOrder(order);
-    cartDao.deleteCart(cartKey);
+
+    // Check if user has shipping and payment info
+    if (user.shippingInfo == null || user.paymentInfo == null) {
+      setState(() {
+        _loading = false;
+      });
+      _showProfileCompletionDialog();
+      return;
+    }
+
+    // Show checkout confirmation dialog
+    final confirmed = await _showCheckoutDialog(cart, user);
+    if (!confirmed) {
+      setState(() {
+        _loading = false;
+      });
+      return;
+    }
+
+    try {
+      // Calculate shipping cost (simple flat rate for demo)
+      const shippingCost = 5.99;
+      
+      await orderDao.createOrderFromCart(
+        cart.userId,
+        cart,
+        user.shippingInfo!.formattedAddress,
+        user.paymentInfo!.formattedCard,
+        shippingCost,
+      );
+      
     setState(() {
       _loading = false;
     });
+      
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+          content: Text(
+            'Order placed successfully! Order ID: ${DateTime.now().millisecondsSinceEpoch}',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to place order: $e',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  Future<app_user.User?> _getCurrentUser() async {
+    try {
+      final snapshot = await UserDao().getUserList().orderByChild('uuid').equalTo(_userId).get();
+      if (snapshot.exists && snapshot.children.isNotEmpty) {
+        final snap = snapshot.children.first;
+        return app_user.User.fromJson(snap.value as Map<dynamic, dynamic>);
+      }
+    } catch (e) {
+      print('Error getting user: $e');
+    }
+    return null;
+  }
+
+  void _showProfileCompletionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Complete Your Profile',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Text(
-          'Order placed and cart cleared',
+          'To complete your purchase, please add your shipping address and payment information to your profile.',
           style: TextStyle(
             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/profile');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Go to Profile',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<bool> _showCheckoutDialog(Cart cart, app_user.User user) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Order Confirmation',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Shipping Address:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                user.shippingInfo!.formattedAddress,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Payment Method:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                user.paymentInfo!.formattedCard,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Order Summary:',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'Subtotal: \$${cart.totalAmount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+              Text(
+                'Shipping: \$5.99',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                ),
+              ),
+              Text(
+                'Total: \$${(cart.totalAmount + 5.99).toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Confirm Order',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   Widget _buildCartItem(DataSnapshot snapshot) {
@@ -221,13 +447,63 @@ class _CartPageState extends State<CartPage> {
     final cart = Cart.fromJson(json);
     final cartKey = snapshot.key!;
     final items = cart.items;
-    return Card(
-      margin: EdgeInsets.symmetric(
-        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
-        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+    return Column(
+      children: [
+        // Cart Header
+        Container(
+          width: double.infinity,
+          padding: ResponsiveHelper.getAdaptivePadding(context),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+              topRight: Radius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.shopping_cart,
+                color: Colors.white,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Text(
+                'Shopping Cart',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Spacer(),
+              Text(
+                '${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Cart Items
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+              bottomRight: Radius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ...items.entries.map((entry) {
             final productId = entry.key;
@@ -236,12 +512,52 @@ class _CartPageState extends State<CartPage> {
               future: _getProduct(productId),
               builder: (context, snap) {
                 if (!snap.hasData) {
-                  return ListTile(
-                    title: Text(
-                      'Loading...',
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      ),
+                      return Container(
+                        padding: ResponsiveHelper.getAdaptivePadding(context),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: ResponsiveHelper.getAdaptiveImageSize(context),
+                              height: ResponsiveHelper.getAdaptiveImageSize(context) * 1.5,
+                              decoration: BoxDecoration(
+                                color: AppColors.borderLight,
+                                borderRadius: BorderRadius.circular(
+                                  ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                                ),
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 120,
+                                    height: 16,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.borderLight,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                  Container(
+                                    width: 80,
+                                    height: 14,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.borderLight,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                     ),
                   );
                 }
@@ -263,78 +579,224 @@ class _CartPageState extends State<CartPage> {
                       ),
                     );
                   } catch (_) {
-                    leadingWidget = Icon(
-                      Icons.shopping_cart,
-                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                        leadingWidget = Container(
+                          width: imageSize,
+                          height: imageSize * 1.5,
+                          decoration: BoxDecoration(
+                            color: AppColors.borderLight,
+                            borderRadius: BorderRadius.circular(
+                              ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.shopping_bag,
+                            size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
                       color: AppColors.mutedText,
+                          ),
                     );
                   }
                 } else {
-                  leadingWidget = Icon(
-                    Icons.shopping_cart,
-                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                      leadingWidget = Container(
+                        width: imageSize,
+                        height: imageSize * 1.5,
+                        decoration: BoxDecoration(
+                          color: AppColors.borderLight,
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.shopping_bag,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.5,
                     color: AppColors.mutedText,
-                  );
-                }
-                
-                return ListTile(
-                  leading: leadingWidget,
-                  title: Text(
+                        ),
+                      );
+                    }
+                    
+                    return Container(
+                      margin: EdgeInsets.only(
+                        left: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                        right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                        top: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                      ),
+                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(
+                          ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                        ),
+                        border: Border.all(color: AppColors.borderLight),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              leadingWidget,
+                              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
                     product.name,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    'Price: ${product.price.toStringAsFixed(2)}',
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primaryText,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                    Text(
+                                      'Category: ${product.category.name}',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                        color: AppColors.secondaryText,
+                                      ),
+                                    ),
+                                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.star,
+                                          size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+                                          color: Colors.amber[600],
+                                        ),
+                                        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                                        Text(
+                                          '${product.ecoRating.toStringAsFixed(1)}',
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                       color: AppColors.secondaryText,
                     ),
                   ),
-                  trailing: Row(
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '\$${product.price.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                                  Text(
+                                    'Total: \$${(product.price * (item.quantity ?? 1)).toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              // Quantity Controls
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(
+                                    ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                                  ),
+                                  border: Border.all(color: AppColors.borderLight),
+                                ),
+                                child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
                         icon: Icon(
                           Icons.remove,
-                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                        size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
                           color: AppColors.error,
                         ),
                         onPressed: () => _updateQuantity(cartKey, cart, productId, -1),
-                      ),
-                      Text(
+                                      constraints: BoxConstraints(
+                                        minWidth: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                                        minHeight: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                                      ),
+                                      child: Text(
                         '${item.quantity ?? 1}',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                           fontWeight: FontWeight.bold,
+                                          color: AppColors.primaryText,
+                                        ),
                         ),
                       ),
                       IconButton(
                         icon: Icon(
                           Icons.add,
-                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                        size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
                           color: AppColors.success,
                         ),
                         onPressed: () => _updateQuantity(cartKey, cart, productId, 1),
-                      ),
-                      IconButton(
+                                      constraints: BoxConstraints(
+                                        minWidth: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                                        minHeight: ResponsiveHelper.getAdaptiveIconSize(context) * 2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Action Buttons
+                              Row(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(
+                                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                                      ),
+                                    ),
+                                    child: IconButton(
                         icon: Icon(
-                          Icons.delete,
+                                        Icons.delete_outline,
                           color: AppColors.error,
                           size: ResponsiveHelper.getAdaptiveIconSize(context),
                         ),
                         onPressed: () => _deleteItem(cartKey, cart, productId),
-                      ),
-                      IconButton(
+                                      tooltip: 'Remove from cart',
+                                    ),
+                                  ),
+                                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(
+                                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.4,
+                                      ),
+                                    ),
+                                    child: IconButton(
                         icon: Icon(
-                          Icons.shopping_bag,
+                                        Icons.shopping_bag_outlined,
                           color: AppColors.success,
                           size: ResponsiveHelper.getAdaptiveIconSize(context),
                         ),
-                        tooltip: 'Order this item',
+                                      tooltip: 'Buy now',
                         onPressed: () => _orderSingleItem(cartKey, cart, productId),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                       ),
                     ],
                   ),
@@ -342,30 +804,121 @@ class _CartPageState extends State<CartPage> {
               },
             );
           }),
-          Padding(
+            ],
+          ),
+        ),
+        // Cart Summary
+        SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        Container(
             padding: ResponsiveHelper.getAdaptivePadding(context),
-            child: Row(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Subtotal:',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  Text(
+                    '\$${cart.totalAmount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Shipping:',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      color: AppColors.secondaryText,
+                    ),
+                  ),
+                  Text(
+                    '\$5.99',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              Divider(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Cart Total: ${cart.totalAmount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    'Total:',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryText,
+                    ),
                   ),
+                  Text(
+                    '\$${(cart.totalAmount + 5.99).toStringAsFixed(2)}',
+                  style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                    fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
                 ),
-                ElevatedButton(
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
                   onPressed: () => _checkout(cartKey, cart),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
-                    padding: ResponsiveHelper.getVerticalPadding(context),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                      ),
+                    ),
+                    elevation: 2,
                   ),
-                  child: Text(
-                    'Checkout',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.shopping_cart_checkout,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                      Text(
+                        'Proceed to Checkout',
                     style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      fontWeight: FontWeight.w500,
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     ),
                   ),
                 ),
@@ -373,7 +926,6 @@ class _CartPageState extends State<CartPage> {
             ),
           ),
         ],
-      ),
     );
   }
 
@@ -403,11 +955,70 @@ class _CartPageState extends State<CartPage> {
                     }
                     if (snapshot.hasError) {
                       return Center(
-                        child: Text(
-                          'Error loading cart.',
+                        child: Container(
+                          padding: ResponsiveHelper.getAdaptivePadding(context),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
+                                height: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
+                                decoration: BoxDecoration(
+                                  color: AppColors.error.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.error_outline,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 3,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              Text(
+                                'Oops! Something went wrong',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
+                                ),
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                              Text(
+                                'Unable to load your cart. Please try again.',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                  color: AppColors.secondaryText,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {});
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                                    ),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  Icons.refresh,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                ),
+                                label: Text(
+                                  'Try Again',
                           style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                            color: AppColors.error,
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -415,11 +1026,70 @@ class _CartPageState extends State<CartPage> {
                     final data = snapshot.data?.snapshot.value;
                     if (data == null) {
                       return Center(
-                        child: Text(
-                          'No items in cart.',
+                        child: Container(
+                          padding: ResponsiveHelper.getAdaptivePadding(context),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
+                                height: ResponsiveHelper.getAdaptiveImageSize(context) * 2,
+                                decoration: BoxDecoration(
+                                  color: AppColors.borderLight,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context) * 3,
+                                  color: AppColors.mutedText,
+                                ),
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              Text(
+                                'Your cart is empty',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryText,
+                                ),
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                              Text(
+                                'Start shopping to add items to your cart',
                           style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                             color: AppColors.secondaryText,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/');
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: ResponsiveHelper.getAdaptivePadding(context),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                                    ),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  Icons.shopping_bag,
+                                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                ),
+                                label: Text(
+                                  'Start Shopping',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );

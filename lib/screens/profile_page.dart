@@ -26,6 +26,22 @@ class _ProfilePageState extends State<ProfilePage> {
   final _newPassCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
 
+  // Comprehensive profile form controllers
+  final _comprehensiveFormKey = GlobalKey<FormState>();
+  final _fullNameCtrl = TextEditingController();
+  final _addressLine1Ctrl = TextEditingController();
+  final _addressLine2Ctrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _stateCtrl = TextEditingController();
+  final _zipCodeCtrl = TextEditingController();
+  final _countryCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _shippingEmailCtrl = TextEditingController();
+  final _paymentMethodCtrl = TextEditingController();
+  final _easypaisaNumberCtrl = TextEditingController();
+  final _bankNameCtrl = TextEditingController();
+  final _accountNumberCtrl = TextEditingController();
+
   bool _saving = false;
   bool _loading = true;
   String? _error;
@@ -33,6 +49,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _uid;
   String? _userKey;
   String? _currentRole;
+  app_user.User? _currentUser;
+  String _selectedPaymentMethod = 'Easypaisa';
 
   final _userDao = UserDao();
 
@@ -40,6 +58,27 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _loadUser();
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _newPassCtrl.dispose();
+    _nameCtrl.dispose();
+    _fullNameCtrl.dispose();
+    _addressLine1Ctrl.dispose();
+    _addressLine2Ctrl.dispose();
+    _cityCtrl.dispose();
+    _stateCtrl.dispose();
+    _zipCodeCtrl.dispose();
+    _countryCtrl.dispose();
+    _phoneCtrl.dispose();
+    _shippingEmailCtrl.dispose();
+    _paymentMethodCtrl.dispose();
+    _easypaisaNumberCtrl.dispose();
+    _bankNameCtrl.dispose();
+    _accountNumberCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -57,10 +96,36 @@ class _ProfilePageState extends State<ProfilePage> {
       if (snapshot.exists && snapshot.children.isNotEmpty) {
         final snap = snapshot.children.first;
         final u = app_user.User.fromJson(snap.value as Map<dynamic, dynamic>);
-       
+        _currentUser = u;
         _currentRole = u.role;
         _nameCtrl.text = u.displayname;
         _userKey = snap.key;
+
+        // Load shipping info
+        if (u.shippingInfo != null) {
+          _fullNameCtrl.text = u.shippingInfo!.fullName;
+          _addressLine1Ctrl.text = u.shippingInfo!.addressLine1;
+          _addressLine2Ctrl.text = u.shippingInfo!.addressLine2 ?? '';
+          _cityCtrl.text = u.shippingInfo!.city;
+          _stateCtrl.text = u.shippingInfo!.state;
+          _zipCodeCtrl.text = u.shippingInfo!.zipCode;
+          _countryCtrl.text = u.shippingInfo!.country;
+          _phoneCtrl.text = u.shippingInfo!.phone;
+          _shippingEmailCtrl.text = u.shippingInfo!.email ?? '';
+        }
+
+        // Load payment info
+        if (u.paymentInfo != null) {
+          _easypaisaNumberCtrl.text = u.paymentInfo!.easypaisaNumber ?? '';
+          _bankNameCtrl.text = u.paymentInfo!.bankName ?? '';
+          _accountNumberCtrl.text = u.paymentInfo!.accountNumber ?? '';
+          // Only set to valid dropdown values
+          if (u.paymentMethod == 'Easypaisa' || u.paymentMethod == 'Bank Transfer') {
+            _selectedPaymentMethod = u.paymentMethod!;
+          } else {
+            _selectedPaymentMethod = 'Easypaisa';
+          }
+        }
       }
     } catch (e) {
       _error = "Failed to load user: $e";
@@ -73,8 +138,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate() ||
+  Future<void> _saveComprehensiveProfile() async {
+    if (!_comprehensiveFormKey.currentState!.validate() ||
         _uid == null ||
         _userKey == null) {
       return;
@@ -84,18 +149,68 @@ class _ProfilePageState extends State<ProfilePage> {
       _error = null;
     });
     try {
+      // Create shipping info
+      final shippingInfo = app_user.ShippingInfo(
+        fullName: _fullNameCtrl.text,
+        addressLine1: _addressLine1Ctrl.text,
+        addressLine2: _addressLine2Ctrl.text.isNotEmpty ? _addressLine2Ctrl.text : null,
+        city: _cityCtrl.text,
+        state: _stateCtrl.text,
+        zipCode: _zipCodeCtrl.text,
+        country: _countryCtrl.text,
+        phone: _phoneCtrl.text,
+        email: _shippingEmailCtrl.text.isNotEmpty ? _shippingEmailCtrl.text : null,
+      );
+
+      // Create payment info based on selected method
+      app_user.PaymentInfo? paymentInfo;
+      String paymentMethodDisplay = _selectedPaymentMethod;
+
+      switch (_selectedPaymentMethod) {
+        case 'Easypaisa':
+          if (_easypaisaNumberCtrl.text.isNotEmpty) {
+            paymentInfo = app_user.PaymentInfo(
+              easypaisaNumber: _easypaisaNumberCtrl.text,
+            );
+            paymentMethodDisplay = 'Easypaisa •••• ${_easypaisaNumberCtrl.text.substring(_easypaisaNumberCtrl.text.length - 4)}';
+          }
+          break;
+        case 'Bank Transfer':
+          if (_bankNameCtrl.text.isNotEmpty && _accountNumberCtrl.text.isNotEmpty) {
+            paymentInfo = app_user.PaymentInfo(
+              bankName: _bankNameCtrl.text,
+              accountNumber: _accountNumberCtrl.text,
+            );
+            paymentMethodDisplay = '${_bankNameCtrl.text} •••• ${_accountNumberCtrl.text.substring(_accountNumberCtrl.text.length - 4)}';
+          }
+          break;
+      }
+
+      // Update user with comprehensive information
       _userDao.updateUser(
         _userKey!,
         app_user.User(
           uuid: _uid!,
           role: _currentRole ?? 'user',
           displayname: _nameCtrl.text,
+          shippingInfo: shippingInfo,
+          paymentInfo: paymentInfo,
+          paymentMethod: paymentMethodDisplay,
         ),
       );
+      
+      setState(() {
+        _currentUser = _currentUser?.copyWith(
+          shippingInfo: shippingInfo,
+          paymentInfo: paymentInfo,
+          paymentMethod: paymentMethodDisplay,
+        );
+      });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Profile updated'),
+            content: Text('Profile information updated successfully'),
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
@@ -105,7 +220,7 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     } catch (e) {
       setState(() {
-        _error = "Failed to save: $e";
+        _error = "Failed to save profile: $e";
       });
     } finally {
       setState(() {
@@ -267,7 +382,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           _buildProfileHeader(),
                           SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
-                          _buildProfileForm(),
+                          _buildComprehensiveProfileForm(),
                           SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
                           _buildAccountActions(),
                         ],
@@ -344,23 +459,34 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileForm() {
+  Widget _buildComprehensiveProfileForm() {
     return Card(
       child: Padding(
         padding: ResponsiveHelper.getAdaptivePadding(context),
         child: Form(
-          key: _formKey,
+          key: _comprehensiveFormKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Profile Information',
+                'Complete Profile Information',
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getSubtitleFontSize(context),
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              
+              // Basic Profile Information
+              Text(
+                'Basic Information',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
               TextFormField(
                 controller: _nameCtrl,
                 decoration: InputDecoration(
@@ -398,20 +524,359 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 validator: validateEmail,
               ),
+              SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+              
+              // Shipping Information
+              Text(
+                'Shipping Information',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              TextFormField(
+                controller: _fullNameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+                validator: validateName,
+              ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextFormField(
+                controller: _addressLine1Ctrl,
+                decoration: InputDecoration(
+                  labelText: 'Address Line 1',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+                validator: validateAddressLine1,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextFormField(
+                controller: _addressLine2Ctrl,
+                decoration: InputDecoration(
+                  labelText: 'Address Line 2 (Optional)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _cityCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'City',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: validateCity,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stateCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'State',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: validateState,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _zipCodeCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Zip Code',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: validateZipCode,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _countryCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Country',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: validateCountry,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _phoneCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                      validator: validatePhone,
+                    ),
+                  ),
+                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _shippingEmailCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Shipping Email (Optional)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                          ),
+                        ),
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+              
+              // Payment Information
+              Text(
+                'Payment Information',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+              
+              // Payment Method Selection
+              DropdownButtonFormField<String>(
+                value: _selectedPaymentMethod,
+                decoration: InputDecoration(
+                  labelText: 'Payment Method',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                    ),
+                  ),
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Easypaisa',
+                  'Bank Transfer',
+                ].map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedPaymentMethod = newValue!;
+                  });
+                },
+                validator: validatePaymentMethod,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              
+              // Conditional Payment Fields
+              if (_selectedPaymentMethod == 'Easypaisa') ...[
+                TextFormField(
+                  controller: _easypaisaNumberCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Easypaisa Number',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                      ),
+                    ),
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                  validator: validatePhone,
+                ),
+              ] else if (_selectedPaymentMethod == 'Bank Transfer') ...[
+                TextFormField(
+                  controller: _bankNameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Bank Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                      ),
+                    ),
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                  validator: validateName,
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: _accountNumberCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Account Number',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                      ),
+                    ),
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return "Account number is required";
+                    final regExp = RegExp(r'^\d+$');
+                    return regExp.hasMatch(value) ? null : "Please enter a valid account number";
+                  },
+                ),
+              ],
+              
+              SizedBox(height: ResponsiveHelper.getSectionSpacing(context)),
+              
+              // Save Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveProfile,
+                child: ElevatedButton.icon(
+                  onPressed: _saving ? null : _saveComprehensiveProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
                     padding: ResponsiveHelper.getAdaptivePadding(context),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                      ),
+                    ),
                   ),
-                  child: Text(
-                    _saving ? 'Saving...' : 'Save Profile',
+                  icon: _saving 
+                    ? SizedBox(
+                        width: ResponsiveHelper.getAdaptiveIconSize(context),
+                        height: ResponsiveHelper.getAdaptiveIconSize(context),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Icon(
+                        Icons.save,
+                        size: ResponsiveHelper.getAdaptiveIconSize(context),
+                      ),
+                  label: Text(
+                    _saving ? 'Saving...' : 'Save Complete Profile',
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

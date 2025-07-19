@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io' show File;
+import 'package:living/models/gallery_item_model.dart';
+import 'package:living/services/gallery_service.dart';
 /// GalleryPage displays a gallery of community images, using responsive and theme-driven design.
 class GalleryPage extends StatefulWidget {
   const GalleryPage({super.key});
@@ -19,51 +21,27 @@ class _GalleryPageState extends State<GalleryPage> {
   String selectedCategory = 'All';
   List<String> categories = ['All', 'Nature', 'Sustainability', 'Community', 'Events'];
 
-  // Sample gallery items (start with some demo data)
-  List<Map<String, dynamic>> galleryItems = [
-    {
-      'id': '1',
-      'title': 'Community Garden',
-      'description': 'Our local community garden thriving with organic vegetables',
-      'imageUrl': 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80',
-      'category': 'Community',
-      'likes': 24,
-      'comments': 8,
-    },
-    {
-      'id': '2',
-      'title': 'Solar Panel Installation',
-      'description': 'New solar panels installed at the community center',
-      'imageUrl': 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=600&q=80',
-      'category': 'Sustainability',
-      'likes': 31,
-      'comments': 12,
-    },
-    {
-      'id': '3',
-      'title': 'Beach Cleanup',
-      'description': 'Volunteers cleaning up the local beach',
-      'imageUrl': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
-      'category': 'Events',
-      'likes': 45,
-      'comments': 15,
-    },
-    {
-      'id': '4',
-      'title': 'Urban Forest',
-      'description': 'New trees planted in the city center',
-      'imageUrl': 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=600&q=80',
-      'category': 'Nature',
-      'likes': 28,
-      'comments': 6,
-    },
-  ];
+  List<GalleryItem> galleryItems = [];
+  final GalleryService _galleryService = GalleryService();
 
-  List<Map<String, dynamic>> get filteredItems {
+  @override
+  void initState() {
+    super.initState();
+    _loadGalleryItems();
+  }
+
+  Future<void> _loadGalleryItems() async {
+    final items = await _galleryService.getGalleryItems();
+    setState(() {
+      galleryItems = items;
+    });
+  }
+
+  List<GalleryItem> get filteredItems {
     if (selectedCategory == 'All') {
       return galleryItems;
     }
-    return galleryItems.where((item) => item['category'] == selectedCategory).toList();
+    return galleryItems.where((item) => item.category == selectedCategory).toList();
   }
 
   final ImagePicker _picker = ImagePicker();
@@ -174,7 +152,7 @@ class _GalleryPageState extends State<GalleryPage> {
     );
   }
 
-  Widget _buildGalleryItem(Map<String, dynamic> item) {
+  Widget _buildGalleryItem(GalleryItem item) {
     return Card(
       elevation: 8,
       shape: RoundedRectangleBorder(
@@ -192,19 +170,19 @@ class _GalleryPageState extends State<GalleryPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-                    child: item['isWebMemory'] == true && item['webImageBytes'] != null
+                    child: item.isWebMemory && item.webImageBytes != null
                         ? Image.memory(
-                            item['webImageBytes'],
+                            item.webImageBytes!,
                             width: double.infinity,
                             fit: BoxFit.cover,
                           )
-                        : item['isLocal'] == true && !kIsWeb
+                        : item.isLocal && !kIsWeb
                             ? Image.file(
-                                File(item['imageUrl']),
+                                File(item.imageUrl),
                                 width: double.infinity,
                                 fit: BoxFit.cover,
                               )
-                            : item['isLocal'] == true && kIsWeb
+                            : item.isLocal && kIsWeb
                                 ? Container(
                                     color: AppColors.borderLight,
                                     child: Center(
@@ -215,7 +193,7 @@ class _GalleryPageState extends State<GalleryPage> {
                                     ),
                                   )
                                 : Image.network(
-                                    item['imageUrl'],
+                                    item.imageUrl,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
                                     loadingBuilder: (context, child, loadingProgress) {
@@ -262,7 +240,7 @@ class _GalleryPageState extends State<GalleryPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item['title'],
+                    item.title,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
                       fontWeight: FontWeight.bold,
@@ -272,7 +250,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    item['description'],
+                    item.description,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
                       color: AppColors.secondaryText,
@@ -288,7 +266,7 @@ class _GalleryPageState extends State<GalleryPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      item['category'],
+                      item.category,
                       style: TextStyle(
                         color: AppColors.success,
                         fontSize: 11,
@@ -305,16 +283,24 @@ class _GalleryPageState extends State<GalleryPage> {
     );
   }
 
-  void _showPhotoDetail(Map<String, dynamic> item) {
+  void _showPhotoDetail(GalleryItem item) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          item['title'],
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Icon(Icons.photo, color: AppColors.success),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                item.title,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -334,17 +320,17 @@ class _GalleryPageState extends State<GalleryPage> {
                   borderRadius: BorderRadius.circular(
                     ResponsiveHelper.getAdaptiveBorderRadius(context),
                   ),
-                  child: item['isWebMemory'] == true && item['webImageBytes'] != null
+                  child: item.isWebMemory && item.webImageBytes != null
                       ? Image.memory(
-                          item['webImageBytes'],
+                          item.webImageBytes!,
                           fit: BoxFit.cover,
                         )
-                      : item['isLocal'] == true && !kIsWeb
+                      : item.isLocal && !kIsWeb
                           ? Image.file(
-                              File(item['imageUrl']),
+                              File(item.imageUrl),
                               fit: BoxFit.cover,
                             )
-                          : item['isLocal'] == true && kIsWeb
+                          : item.isLocal && kIsWeb
                               ? Center(
                                   child: Text(
                                     'Local images not supported on Web',
@@ -352,7 +338,7 @@ class _GalleryPageState extends State<GalleryPage> {
                                   ),
                                 )
                               : Image.network(
-                                  item['imageUrl'],
+                                  item.imageUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Icon(
@@ -366,7 +352,7 @@ class _GalleryPageState extends State<GalleryPage> {
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               Text(
-                item['description'],
+                item.description,
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   color: AppColors.secondaryText,
@@ -382,7 +368,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                   Text(
-                    '${item['likes']} likes',
+                    '${item.likes} likes',
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                       color: AppColors.secondaryText,
@@ -396,7 +382,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                   Text(
-                    '${item['comments']} comments',
+                    '${item.comments} comments',
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                       color: AppColors.secondaryText,
@@ -431,6 +417,7 @@ class _GalleryPageState extends State<GalleryPage> {
     ValueNotifier<bool> isValidUrl = ValueNotifier(true);
     ValueNotifier<XFile?> pickedImage = ValueNotifier<XFile?>(null);
     ValueNotifier<Uint8List?> pickedWebImageBytes = ValueNotifier<Uint8List?>(null);
+    ValueNotifier<bool> isLoading = ValueNotifier(false);
 
     Future<void> pickImage() async {
       if (kIsWeb) {
@@ -455,16 +442,24 @@ class _GalleryPageState extends State<GalleryPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Add Photo to Gallery',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.add_a_photo, color: AppColors.success),
+            SizedBox(width: 8),
+            Text(
+              'Add Photo to Gallery',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 controller: titleController,
@@ -473,6 +468,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   labelStyle: TextStyle(
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   ),
+                  border: OutlineInputBorder(),
                 ),
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
@@ -483,6 +479,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   labelStyle: TextStyle(
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   ),
+                  border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
               ),
@@ -494,6 +491,7 @@ class _GalleryPageState extends State<GalleryPage> {
                   labelStyle: TextStyle(
                     fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                   ),
+                  border: OutlineInputBorder(),
                 ),
                 items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
                   value: category,
@@ -520,6 +518,7 @@ class _GalleryPageState extends State<GalleryPage> {
                           fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                         ),
                         errorText: isValidUrl.value ? null : 'Invalid image URL',
+                        border: OutlineInputBorder(),
                       ),
                       onChanged: (val) {
                         imagePreviewUrl.value = val;
@@ -530,10 +529,12 @@ class _GalleryPageState extends State<GalleryPage> {
                     ),
                   ),
                   SizedBox(width: 8),
-                  IconButton(
-                    icon: Icon(Icons.photo_library, color: AppColors.success),
-                    tooltip: 'Pick from device',
-                    onPressed: pickImage,
+                  Tooltip(
+                    message: 'Pick from device',
+                    child: IconButton(
+                      icon: Icon(Icons.photo_library, color: AppColors.success),
+                      onPressed: pickImage,
+                    ),
                   ),
                 ],
               ),
@@ -642,51 +643,66 @@ class _GalleryPageState extends State<GalleryPage> {
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              if (titleController.text.trim().isEmpty ||
-                  descriptionController.text.trim().isEmpty ||
-                  (pickedImage.value == null && pickedWebImageBytes.value == null && (imageUrlController.text.trim().isEmpty || !isValidUrl.value))) {
-                isValidUrl.value = false;
-                return;
-              }
-              setState(() {
-                galleryItems.insert(0, {
-                  'id': DateTime.now().millisecondsSinceEpoch.toString(),
-                  'title': titleController.text.trim(),
-                  'description': descriptionController.text.trim(),
-                  'imageUrl': pickedImage.value != null ? pickedImage.value!.path : imageUrlController.text.trim(),
-                  'webImageBytes': pickedWebImageBytes.value,
-                  'category': selectedCategory,
-                  'likes': 0,
-                  'comments': 0,
-                  'isLocal': pickedImage.value != null || pickedWebImageBytes.value != null,
-                  'isWebMemory': pickedWebImageBytes.value != null,
-                });
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Photo added successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                    ),
-                  ),
+          ValueListenableBuilder<bool>(
+            valueListenable: isLoading,
+            builder: (context, loading, _) {
+              return ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        if (titleController.text.trim().isEmpty ||
+                            descriptionController.text.trim().isEmpty ||
+                            (pickedImage.value == null && pickedWebImageBytes.value == null && (imageUrlController.text.trim().isEmpty || !isValidUrl.value))) {
+                          isValidUrl.value = false;
+                          return;
+                        }
+                        isLoading.value = true;
+                        final newItem = GalleryItem(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          title: titleController.text.trim(),
+                          description: descriptionController.text.trim(),
+                          imageUrl: pickedImage.value != null ? pickedImage.value!.path : imageUrlController.text.trim(),
+                          webImageBytes: pickedWebImageBytes.value,
+                          category: selectedCategory,
+                          likes: 0,
+                          comments: 0,
+                          isLocal: pickedImage.value != null || pickedWebImageBytes.value != null,
+                          isWebMemory: pickedWebImageBytes.value != null,
+                        );
+                        await _galleryService.addGalleryItem(newItem);
+                        await _loadGalleryItems();
+                        isLoading.value = false;
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Photo added successfully!',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              ),
+                            ),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.success,
                 ),
+                child: loading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                      )
+                    : Text(
+                        'Add Photo',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
-            child: Text(
-              'Add Photo',
-              style: TextStyle(
-                color: AppColors.white,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              ),
-            ),
           ),
         ],
       ),

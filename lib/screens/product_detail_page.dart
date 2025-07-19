@@ -29,6 +29,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final _reviewCtrl = TextEditingController();
   int _rating = 0;
   bool _loading = false;
+  int _quantity = 1;
 
   User? get _user => AuthService().currentUser;
 
@@ -243,40 +244,145 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                             Row(
                               children: [
+                                Text(
+                                  'Quantity:',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                                 IconButton(
-                                  icon: const Icon(Icons.shopping_cart),
-                                  tooltip: 'Add to Cart',
-                                  onPressed:
-                                      _user == null
-                                          ? null
-                                          : () async {
+                                  icon: Icon(
+                                    Icons.remove_circle_outline,
+                                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                    color: _quantity > 1 ? AppColors.primary : AppColors.mutedText,
+                                  ),
+                                  onPressed: _quantity > 1 ? () {
+                                    setState(() {
+                                      _quantity--;
+                                    });
+                                  } : null,
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+                                  ),
+                                  child: Text(
+                                    '$_quantity',
+                                    style: TextStyle(
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.add_circle_outline,
+                                    size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                    color: AppColors.primary,
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _quantity++;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: ElevatedButton.icon(
+                                    onPressed: _user == null ? null : () async {
+                                      setState(() {
+                                        _loading = true;
+                                      });
+                                      try {
                                             final userId = _user!.uid;
                                             await CartDao().addToCart(
                                               userId,
                                               product,
-                                              1,
+                                          _quantity,
                                               widget.productKey,
                                             );
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                          ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
                                                   content: Text(
-                                                    'Added to cart',
-                                                  ),
+                                                'Added $_quantity ${_quantity == 1 ? 'item' : 'items'} to cart',
+                                                style: TextStyle(
+                                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                                                 ),
-                                              );
-                                            }
-                                          },
+                                              ),
+                                              backgroundColor: AppColors.success,
+                                              action: SnackBarAction(
+                                                label: 'View Cart',
+                                                textColor: Colors.white,
+                                                onPressed: () {
+                                                  Navigator.pushNamed(context, '/cart');
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'Failed to add to cart: $e',
+                                                style: TextStyle(
+                                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                                ),
+                                              ),
+                                              backgroundColor: AppColors.error,
+                                            ),
+                                          );
+                                        }
+                                      } finally {
+                                        setState(() {
+                                          _loading = false;
+                                        });
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      padding: ResponsiveHelper.getAdaptivePadding(context),
+                                    ),
+                                    icon: _loading 
+                                      ? SizedBox(
+                                          width: ResponsiveHelper.getAdaptiveIconSize(context),
+                                          height: ResponsiveHelper.getAdaptiveIconSize(context),
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.shopping_cart,
+                                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                                        ),
+                                    label: Text(
+                                      _loading ? 'Adding...' : 'Add to Cart',
+                                      style: TextStyle(
+                                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                                SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
                                 IconButton(
-                                  icon: const Icon(Icons.favorite_border),
-                                  tooltip: 'Add to Wishlist',
-                                  onPressed:
-                                      _user == null
-                                          ? null
-                                          : () async {
+                                  icon: Icon(
+                                    Icons.favorite_border,
+                                    size: ResponsiveHelper.getAdaptiveIconSize(context) * 1.2,
+                                    color: AppColors.error,
+                                  ),
+                                  onPressed: _user == null ? null : () async {
+                                    try {
                                             final userId = _user!.uid;
                                             await WishDao().addToWishList(
                                               userId,
@@ -284,17 +390,35 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               widget.productKey,
                                             );
                                             if (context.mounted) {
-                                              ScaffoldMessenger.of(
-                                                context,
-                                              ).showSnackBar(
+                                        ScaffoldMessenger.of(context).showSnackBar(
                                                 SnackBar(
                                                   content: Text(
                                                     'Added to wishlist',
-                                                  ),
+                                              style: TextStyle(
+                                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                              ),
+                                            ),
+                                            backgroundColor: AppColors.success,
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Failed to add to wishlist: $e',
+                                              style: TextStyle(
+                                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                                              ),
+                                            ),
+                                            backgroundColor: AppColors.error,
                                                 ),
                                               );
                                             }
-                                          },
+                                    }
+                                  },
+                                  tooltip: 'Add to Wishlist',
                                 ),
                               ],
                             ),

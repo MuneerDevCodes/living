@@ -49,7 +49,13 @@ class _OrderPageState extends State<OrderPage> {
       final updatedOrder = Order(
         userId: order.userId,
         items: updatedItems,
+        subtotal: order.subtotal,
+        shippingCost: order.shippingCost,
         totalAmount: order.totalAmount,
+        shippingAddress: order.shippingAddress,
+        paymentMethod: order.paymentMethod,
+        status: order.status,
+        createdAt: order.createdAt,
       );
       orderDao.updateOrder(key, updatedOrder);
       setState(() {});
@@ -82,6 +88,78 @@ class _OrderPageState extends State<OrderPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Order #${order.id ?? orderKey.substring(0, 8)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    color: AppColors.primary,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                    vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(order.status),
+                    borderRadius: BorderRadius.circular(
+                      ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
+                    ),
+                  ),
+                  child: Text(
+                    order.status.toString().split('.').last.toUpperCase(),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Order Date: ${DateTime.fromMillisecondsSinceEpoch(order.createdAt).toLocal().toString().split(' ')[0]}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: AppColors.secondaryText,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Text(
+              'Shipping Address:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            Text(
+              order.shippingAddress,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: AppColors.secondaryText,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Text(
+              'Payment Method:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            Text(
+              order.paymentMethod,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                color: AppColors.secondaryText,
+              ),
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             Text(
               'Items:',
               style: TextStyle(
@@ -147,7 +225,8 @@ class _OrderPageState extends State<OrderPage> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      subtitle: Row(
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Quantity: ${orderItem.quantity}',
@@ -156,10 +235,18 @@ class _OrderPageState extends State<OrderPage> {
                               color: AppColors.secondaryText,
                             ),
                           ),
-                          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
                           Text(
-                            'Status: ${orderItem.status.toString().split('.').last}',
+                            'Price: \$${orderItem.price.toStringAsFixed(2)}',
                             style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              color: AppColors.secondaryText,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                'Status: ${orderItem.status.toString().split('.').last}',
+                                style: TextStyle(
                               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
                               color: AppColors.secondaryText,
                             ),
@@ -173,6 +260,8 @@ class _OrderPageState extends State<OrderPage> {
                               ),
                               onPressed: () => _cancelOrder(orderKey, order, itemKey),
                               tooltip: 'Cancel Order',
+                                ),
+                            ],
                             ),
                         ],
                       ),
@@ -181,19 +270,109 @@ class _OrderPageState extends State<OrderPage> {
                 );
               },
             ),
-            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            Container(
+              padding: ResponsiveHelper.getAdaptivePadding(context),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(
+                  ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.6,
+                ),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Order Summary',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Subtotal:',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      Text(
+                        '\$${order.subtotal.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Shipping:',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                      Text(
+                        '\$${order.shippingCost.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Divider(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                      ),
             Text(
-              'Total: \$${order.totalAmount.toStringAsFixed(2)}',
+                        '\$${order.totalAmount.toStringAsFixed(2)}',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                 color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(OrderStatus status) {
+    switch (status) {
+      case OrderStatus.pending:
+        return AppColors.warning;
+      case OrderStatus.processing:
+        return AppColors.info;
+      case OrderStatus.shipped:
+        return AppColors.primary;
+      case OrderStatus.delivered:
+        return AppColors.success;
+      case OrderStatus.canceled:
+        return AppColors.error;
+      default:
+        return AppColors.secondaryText;
+    }
   }
 
   @override

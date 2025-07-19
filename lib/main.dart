@@ -31,10 +31,13 @@ class MyApp extends StatelessWidget {
       home: const AppInitializer(),
       onGenerateRoute: guardedRoute,
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => ScrollConfiguration(
+      navigatorKey: GlobalKey<NavigatorState>(),
+      builder: (context, child) {
+        return ScrollConfiguration(
         behavior: NoScrollbarBehavior(),
         child: child!,
-      ),
+        );
+      },
     );
   }
 }

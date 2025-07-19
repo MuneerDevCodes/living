@@ -8,6 +8,7 @@ import '../widgets/loader.dart';
 import '../style/responsive_helper.dart';
 import '../style/theme.dart';
 import 'package:living/services/validate.dart';
+import 'package:living/screens/search_page.dart';
 
 /// ManageCategoryPage allows admins to manage product categories, using responsive and theme-driven design.
 class ManageCategoryPage extends StatefulWidget {
@@ -52,11 +53,90 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
     }
     _nameCtrl.clear();
     setState(() => _editingId = null);
+    
+    // Show success message
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            id == null ? 'Category added successfully!' : 'Category updated successfully!',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            ),
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _delete(String id) async {
     if (!_isAdmin) return;
-    await FirebaseDatabase.instance.ref('categories/$id').remove();
+    
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Delete Category',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete this category? This action cannot be undone.',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      await FirebaseDatabase.instance.ref('categories/$id').remove();
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Category deleted successfully!',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+            backgroundColor: AppColors.success,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _edit(Category cat) {
@@ -90,6 +170,9 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
                     _buildFormSection(),
                     SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                   ],
+                  // Add navigation to search page
+                  _buildNavigationSection(),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
                   Expanded(
                     child: _buildCategoriesList(),
                   ),
@@ -181,6 +264,62 @@ class _ManageCategoryPageState extends State<ManageCategoryPage> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavigationSection() {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(
+          ResponsiveHelper.getAdaptiveBorderRadius(context),
+        ),
+      ),
+      child: Padding(
+        padding: ResponsiveHelper.getCardPadding(context),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search,
+              color: AppColors.primary,
+              size: ResponsiveHelper.getAdaptiveIconSize(context),
+            ),
+            SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            Expanded(
+              child: Text(
+                'Test your categories in the search page',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.primaryText,
+                ),
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SearchPage(),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.arrow_forward,
+                size: ResponsiveHelper.getAdaptiveIconSize(context) * 0.8,
+              ),
+              label: Text(
+                'Go to Search',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: ResponsiveHelper.getAdaptivePadding(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
