@@ -1,6 +1,7 @@
 import 'package:living/models/carbon_footprint_model.dart';
 import 'package:living/services/carbon_footprint_dao.dart';
 import 'package:living/services/carbon_calculator_service.dart';
+import 'package:intl/intl.dart';
 
 class CarbonInsightsService {
   // Achievement system
@@ -79,7 +80,7 @@ class CarbonInsightsService {
     ),
   ];
 
-  // Get user insights
+  // Get user insights with enhanced achievement progress
   static Future<CarbonInsights> getUserInsights(String userId) async {
     try {
       final entries = await CarbonFootprintDAO.getUserEntries(userId);
@@ -100,6 +101,7 @@ class CarbonInsightsService {
             bestCategory: '',
             improvementPercentage: 0.0,
           ),
+          achievementProgress: _calculateAchievementProgress(entries, goals, analytics),
         );
       }
 
@@ -107,6 +109,7 @@ class CarbonInsightsService {
       final recommendations = _generateRecommendations(entries, analytics);
       final insights = _generateInsights(entries, analytics);
       final socialStats = _calculateSocialStats(entries, analytics);
+      final achievementProgress = _calculateAchievementProgress(entries, goals, analytics);
 
       return CarbonInsights(
         userId: userId,
@@ -116,6 +119,7 @@ class CarbonInsightsService {
         recommendations: recommendations,
         insights: insights,
         socialStats: socialStats,
+        achievementProgress: achievementProgress,
       );
     } catch (e) {
       throw Exception('Failed to generate insights: $e');
@@ -146,9 +150,10 @@ class CarbonInsightsService {
       userAchievements.add(achievements.firstWhere((a) => a.id == 'goal_achiever'));
     }
 
-    // Category explorer achievement
-    final categories = entries.map((e) => e.category).toSet().length;
-    if (categories >= 6) {
+    // Category explorer achievement - Check for all 6 categories
+    final categories = entries.map((e) => e.category).toSet();
+    final requiredCategories = {'Transportation', 'Energy', 'Food', 'Waste', 'Water', 'Digital'};
+    if (categories.length >= 6 && requiredCategories.every((cat) => categories.contains(cat))) {
       userAchievements.add(achievements.firstWhere((a) => a.id == 'category_explorer'));
     }
 
@@ -367,6 +372,224 @@ class CarbonInsightsService {
     return 1;
   }
 
+  // Calculate detailed achievement progress for each achievement
+  static Map<String, AchievementProgress> _calculateAchievementProgress(
+    List<CarbonFootprintEntry> entries,
+    List<CarbonGoal> goals,
+    CarbonAnalytics? analytics,
+  ) {
+    final progress = <String, AchievementProgress>{};
+
+    // First entry achievement progress
+    progress['first_entry'] = AchievementProgress(
+      current: entries.isNotEmpty ? 1 : 0,
+      required: 1,
+      isCompleted: entries.isNotEmpty,
+      description: entries.isNotEmpty 
+          ? 'Completed! You logged your first activity on ${DateFormat('MMM d').format(entries.first.date)}'
+          : 'Log your first carbon activity to earn this achievement',
+    );
+
+    // Goal setter achievement progress
+    progress['goal_setter'] = AchievementProgress(
+      current: goals.length,
+      required: 1,
+      isCompleted: goals.isNotEmpty,
+      description: goals.isNotEmpty 
+          ? 'Completed! You set ${goals.length} goal${goals.length > 1 ? 's' : ''}'
+          : 'Set your first carbon reduction goal',
+    );
+
+    // Goal achiever achievement progress
+    final completedGoals = goals.where((g) => g.status == 'completed').length;
+    progress['goal_achiever'] = AchievementProgress(
+      current: completedGoals,
+      required: 1,
+      isCompleted: completedGoals >= 1,
+      description: completedGoals >= 1 
+          ? 'Completed! You achieved ${completedGoals} goal${completedGoals > 1 ? 's' : ''}'
+          : 'Complete your first carbon reduction goal',
+    );
+
+    // Category explorer achievement progress
+    final categories = entries.map((e) => e.category).toSet();
+    final requiredCategories = {'Transportation', 'Energy', 'Food', 'Waste', 'Water', 'Digital'};
+    final exploredCategories = categories.intersection(requiredCategories);
+    progress['category_explorer'] = AchievementProgress(
+      current: exploredCategories.length,
+      required: 6,
+      isCompleted: exploredCategories.length >= 6,
+      description: exploredCategories.length >= 6 
+          ? 'Completed! You explored all ${exploredCategories.length} categories'
+          : 'Explore ${6 - exploredCategories.length} more categories (${requiredCategories.difference(exploredCategories).join(', ')})',
+    );
+
+    // Low footprint achievement progress
+    if (analytics != null) {
+      final weeklyAverage = analytics.weeklyAverage;
+      final isLowFootprint = weeklyAverage <= 3.0;
+      progress['low_footprint'] = AchievementProgress(
+        current: isLowFootprint ? 1 : 0,
+        required: 1,
+        isCompleted: isLowFootprint,
+        description: isLowFootprint 
+            ? 'Completed! Your weekly average is ${weeklyAverage.toStringAsFixed(1)} kg CO2'
+            : 'Maintain daily footprint below 3 kg CO2 (current: ${weeklyAverage.toStringAsFixed(1)} kg)',
+      );
+    } else {
+      progress['low_footprint'] = AchievementProgress(
+        current: 0,
+        required: 1,
+        isCompleted: false,
+        description: 'Log more activities to track your footprint',
+      );
+    }
+
+    // Reduction master achievement progress
+    if (analytics != null) {
+      final reductionPercentage = analytics.reductionPercentage;
+      final isReductionMaster = reductionPercentage >= 50.0;
+      progress['reduction_master'] = AchievementProgress(
+        current: reductionPercentage.toInt(),
+        required: 50,
+        isCompleted: isReductionMaster,
+        description: isReductionMaster 
+            ? 'Completed! You reduced your footprint by ${reductionPercentage.toStringAsFixed(1)}%'
+            : 'Reduce your footprint by ${(50.0 - reductionPercentage).toStringAsFixed(1)}% more',
+      );
+    } else {
+      progress['reduction_master'] = AchievementProgress(
+        current: 0,
+        required: 50,
+        isCompleted: false,
+        description: 'Log more activities to track your reduction progress',
+      );
+    }
+
+    // Streak achievements
+    final streakDays = _calculateCurrentStreak(entries);
+    progress['week_streak'] = AchievementProgress(
+      current: streakDays,
+      required: 7,
+      isCompleted: streakDays >= 7,
+      description: streakDays >= 7 
+          ? 'Completed! You maintained a ${streakDays}-day streak'
+          : 'Maintain a 7-day streak (current: $streakDays days)',
+    );
+
+    progress['month_streak'] = AchievementProgress(
+      current: streakDays,
+      required: 30,
+      isCompleted: streakDays >= 30,
+      description: streakDays >= 30 
+          ? 'Completed! You maintained a ${streakDays}-day streak'
+          : 'Maintain a 30-day streak (current: $streakDays days)',
+    );
+
+    return progress;
+  }
+
+  // Calculate current streak
+  static int _calculateCurrentStreak(List<CarbonFootprintEntry> entries) {
+    if (entries.isEmpty) return 0;
+    
+    final sortedEntries = entries.toList()..sort((a, b) => b.date.compareTo(a.date));
+    final now = DateTime.now();
+    int streakDays = 0;
+    
+    // Start from today and work backwards
+    DateTime currentDate = DateTime(now.year, now.month, now.day);
+    
+    for (int day = 0; day < 365; day++) { // Check up to 1 year back
+      final checkDate = currentDate.subtract(Duration(days: day));
+      
+      // Check if there's an entry for this date
+      final hasEntryForDate = sortedEntries.any((entry) {
+        final entryDate = DateTime(entry.date.year, entry.date.month, entry.date.day);
+        return entryDate.isAtSameMomentAs(checkDate);
+      });
+      
+      if (hasEntryForDate) {
+        streakDays++;
+      } else {
+        break; // Streak broken
+      }
+    }
+    
+    return streakDays;
+  }
+
+  // Check for newly unlocked achievements
+  static List<CarbonAchievement> checkNewAchievements(
+    List<CarbonFootprintEntry> previousEntries,
+    List<CarbonGoal> previousGoals,
+    List<CarbonFootprintEntry> currentEntries,
+    List<CarbonGoal> currentGoals,
+    CarbonAnalytics? currentAnalytics,
+  ) {
+    final previousAchievements = _calculateAchievements(previousEntries, previousGoals, currentAnalytics ?? CarbonAnalytics(
+      totalFootprint: 0,
+      weeklyAverage: 0,
+      monthlyAverage: 0,
+      yearlyAverage: 0,
+      categoryBreakdown: {},
+      weeklyTrend: {},
+      monthlyTrend: {},
+      reductionPercentage: 0,
+      targetFootprint: 5.0,
+      rank: 'Beginner',
+      totalEntries: 0,
+    ));
+    
+    final currentAchievements = _calculateAchievements(currentEntries, currentGoals, currentAnalytics ?? CarbonAnalytics(
+      totalFootprint: 0,
+      weeklyAverage: 0,
+      monthlyAverage: 0,
+      yearlyAverage: 0,
+      categoryBreakdown: {},
+      weeklyTrend: {},
+      monthlyTrend: {},
+      reductionPercentage: 0,
+      targetFootprint: 5.0,
+      rank: 'Beginner',
+      totalEntries: 0,
+    ));
+    
+    // Find newly unlocked achievements
+    final newAchievements = <CarbonAchievement>[];
+    for (final achievement in currentAchievements) {
+      if (!previousAchievements.any((a) => a.id == achievement.id)) {
+        newAchievements.add(achievement);
+      }
+    }
+    
+    return newAchievements;
+  }
+
+  // Get achievement unlock message
+  static String getAchievementUnlockMessage(CarbonAchievement achievement) {
+    switch (achievement.id) {
+      case 'first_entry':
+        return '🎉 Welcome to your sustainability journey! You\'ve logged your first activity.';
+      case 'week_streak':
+        return '🔥 Amazing! You\'ve maintained a 7-day streak of logging activities.';
+      case 'month_streak':
+        return '🏆 Incredible dedication! You\'ve maintained a 30-day streak.';
+      case 'low_footprint':
+        return '🌍 Eco Hero! You\'re maintaining a low carbon footprint.';
+      case 'category_explorer':
+        return '🗺️ Explorer! You\'ve logged activities in all 6 categories.';
+      case 'goal_setter':
+        return '🎯 Goal Setter! You\'ve set your first carbon reduction goal.';
+      case 'goal_achiever':
+        return '✅ Goal Achiever! You\'ve completed your first carbon reduction goal.';
+      case 'reduction_master':
+        return '📉 Reduction Master! You\'ve reduced your footprint by 50%.';
+      default:
+        return '🎉 Achievement unlocked: ${achievement.title}';
+    }
+  }
+
   // Get leaderboard data (mock data for now)
   static List<CarbonLeaderboardEntry> getLeaderboard() {
     return [
@@ -522,6 +745,22 @@ class CarbonSocialStats {
   });
 }
 
+class AchievementProgress {
+  final int current;
+  final int required;
+  final bool isCompleted;
+  final String description;
+
+  AchievementProgress({
+    required this.current,
+    required this.required,
+    required this.isCompleted,
+    required this.description,
+  });
+
+  double get progressPercentage => required > 0 ? current / required : 0.0;
+}
+
 class CarbonInsights {
   final String userId;
   final int totalPoints;
@@ -530,6 +769,7 @@ class CarbonInsights {
   final List<CarbonRecommendation> recommendations;
   final List<CarbonInsight> insights;
   final CarbonSocialStats socialStats;
+  final Map<String, AchievementProgress> achievementProgress;
 
   CarbonInsights({
     required this.userId,
@@ -539,6 +779,7 @@ class CarbonInsights {
     required this.recommendations,
     required this.insights,
     required this.socialStats,
+    required this.achievementProgress,
   });
 }
 

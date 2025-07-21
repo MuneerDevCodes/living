@@ -21,9 +21,17 @@ class UserDao {
   }
 
   Future<User?> getUserById(String userId) async {
-    final snapshot = await _databaseRef.child(userId).get();
-    if (snapshot.exists) {
-      return User.fromJson(snapshot.value as Map<dynamic, dynamic>);
+    // Query for the user with matching uuid
+    final snapshot = await _databaseRef
+        .orderByChild('uuid')
+        .equalTo(userId)
+        .limitToFirst(1)
+        .get();
+    if (snapshot.exists && snapshot.children.isNotEmpty) {
+      final userData = snapshot.children.first.value as Map<dynamic, dynamic>?;
+      if (userData != null) {
+        return User.fromJson(userData);
+      }
     }
     return null;
   }

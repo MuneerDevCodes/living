@@ -159,7 +159,7 @@ class _AuthPageState extends State<AuthPage> {
           SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
           
           Text(
-            'Join our community and start your journey towards a more sustainable lifestyle. Track your carbon footprint, discover eco-friendly products, and connect with like-minded individuals.',
+            'Join our community and start your journey towards a more sustainable lifestyle.',
             style: TextStyle(
               fontSize: ResponsiveHelper.getBodyFontSize(context),
               color: AppColors.secondaryText,
@@ -177,11 +177,7 @@ class _AuthPageState extends State<AuthPage> {
 
   Widget _buildFeaturesList() {
     final features = [
-      {'icon': Icons.cloud, 'text': 'Track your carbon footprint'},
-      {'icon': Icons.emoji_events, 'text': 'Complete sustainability challenges'},
-      {'icon': Icons.recycling, 'text': 'Monitor waste reduction'},
-      {'icon': Icons.shopping_cart, 'text': 'Discover eco-friendly products'},
-      {'icon': Icons.forum, 'text': 'Connect with the community'},
+    
     ];
 
     return Column(

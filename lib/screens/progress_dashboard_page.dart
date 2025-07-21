@@ -6,8 +6,8 @@ import 'package:living/services/waste_tracker_dao.dart';
 import 'package:living/services/energy_tip_dao.dart';
 import 'package:living/services/challenge_dao.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:living/services/carbon_insights_service.dart';
 import 'package:living/widgets/loader.dart';
-import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
@@ -38,6 +38,12 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
   List<double> _carbonTrend = [];
   List<double> _wasteTrend = [];
   List<double> _energyTrend = [];
+  
+  // Achievement data
+  CarbonInsights? _carbonInsights;
+  List<CarbonAchievement> _userAchievements = [];
+  List<CarbonAchievement> _allAchievements = [];
+  Map<String, AchievementProgress> _achievementProgress = {};
 
   @override
   void initState() {
@@ -65,6 +71,7 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
         await _loadWasteReductionData();
         await _loadEnergySavingsData();
         await _loadChallengesData();
+        await _loadAchievementData();
       }
     } catch (e) {
       if (mounted) {
@@ -77,6 +84,23 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
       if (mounted) {
         setState(() => isLoading = false);
       }
+    }
+  }
+
+  // Load achievement data from carbon insights service
+  Future<void> _loadAchievementData() async {
+    try {
+      if (userId != null) {
+        _carbonInsights = await CarbonInsightsService.getUserInsights(userId!);
+        _userAchievements = _carbonInsights?.achievements ?? [];
+        _allAchievements = CarbonInsightsService.achievements;
+        _achievementProgress = _carbonInsights?.achievementProgress ?? {};
+      }
+    } catch (e) {
+      print('Error loading achievement data: $e');
+      _userAchievements = [];
+      _allAchievements = CarbonInsightsService.achievements;
+      _achievementProgress = {};
     }
   }
 
@@ -300,6 +324,8 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             _buildBadgeRow(),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+            _buildAchievementProgress(),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             _buildProgressChart(),
             SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
             _buildRecentProgress(),
@@ -354,97 +380,474 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
   }
 
   Widget _buildBadgeRow() {
-    // Example badge logic (replace with real logic as needed)
-    final badges = [
-      {
-        'label': 'First Goal',
-        'icon': Icons.flag,
-        'color': AppColors.success,
-        'earned': false,
-      },
-      {
-        'label': '10 Challenges',
-        'icon': Icons.emoji_events,
-        'color': AppColors.secondary,
-        'earned': totalChallengesCompleted >= 10,
-      },
-      {
-        'label': '100kg CO₂ Saved',
-        'icon': Icons.cloud_done,
-        'color': AppColors.info,
-        'earned': averageCarbonFootprint < 100 && progress.fold(0.0, (sum, p) => sum + p.carbonFootprint) >= 100,
-      },
-      {
-        'label': 'Energy Saver',
-        'icon': Icons.bolt,
-        'color': AppColors.warning,
-        'earned': averageEnergySavings > 0,
-      },
-      {
-        'label': 'Waste Warrior',
-        'icon': Icons.recycling,
-        'color': AppColors.success,
-        'earned': averageWasteReduction > 0,
-      },
-    ];
+    // Get the first 6 achievements to display (to prevent overflow)
+    final achievementsToShow = _allAchievements.take(6).toList();
+    final unlockedCount = _userAchievements.length;
+    final totalCount = _allAchievements.length;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 4.0, bottom: 6.0),
-          child: Text(
-            'Achievements',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Achievements',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+              Text(
+                '$unlockedCount/$totalCount',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                  color: AppColors.secondaryText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
-        SizedBox(
-          height: 80,
+        Container(
+          height: ResponsiveHelper.getAdaptiveSpacing(context) * 14, // Increased height for progress info
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: badges.length,
+            itemCount: achievementsToShow.length,
             separatorBuilder: (_, __) => SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
             itemBuilder: (context, i) {
-              final badge = badges[i];
-              final bool earned = badge['earned'] == true;
-              final Color color = badge['color'] as Color;
-              final IconData icon = badge['icon'] as IconData;
-              final String label = badge['label'] as String;
-              return Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: earned ? color : AppColors.borderLight,
-                      boxShadow: earned
-                          ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 8, offset: Offset(0, 4))]
-                          : [],
+              final achievement = achievementsToShow[i];
+              final isUnlocked = _userAchievements.any((a) => a.id == achievement.id);
+              final progress = _achievementProgress[achievement.id];
+              
+              return Container(
+                width: ResponsiveHelper.getAdaptiveSpacing(context) * 9, // Increased width
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Achievement icon with progress indicator
+                    GestureDetector(
+                      onTap: () => _showAchievementDetails(achievement),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isUnlocked ? _getAchievementColor(achievement.id) : AppColors.borderLight,
+                              boxShadow: isUnlocked
+                                  ? [BoxShadow(
+                                      color: _getAchievementColor(achievement.id).withOpacity(0.25), 
+                                      blurRadius: 8, 
+                                      offset: Offset(0, 4)
+                                    )]
+                                  : [],
+                            ),
+                            padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.2),
+                            child: Text(
+                              achievement.icon,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 20),
+                              ),
+                            ),
+                          ),
+                          // Progress indicator for incomplete achievements
+                          if (!isUnlocked && progress != null && progress.required > 1)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getAchievementColor(achievement.id),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${progress.current}',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 8),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 1.4),
-                    child: Icon(
-                      icon,
-                      color: earned ? Colors.white : Colors.grey[400],
-                      size: ResponsiveHelper.getAdaptiveIconSize(context) * 2.8,
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+                    Text(
+                      achievement.title,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
+                        color: isUnlocked ? AppColors.primaryText : Colors.grey[400],
+                        fontWeight: isUnlocked ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                      color: earned ? AppColors.primaryText : Colors.grey[400],
-                      fontWeight: earned ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                ],
+                    // Progress text for incomplete achievements
+                    if (!isUnlocked && progress != null) ...[
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                      Text(
+                        '${progress.current}/${progress.required}',
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 9),
+                          color: AppColors.secondaryText,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    if (isUnlocked) ...[
+                      SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+                          vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getAchievementColor(achievement.id).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '+${achievement.points}',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+                            color: _getAchievementColor(achievement.id),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               );
             },
           ),
         ),
+        if (achievementsToShow.length < _allAchievements.length) ...[
+          SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+          Center(
+            child: Text(
+              'Scroll to see more achievements',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
+                color: AppColors.secondaryText,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  // Helper method to get achievement colors
+  Color _getAchievementColor(String achievementId) {
+    switch (achievementId) {
+      case 'first_entry':
+        return AppColors.success;
+      case 'week_streak':
+        return AppColors.warning;
+      case 'month_streak':
+        return AppColors.secondary;
+      case 'low_footprint':
+        return AppColors.info;
+      case 'category_explorer':
+        return AppColors.primary;
+      case 'goal_setter':
+        return AppColors.success;
+      case 'goal_achiever':
+        return AppColors.warning;
+      case 'reduction_master':
+        return AppColors.secondary;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  // Build achievement progress section
+  Widget _buildAchievementProgress() {
+    final unlockedCount = _userAchievements.length;
+    final totalCount = _allAchievements.length;
+    final progressPercentage = totalCount > 0 ? unlockedCount / totalCount : 0.0;
+    final totalPoints = _userAchievements.fold(0, (sum, achievement) => sum + achievement.points);
+    
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: ResponsiveHelper.getAdaptivePadding(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Achievement Progress',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+                    vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$totalPoints pts',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+            LinearProgressIndicator(
+              value: progressPercentage,
+              backgroundColor: AppColors.borderLight,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.success),
+              minHeight: 8,
+            ),
+            SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$unlockedCount of $totalCount achievements unlocked',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+                Text(
+                  '${(progressPercentage * 100).toInt()}%',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.success,
+                  ),
+                ),
+              ],
+            ),
+            // Show next achievable achievements
+            if (_achievementProgress.isNotEmpty) ...[
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Next Achievements',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+              ..._allAchievements
+                  .where((achievement) => !_userAchievements.any((a) => a.id == achievement.id))
+                  .take(2)
+                  .map((achievement) => _buildNextAchievementItem(achievement)),
+            ],
+            if (_userAchievements.isNotEmpty) ...[
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Text(
+                'Recent Achievements',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+              ..._userAchievements.take(2).map((achievement) => _buildAchievementItem(achievement)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build individual achievement item
+  Widget _buildAchievementItem(CarbonAchievement achievement) {
+    return Container(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+      decoration: BoxDecoration(
+        color: _getAchievementColor(achievement.id).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _getAchievementColor(achievement.id).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            decoration: BoxDecoration(
+              color: _getAchievementColor(achievement.id),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              achievement.icon,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  achievement.title,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                Text(
+                  achievement.description,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
+                    color: AppColors.secondaryText,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+            ),
+            decoration: BoxDecoration(
+              color: _getAchievementColor(achievement.id),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '+${achievement.points}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Build next achievement item with progress
+  Widget _buildNextAchievementItem(CarbonAchievement achievement) {
+    final progress = _achievementProgress[achievement.id];
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+      padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+      decoration: BoxDecoration(
+        color: AppColors.borderLight.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.borderLight,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
+            decoration: BoxDecoration(
+              color: AppColors.borderLight,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              achievement.icon,
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+          SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  achievement.title,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+                if (progress != null) ...[
+                  Text(
+                    progress.description,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
+                      color: AppColors.secondaryText,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                  LinearProgressIndicator(
+                    value: progress.progressPercentage,
+                    backgroundColor: AppColors.borderLight,
+                    valueColor: AlwaysStoppedAnimation<Color>(_getAchievementColor(achievement.id)),
+                    minHeight: 4,
+                  ),
+                ] else ...[
+                  Text(
+                    achievement.description,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 11),
+                      color: AppColors.secondaryText,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4,
+              vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.borderLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '+${achievement.points}',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
+                fontWeight: FontWeight.bold,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -838,6 +1241,147 @@ class _ProgressDashboardPageState extends State<ProgressDashboardPage> {
           ),
         ),
       ],
+    );
+  }
+
+  // Show achievement details dialog
+  void _showAchievementDetails(CarbonAchievement achievement) {
+    final isUnlocked = _userAchievements.any((a) => a.id == achievement.id);
+    final progress = _achievementProgress[achievement.id];
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+                decoration: BoxDecoration(
+                  color: isUnlocked ? _getAchievementColor(achievement.id) : AppColors.borderLight,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  achievement.icon,
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6),
+              Expanded(
+                child: Text(
+                  achievement.title,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                achievement.description,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.secondaryText,
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              if (progress != null) ...[
+                if (!isUnlocked) ...[
+                  Text(
+                    'Progress: ${progress.current}/${progress.required}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  LinearProgressIndicator(
+                    value: progress.progressPercentage,
+                    backgroundColor: AppColors.borderLight,
+                    valueColor: AlwaysStoppedAnimation<Color>(_getAchievementColor(achievement.id)),
+                    minHeight: 6,
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                  Text(
+                    progress.description,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                      color: AppColors.secondaryText,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ] else ...[
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: AppColors.success, size: 16),
+                        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
+                        Text(
+                          'Achievement Unlocked!',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.6,
+                  vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
+                ),
+                decoration: BoxDecoration(
+                  color: _getAchievementColor(achievement.id).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Reward: +${achievement.points} points',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                    fontWeight: FontWeight.bold,
+                    color: _getAchievementColor(achievement.id),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 } 

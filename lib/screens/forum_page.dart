@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:living/models/forum_post_model.dart';
 import 'package:living/services/forum_post_dao.dart';
 import 'package:living/services/auth_helper.dart';
 import 'package:living/services/admin_service.dart';
+import 'package:living/services/performance_service.dart';
+import 'package:living/services/user_dao.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/alert_success.dart';
@@ -141,34 +144,37 @@ class _ForumPageState extends State<ForumPage> {
   Widget _buildCategoryFilter() {
     return Container(
       height: ResponsiveHelper.getScreenHeight(context) * 0.08,
-      padding: ResponsiveHelper.getVerticalPadding(context),
-      child: ListView.builder(
+      padding: EdgeInsets.symmetric(
+        vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5,
+        horizontal: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: ResponsiveHelper.getHorizontalPadding(context),
         itemCount: categories.length,
+        separatorBuilder: (_, __) => SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
         itemBuilder: (context, index) {
           final category = categories[index];
           final isSelected = category == selectedCategory;
-
-          return Container(
-            margin: EdgeInsets.only(right: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-            child: FilterChip(
-              label: Text(
-                category,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
+          return ChoiceChip(
+            label: Text(
+              category,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppColors.white : AppColors.primary,
               ),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  selectedCategory = category;
-                  _loadData(); // Reload data when category changes
-                });
-              },
-              selectedColor: AppColors.success,
-              checkmarkColor: AppColors.white,
             ),
+            selected: isSelected,
+            onSelected: (selected) {
+              setState(() {
+                selectedCategory = category;
+                _loadData();
+              });
+            },
+            selectedColor: AppColors.primary,
+            backgroundColor: AppColors.background,
+            elevation: isSelected ? 4 : 0,
+            shape: StadiumBorder(),
+            shadowColor: AppColors.primary.withOpacity(0.2),
           );
         },
       ),
@@ -179,34 +185,35 @@ class _ForumPageState extends State<ForumPage> {
     if (allTags.isEmpty) return SizedBox.shrink();
     return Container(
       height: 40,
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
+      padding: EdgeInsets.symmetric(horizontal: ResponsiveHelper.getAdaptiveSpacing(context)),
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        children: [
-          FilterChip(
-            label: Text('All'),
-            selected: selectedTag == null || selectedTag == 'All',
+        itemCount: allTags.length + 1,
+        separatorBuilder: (_, __) => SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final tag = index == 0 ? 'All' : allTags[index - 1];
+          final isSelected = selectedTag == tag || (tag == 'All' && (selectedTag == null || selectedTag == 'All'));
+          return ChoiceChip(
+            label: Text(tag,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 13),
+                color: isSelected ? AppColors.white : AppColors.primary,
+              ),
+            ),
+            selected: isSelected,
             onSelected: (_) {
               setState(() {
-                selectedTag = 'All';
+                selectedTag = tag;
                 _loadData();
               });
             },
-          ),
-          ...allTags.map((tag) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: FilterChip(
-              label: Text(tag),
-              selected: selectedTag == tag,
-              onSelected: (_) {
-                setState(() {
-                  selectedTag = tag;
-                  _loadData();
-                });
-              },
-            ),
-          )),
-        ],
+            selectedColor: AppColors.success,
+            backgroundColor: AppColors.background,
+            elevation: isSelected ? 3 : 0,
+            shape: StadiumBorder(),
+            shadowColor: AppColors.success.withOpacity(0.2),
+          );
+        },
       ),
     );
   }
@@ -214,301 +221,181 @@ class _ForumPageState extends State<ForumPage> {
   Widget _buildPostsList() {
     if (filteredPosts.isEmpty) {
       return Center(
-        child: Text(
-          'No posts found for this category.',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-            color: AppColors.secondaryText,
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.forum, color: AppColors.secondaryText, size: 48),
+            SizedBox(height: 12),
+            Text(
+              'No posts found for this category.',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
         ),
       );
     }
-
-    return ListView.builder(
+    return Padding(
       padding: ResponsiveHelper.getAdaptivePadding(context),
-      itemCount: filteredPosts.length,
-      itemBuilder: (context, index) {
-        final post = filteredPosts[index];
-        return _buildPostCard(post);
-      },
+      child: ListView.separated(
+        itemCount: filteredPosts.length,
+        separatorBuilder: (_, __) => SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+        itemBuilder: (context, index) {
+          return _buildPostCard(filteredPosts[index]);
+        },
+      ),
     );
   }
 
   Widget _buildPostCard(ForumPost post) {
     final isOwner = userId == post.userId;
-    return Card(
-      margin: EdgeInsets.only(bottom: ResponsiveHelper.getAdaptiveSpacing(context)),
-      child: InkWell(
-        onTap: () => _showPostDetail(post),
-        child: Padding(
-          padding: ResponsiveHelper.getAdaptivePadding(context),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    final canEdit = isOwner || isAdmin;
+    return FutureBuilder<String>(
+      future: _getDisplayName(post.userId),
+      builder: (context, snapshot) {
+        final displayName = snapshot.data ?? 'User';
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: EdgeInsets.zero,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _showPostDetail(post),
+            child: Padding(
+              padding: EdgeInsets.all(ResponsiveHelper.getAdaptiveSpacing(context)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  post.authorProfileImageUrl != null && post.authorProfileImageUrl!.isNotEmpty
-                      ? CircleAvatar(
-                          backgroundImage: NetworkImage(post.authorProfileImageUrl!),
-                        )
-                      : CircleAvatar(
-                          backgroundColor: AppColors.primary,
-                          child: Text(
-                            post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                            ),
-                          ),
-                        ),
-                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              post.authorName,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                              ),
-                            ),
-                            if (isAdmin && isOwner) ...[
-                              SizedBox(width: 8),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'ADMIN',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        Text(
-                          post.timestamp,
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                            color: AppColors.secondaryText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (post.status == 'closed')
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: Chip(
-                        label: Text('Closed', style: TextStyle(color: Colors.white)),
-                        backgroundColor: AppColors.error,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
-                ],
-              ),
-              if (post.postImageUrl != null && post.postImageUrl!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Image.network(post.postImageUrl!, height: 180, fit: BoxFit.cover),
-                ),
-              if (post.attachmentUrls.isNotEmpty)
-                Wrap(
-                  spacing: 8,
-                  children: post.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
-                ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-              Text(
-                post.title,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
-              Text(
-                post.content,
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  color: AppColors.secondaryText,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-              Wrap(
-                spacing: 6,
-                children: post.tags.map((tag) => Chip(label: Text(tag))).toList(),
-              ),
-              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3,
-                      vertical: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(
-                        ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.tag,
-                          size: ResponsiveHelper.getAdaptiveIconSize(context),
-                          color: AppColors.secondaryText,
-                        ),
-                        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
-                        Text(
-                          post.category,
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                            color: AppColors.success,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      GestureDetector(
-                        onTap: isLiking || likedPostKeys.contains(post.key) ? null : () async {
-                          if (userId == null) {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Login Required'),
-                                content: const Text('Please log in to like posts.'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.pushNamed(context, '/auth');
-                                    },
-                                    child: const Text('Login'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            return;
-                          }
-                          setState(() => isLiking = true);
-                          try {
-                            final newLikes = post.likes + 1;
-                            await ForumPostDao().updateLikes(post.key, newLikes);
-                            setState(() {
-                              posts = posts.map((p) => p.key == post.key ? ForumPost(
-                                key: p.key,
-                                userId: p.userId,
-                                title: p.title,
-                                content: p.content,
-                                author: p.author,
-                                authorId: p.authorId,
-                                authorName: p.authorName,
-                                category: p.category,
-                                createdAt: p.createdAt,
-                                likes: newLikes,
-                                timestamp: p.timestamp,
-                                status: p.status,
-                                tags: p.tags,
-                                postImageUrl: p.postImageUrl,
-                                attachmentUrls: p.attachmentUrls,
-                                authorProfileImageUrl: p.authorProfileImageUrl,
-                              ) : p).toList();
-                              likedPostKeys.add(post.key);
-                            });
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('You liked this post!')),
-                              );
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              showDialog(
-                                context: context,
-                                builder: (context) => AlertError('Failed to like post: $e'),
-                              );
-                            }
-                          } finally {
-                            if (mounted) setState(() => isLiking = false);
-                          }
-                        },
-                        child: AnimatedContainer(
-                          duration: Duration(milliseconds: 200),
-                          curve: Curves.easeInOut,
-                          child: isLiking && !likedPostKeys.contains(post.key)
-                            ? SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Row(
-                                children: [
-                                  Icon(
-                                    likedPostKeys.contains(post.key)
-                                      ? Icons.thumb_up
-                                      : Icons.thumb_up_outlined,
-                                    size: ResponsiveHelper.getAdaptiveIconSize(context),
-                                    color: likedPostKeys.contains(post.key)
-                                      ? AppColors.success
-                                      : AppColors.secondaryText,
-                                  ),
-                                  SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
-                                  Text(
-                                    post.likes.toString(),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                GestureDetector(
+                                  onTap: () {/* Future: open profile */},
+                                  child: Text(
+                                    displayName,
                                     style: TextStyle(
-                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                                      color: likedPostKeys.contains(post.key)
-                                        ? AppColors.success
-                                        : AppColors.secondaryText,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                if (isOwner || (isAdmin && displayName == 'Admin')) ...[
+                                  SizedBox(width: 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.success,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      isAdmin ? 'ADMIN' : 'OWNER',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ],
+                              ],
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              post.timestamp,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                                color: AppColors.secondaryText,
                               ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                      Icon(
-                        Icons.comment_outlined,
-                        size: ResponsiveHelper.getAdaptiveIconSize(context),
-                        color: AppColors.secondaryText,
-                      ),
-                      SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
-                      Text(
-                        'View Comments',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                          color: AppColors.secondaryText,
+                      if (canEdit)
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'edit') _showEditPostDialog(post);
+                            if (value == 'delete') _deletePost(post);
+                          },
+                          itemBuilder: (context) => [
+                            PopupMenuItem(value: 'edit', child: Text('Edit')),
+                            PopupMenuItem(value: 'delete', child: Text('Delete')),
+                          ],
+                          icon: Icon(Icons.more_vert, color: AppColors.secondaryText),
+                        ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.tag, size: 16, color: AppColors.secondaryText),
+                            SizedBox(width: 4),
+                            Text(
+                              post.category,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
+                  SizedBox(height: 8),
+                  Text(
+                    post.title,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    post.content,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      color: AppColors.secondaryText,
+                    ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.thumb_up, color: AppColors.secondaryText, size: 20),
+                      SizedBox(width: 4),
+                      Text(post.likes.toString(), style: TextStyle(fontSize: 13, color: AppColors.secondaryText)),
+                      SizedBox(width: 16),
+                      Icon(Icons.comment_outlined, color: AppColors.secondaryText, size: 20),
+                      SizedBox(width: 4),
+                      Text('Comments', style: TextStyle(fontSize: 13, color: AppColors.secondaryText)),
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -527,259 +414,151 @@ class _ForumPageState extends State<ForumPage> {
     );
   }
 
-  void _showPostDetail(ForumPost post) {
-    final commentController = TextEditingController();
-    String? localValidationError;
-    List<ForumComment> comments = [];
-    bool loadingComments = true;
-    // Fetch comments on demand
-    ForumPostDao().getComments(post.key).then((fetched) {
-      if (mounted) setState(() { comments = fetched; loadingComments = false; });
-    });
+  void _showPostDetail(ForumPost post) async {
+    final postAuthorName = await _getDisplayName(post.userId);
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            post.title,
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    post.authorProfileImageUrl != null && post.authorProfileImageUrl!.isNotEmpty
-                        ? CircleAvatar(
-                            backgroundImage: NetworkImage(post.authorProfileImageUrl!),
-                          )
-                        : CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: Text(
-                              post.authorName.isNotEmpty ? post.authorName[0].toUpperCase() : '?',
-                              style: TextStyle(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                              ),
-                            ),
-                          ),
-                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          post.authorName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                          ),
-                        ),
-                        Text(
-                          post.timestamp,
-                          style: TextStyle(
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                            color: AppColors.secondaryText,
-                          ),
-                        ),
-                      ],
+      builder: (context) => Dialog(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () {/* Future: open profile */},
+                    child: Text(
+                      postAuthorName,
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primary),
                     ),
-                  ],
-                ),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                Text(
-                  post.content,
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                    color: AppColors.secondaryText,
                   ),
-                ),
-                if (post.postImageUrl != null && post.postImageUrl!.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Image.network(post.postImageUrl!, height: 180, fit: BoxFit.cover),
-                  ),
-                if (post.attachmentUrls.isNotEmpty)
-                  Wrap(
-                    spacing: 8,
-                    children: post.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
-                  ),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                Divider(),
-                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                Text(
-                  'Comments:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                  ),
-                ),
-                if (loadingComments)
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ...comments.map((comment) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      comment.authorProfileImageUrl != null && comment.authorProfileImageUrl!.isNotEmpty
-                          ? CircleAvatar(
-                              backgroundImage: NetworkImage(comment.authorProfileImageUrl!),
-                            )
-                          : CircleAvatar(
-                              backgroundColor: AppColors.primary,
-                              child: Text(
-                                comment.author.isNotEmpty ? comment.author[0].toUpperCase() : '?',
-                                style: TextStyle(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 16),
-                                ),
-                              ),
-                            ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              comment.author,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                              ),
-                            ),
-                            Text(
-                              comment.content,
-                              style: TextStyle(
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                                color: AppColors.secondaryText,
-                              ),
-                            ),
-                            Text(
-                              comment.createdAt.toString(),
-                              style: TextStyle(
-                                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 10),
-                                color: AppColors.secondaryText,
-                              ),
-                            ),
-                            if (comment.attachmentUrls.isNotEmpty)
-                              Wrap(
-                                spacing: 8,
-                                children: comment.attachmentUrls.map((url) => _buildAttachmentPreview(url)).toList(),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
-                if (userId != null) ...[
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  if (localValidationError != null) ...[
-                    Text(
-                      localValidationError!,
-                      style: TextStyle(color: AppColors.error, fontSize: 13),
-                    ),
-                    SizedBox(height: 8),
-                  ],
-                  TextField(
-                    controller: commentController,
-                    decoration: InputDecoration(
-                      labelText: 'Add a comment',
-                      labelStyle: TextStyle(
-                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                      ),
-                    ),
-                    maxLines: 2,
-                  ),
-                  SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: isCommenting ? null : () async {
-                      if (commentController.text.trim().length < 2) {
-                        setState(() => localValidationError = 'Comment must be at least 2 characters.');
-                        return;
-                      }
-                      setState(() => localValidationError = null);
-                      setState(() => isCommenting = true);
-                      try {
-                        final newComment = ForumComment(
-                          key: DateTime.now().millisecondsSinceEpoch.toString(),
-                          postId: post.key,
-                          author: userId!,
-                          authorId: userId!,
-                          authorProfileImageUrl: null, // Add logic to get user profile image
-                          content: commentController.text.trim(),
-                          createdAt: DateTime.now(),
-                          lastEdited: null,
-                          attachmentUrls: [], // Add logic for attachments
-                        );
-                        await ForumPostDao().addComment(post.key, newComment);
-                        Navigator.pop(context);
-                        _loadData();
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Comment added!')),
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertError('Failed to add comment: $e'),
-                          );
-                        }
-                      } finally {
-                        if (mounted) setState(() => isCommenting = false);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.success,
-                    ),
-                    child: isCommenting
-                      ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
-                      : Text(
-                          'Post Comment',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                          ),
-                        ),
-                  ),
+                  SizedBox(width: 8),
+                  Text(post.timestamp, style: TextStyle(fontSize: 12, color: AppColors.secondaryText)),
                 ],
-                if (userId == null) ...[
-                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
-                  Text(
-                    'Login to add a comment.',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Close',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-                ),
               ),
-            ),
-          ],
+              SizedBox(height: 8),
+              Text(post.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              SizedBox(height: 6),
+              Text(post.content, style: TextStyle(fontSize: 15, color: AppColors.secondaryText)),
+              SizedBox(height: 16),
+              Divider(),
+              Text('Comments:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              _buildCommentsSection(post),
+              SizedBox(height: 12),
+              _buildCommentInput(post),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCommentsSection(ForumPost post) {
+    return FutureBuilder<List<ForumComment>>(
+      future: ForumPostDao().getComments(post.key),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('Failed to load comments.', style: TextStyle(color: AppColors.error)),
+          );
+        }
+        final comments = snapshot.data ?? [];
+        if (comments.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text('No comments yet. Be the first to comment!', style: TextStyle(color: AppColors.secondaryText)),
+          );
+        }
+        return Column(
+          children: comments.map((comment) => FutureBuilder<String>(
+            future: _getDisplayName(comment.authorId),
+            builder: (context, snap) {
+              final commenterName = snap.data ?? 'User';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () {/* Future: open profile */},
+                      child: Text(
+                        commenterName,
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(comment.content, style: TextStyle(fontSize: 14)),
+                          SizedBox(height: 2),
+                          Text(
+                            comment.createdAt.toString(),
+                            style: TextStyle(fontSize: 11, color: AppColors.secondaryText),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          )).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildCommentInput(ForumPost post) {
+    final controller = TextEditingController();
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'Write a comment…',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            minLines: 1,
+            maxLines: 3,
+          ),
+        ),
+        SizedBox(width: 8),
+        ElevatedButton(
+          onPressed: () async {
+            final text = controller.text.trim();
+            if (text.isEmpty) return;
+            final displayName = await _getDisplayName(userId!);
+            final newComment = ForumComment(
+              key: DateTime.now().millisecondsSinceEpoch.toString(),
+              postId: post.key,
+              author: displayName,
+              authorId: userId!,
+              authorProfileImageUrl: null,
+              content: text,
+              createdAt: DateTime.now(),
+              lastEdited: null,
+              attachmentUrls: [],
+            );
+            await ForumPostDao().addComment(post.key, newComment);
+            Navigator.pop(context);
+            _showPostDetail(post); // Reopen to refresh comments
+          },
+          child: Text('Post'),
+        ),
+      ],
     );
   }
 
@@ -1175,5 +954,11 @@ class _ForumPageState extends State<ForumPage> {
         ],
       ),
     );
+  }
+
+  // --- Helper to get display name for a userId ---
+  Future<String> _getDisplayName(String userId) async {
+    final user = await UserDao().getUserById(userId);
+    return user?.displayname ?? 'User';
   }
 } 

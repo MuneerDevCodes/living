@@ -4,6 +4,7 @@ import 'package:living/style/theme.dart';
 import 'package:living/screens/splash_screen.dart';
 import 'package:living/screens/home_page.dart';
 import 'package:living/screens/onboarding_page.dart';
+import 'package:living/services/performance_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -17,7 +18,27 @@ Future<void> main() async {
   if (!kIsWeb) {
     FirebaseDatabase.instance.setPersistenceEnabled(true);
   }
+  
+  // Initialize performance optimizations
+  await _initializePerformanceOptimizations();
+  
   runApp(const MyApp());
+}
+
+/// Initialize performance optimizations for the app
+Future<void> _initializePerformanceOptimizations() async {
+  try {
+    // Configure image cache settings
+    PaintingBinding.instance.imageCache.maximumSize = 1000; // Increase cache size
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 100 << 20; // 100 MB
+    
+    // Clear any existing image cache on startup for fresh performance
+    await PerformanceService.clearImageCache();
+    
+    debugPrint('Performance optimizations initialized successfully');
+  } catch (e) {
+    debugPrint('Failed to initialize performance optimizations: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

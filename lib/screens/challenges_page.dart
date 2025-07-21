@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:living/models/challenge_model.dart';
 import 'package:living/services/challenge_dao.dart';
 import 'package:living/services/auth_helper.dart';
+import 'package:living/services/performance_service.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/header.dart';
@@ -191,13 +192,16 @@ class _ChallengesPageState extends State<ChallengesPage> {
       );
     }
 
-    return ListView.builder(
+    return Padding(
       padding: ResponsiveHelper.getAdaptivePadding(context),
-      itemCount: filteredChallenges.length,
-      itemBuilder: (context, index) {
-        final challenge = filteredChallenges[index];
-        return _buildChallengeCard(challenge);
-      },
+      child: LazyLoadingList<Challenge>(
+        items: filteredChallenges,
+        itemsPerPage: 15,
+        hasMoreItems: false,
+        itemBuilder: (context, challenge, index) {
+          return _buildChallengeCard(challenge);
+        },
+      ),
     );
   }
 
