@@ -1,0 +1,116 @@
+# Sustainable Living Guide App – User Guide
+
+## Introduction
+
+Welcome to the **Sustainable Living Guide App**! This app empowers you to live more sustainably by tracking your carbon footprint, discovering eco-friendly products and recipes, participating in challenges, and connecting with a like-minded community.
+
+---
+
+## Getting Started
+
+### 1. Installation
+- **Android**: Download from the Google Play Store or install the APK provided by your administrator.
+- **iOS**: Download from the App Store (if available).
+- **Web**: Visit the provided web link.
+
+### 2. Registration & Login
+- Open the app and tap **Register** to create a new account.
+- Fill in your details and submit.
+- After registration, use your credentials to **Login**.
+- If you forget your password, use the **Forgot Password** option.
+
+---
+
+## Main Features & How to Use Them
+
+### 1. Home Page
+- The **Home Page** is your dashboard, showing quick stats, recent activity, and navigation to all features.
+
+### 2. Carbon Footprint
+- Go to **Carbon Footprint** from the menu.
+- Enter your daily/weekly activities (travel, energy use, etc.).
+- View your carbon footprint summary and history.
+- Use **Carbon Insights** for personalized tips to reduce your impact.
+
+### 3. Challenges
+- Visit the **Challenges** page to join eco-friendly challenges.
+- Track your progress and earn rewards or badges.
+- Compete with friends or the community.
+
+### 4. Recipes
+- Browse sustainable recipes in the **Recipes** section.
+- Filter by category or ingredient.
+- Save your favorites and add ingredients to your cart.
+
+### 5. Eco Travel
+- Explore eco-friendly travel tips and destinations.
+- Log your trips to see their environmental impact.
+
+### 6. Energy Tips
+- Access daily or weekly energy-saving tips.
+- Mark tips as completed to track your progress.
+
+### 7. Waste Tracker
+- Log your waste (plastic, food, etc.) in the **Waste Tracker**.
+- Set goals to reduce waste and monitor your achievements.
+
+### 8. Product Catalog & Cart
+- Browse sustainable products in the **Product Catalog**.
+- Add items to your **Cart** and place orders.
+- Track your orders in the **Order Page**.
+
+### 9. Forum
+- Join discussions in the **Forum**.
+- Post questions, share tips, and connect with the community.
+
+### 10. Educational Content
+- Read articles and guides in the **Educational Content** section.
+- Stay informed about sustainability topics.
+
+### 11. Certifications
+- View and manage your eco-certifications.
+- Learn how to earn new certifications.
+
+### 12. Progress Dashboard
+- Track your overall progress in sustainability.
+- View achievements, badges, and completed challenges.
+
+### 13. Profile & Settings
+- Update your personal information in the **Profile** page.
+- Adjust app preferences in **Settings**.
+
+### 14. Contact Us & About
+- Use **Contact Us** for support or feedback.
+- Learn more about the app in the **About Us** section.
+
+---
+
+## Tips & Best Practices
+
+- **Log Activities Regularly**: The more you log, the more accurate your insights.
+- **Participate in Challenges**: Boost motivation and earn rewards.
+- **Engage in the Forum**: Learn from others and share your journey.
+- **Explore Educational Content**: Stay updated on sustainability trends.
+- **Set Realistic Goals**: Use the dashboard to track and adjust your goals.
+
+---
+
+## FAQ & Troubleshooting
+
+**Q: I can't log in. What should I do?**  
+A: Use the "Forgot Password" option or contact support via the "Contact Us" page.
+
+**Q: My data isn't saving.**  
+A: Ensure you have a stable internet connection. Try restarting the app.
+
+**Q: How do I reset my progress?**  
+A: Go to **Settings** and look for the reset option, or contact support.
+
+**Q: How do I report a bug or suggest a feature?**  
+A: Use the **Contact Us** page to send feedback.
+
+---
+
+## Support
+
+For further assistance, visit the **Contact Us** page or email our support team. 

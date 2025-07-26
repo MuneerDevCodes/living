@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Planet Care',
       theme: AppTheme.lightTheme,
-      home: const AppInitializer(),
+      home: const AppRoot(),
       onGenerateRoute: guardedRoute,
       debugShowCheckedModeBanner: false,
       navigatorKey: GlobalKey<NavigatorState>(),
@@ -63,64 +63,61 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AppInitializer extends StatefulWidget {
-  const AppInitializer({super.key});
+class AppRoot extends StatefulWidget {
+  const AppRoot({super.key});
 
   @override
-  State<AppInitializer> createState() => _AppInitializerState();
+  State<AppRoot> createState() => _AppRootState();
 }
 
-class _AppInitializerState extends State<AppInitializer> {
-  bool _isFirstLaunch = true;
-  bool _isLoading = true;
-  bool _showOnboarding = false;
+class _AppRootState extends State<AppRoot> {
+  bool _showSplash = false;
+  bool? _onboardingCompleted;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _checkAppState();
+    _initApp();
   }
 
-  Future<void> _checkAppState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final hasLaunchedBefore = prefs.getBool('has_launched_before') ?? false;
-      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-      
+  Future<void> _initApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final splashShown = prefs.getBool('splash_shown_once') ?? false;
+    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+    if (!splashShown) {
       setState(() {
-        _isFirstLaunch = !hasLaunchedBefore;
-        _showOnboarding = !onboardingCompleted;
-        _isLoading = false;
+        _showSplash = true;
+        _onboardingCompleted = onboardingCompleted;
+        _initialized = true;
       });
-      
-      // If it's the first launch, mark it as launched
-      if (_isFirstLaunch) {
-        await prefs.setBool('has_launched_before', true);
+      await Future.delayed(const Duration(seconds: 3)); // Splash duration
+      await prefs.setBool('splash_shown_once', true);
+      if (mounted) {
+        setState(() {
+          _showSplash = false;
+        });
       }
-    } catch (e) {
-      // If there's an error, default to showing splash screen
+    } else {
       setState(() {
-        _isFirstLaunch = true;
-        _showOnboarding = true;
-        _isLoading = false;
+        _showSplash = false;
+        _onboardingCompleted = onboardingCompleted;
+        _initialized = true;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+    if (!_initialized) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    
-    if (_showOnboarding) {
+    if (_showSplash) {
+      return const SplashScreen();
+    }
+    if (_onboardingCompleted == false) {
       return const OnboardingPage();
     }
-    
-    return _isFirstLaunch ? const SplashScreen() : const HomePage();
+    return const HomePage();
   }
 }

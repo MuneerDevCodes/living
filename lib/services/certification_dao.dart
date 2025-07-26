@@ -76,4 +76,61 @@ class CertificationDAO {
       throw Exception('Failed to delete certification: $e');
     }
   }
+
+  // Batch update: Set isVerified = true for all certifications
+  static Future<void> verifyAllCertifications() async {
+    try {
+      final snapshot = await _database.get();
+      if (snapshot.exists) {
+        for (var child in snapshot.children) {
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            data['isVerified'] = true;
+            await _database.child(child.key!).update({'isVerified': true});
+          }
+        }
+      }
+    } catch (e) {
+      throw Exception('Failed to verify all certifications: $e');
+    }
+  }
+
+  // Get all pending certifications (isVerified == false)
+  static Future<List<Certification>> getPendingCertifications() async {
+    try {
+      final snapshot = await _database.orderByChild('isVerified').equalTo(false).get();
+      List<Certification> certifications = [];
+      if (snapshot.exists) {
+        for (var child in snapshot.children) {
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            certifications.add(Certification.fromJson(child.key!, data));
+          }
+        }
+      }
+      return certifications;
+    } catch (e) {
+      throw Exception('Failed to fetch pending certifications: $e');
+    }
+  }
+
+  // Approve a certification (set isVerified: true)
+  static Future<void> approveCertification(String key) async {
+    try {
+      await _database.child(key).update({'isVerified': true});
+    } catch (e) {
+      throw Exception('Failed to approve certification: $e');
+    }
+  }
+
+  // Reject (delete) a certification
+  static Future<void> rejectCertification(String key) async {
+    try {
+      await _database.child(key).remove();
+    } catch (e) {
+      throw Exception('Failed to reject certification: $e');
+    }
+  }
 } 

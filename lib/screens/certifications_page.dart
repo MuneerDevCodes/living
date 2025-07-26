@@ -7,6 +7,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/category_constants.dart';
+import 'package:living/services/admin_service.dart';
 
 /// CertificationsPage displays a list of green certifications, using responsive and theme-driven design.
 class CertificationsPage extends StatefulWidget {
@@ -20,11 +21,22 @@ class _CertificationsPageState extends State<CertificationsPage> {
   List<Certification> certifications = [];
   bool isLoading = true;
   String selectedCategory = 'All';
+  bool isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAdminAndLoad();
+  }
+
+  Future<void> _initAdminAndLoad() async {
+    final admin = await AdminService().isAdmin();
+    if (mounted) {
+      setState(() {
+        isAdmin = admin;
+      });
+    }
+    await _loadData();
   }
 
   Future<void> _loadData() async {
@@ -453,6 +465,18 @@ class _CertificationsPageState extends State<CertificationsPage> {
                       ],
                     ),
                   ),
+                  if (isAdmin) ...[
+                    IconButton(
+                      icon: Icon(Icons.edit, color: AppColors.info),
+                      tooltip: 'Edit',
+                      onPressed: () => _showEditCertificationDialog(certification),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.error),
+                      tooltip: 'Delete',
+                      onPressed: () => _confirmDeleteCertification(certification),
+                    ),
+                  ],
                 ],
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.3),
@@ -534,6 +558,24 @@ class _CertificationsPageState extends State<CertificationsPage> {
                 ),
               ),
             ),
+            if (isAdmin) ...[
+              IconButton(
+                icon: Icon(Icons.edit, color: AppColors.info),
+                tooltip: 'Edit',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditCertificationDialog(certification);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: AppColors.error),
+                tooltip: 'Delete',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _confirmDeleteCertification(certification);
+                },
+              ),
+            ],
           ],
         ),
         content: Container(
@@ -1171,6 +1213,8 @@ class _CertificationsPageState extends State<CertificationsPage> {
                   }
 
                   try {
+                    // Check if admin
+                    final isAdmin = await AdminService().isAdmin();
                     // Create new certification
                     final newCertification = Certification(
                       key: '', // Will be set by Firebase
@@ -1181,7 +1225,7 @@ class _CertificationsPageState extends State<CertificationsPage> {
                       criteria: criteriaController.text.trim().split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
                       verificationProcess: verificationController.text.trim(),
                       benefits: benefitsController.text.trim(),
-                      isVerified: false, // New certifications start as pending
+                      isVerified: isAdmin, // Only admin submissions are verified
                     );
 
                     // Save to database
@@ -1194,12 +1238,12 @@ class _CertificationsPageState extends State<CertificationsPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
-                          'Certification added successfully!',
+                          isAdmin ? 'Certification added and verified!' : 'Certification submitted for admin approval.',
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                           ),
                         ),
-                        backgroundColor: AppColors.success,
+                        backgroundColor: isAdmin ? AppColors.success : AppColors.warning,
                       ),
                     );
                   } catch (e) {
@@ -1234,6 +1278,436 @@ class _CertificationsPageState extends State<CertificationsPage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showEditCertificationDialog(Certification certification) {
+    final nameController = TextEditingController(text: certification.name);
+    final descriptionController = TextEditingController(text: certification.description);
+    final criteriaController = TextEditingController(text: certification.criteria.join(", "));
+    final benefitsController = TextEditingController(text: certification.benefits);
+    final verificationController = TextEditingController(text: certification.verificationProcess);
+    String selectedCategory = certification.category;
+    String selectedCriteria = '';
+    String selectedBenefits = '';
+    String selectedVerification = '';
+
+    final List<String> criteriaOptions = [
+      'No pesticides', 'No GMOs', 'Organic feed', 'No antibiotics', 'Soil health',
+      'Fair wages', 'No child labor', 'Worker rights', 'Environmental protection',
+      'Community development', 'Energy efficiency', 'Third-party testing',
+      'Energy savings', 'Performance', 'Product testing', 'Sustainable forestry',
+      'Biodiversity', 'Indigenous rights', 'Worker safety', 'Chain tracking',
+      'Sustainable fishing', 'Minimal impact', 'Fishery management', 'Regular assessment',
+      'Sustainable development', 'Water efficiency', 'Energy optimization',
+      'Resource selection', 'Indoor quality', 'Innovation', 'Impact assessment',
+      'Legal accountability', 'Transparency', 'Stakeholder engagement',
+      'Continuous improvement', 'Biodiversity conservation', 'Resource management',
+      'Worker safety', 'Community engagement', 'Climate mitigation',
+    ];
+    final List<String> benefitsOptions = [
+      'Sustainability', 'Reduces exposure', 'Soil health', 'Higher nutrition',
+      'Local communities', 'Better livelihoods', 'Community development',
+      'Ethical production', 'Energy savings', 'Reduces emissions', 'Protects environment',
+      'Performance', 'Wildlife protection', 'Community support', 'Sustainable production',
+      'Ocean protection', 'Sustainable seafood', 'Responsible fishing', 'Reduces impact',
+      'Health improvement', 'Cost savings', 'Social responsibility', 'Consumer attraction',
+      'Positive change', 'Ecosystem protection', 'Sustainable business',
+    ];
+    final List<String> verificationOptions = [
+      'Annual inspections', 'Farm visits', 'Residue testing', 'Third-party audits',
+      'Worker interviews', 'Documentation review', 'EPA testing', 'Energy compliance',
+      'FSC audits', 'Forest assessments', 'Chain verification', 'Independent assessment',
+      'Scientific review', 'Regular monitoring', 'Third-party verification',
+      'On-site inspections', 'Certification assessment', 'Stakeholder interviews',
+      'Recertification', 'Alliance audits', 'Stakeholder consultation',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context)),
+            ),
+            title: Text(
+              'Edit Certification',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Container(
+              width: ResponsiveHelper.getScreenWidth(context) * (ResponsiveHelper.isMobile(context) ? 0.95 : 0.8),
+              constraints: BoxConstraints(
+                maxWidth: ResponsiveHelper.isMobile(context) ? double.infinity : 600,
+                maxHeight: ResponsiveHelper.getScreenHeight(context) * (ResponsiveHelper.isMobile(context) ? 0.6 : 0.7),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Certification Name',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    TextField(
+                      controller: descriptionController,
+                      decoration: InputDecoration(
+                        labelText: 'Description',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                      maxLines: 3,
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                      items: kCertificationCategories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                        value: category,
+                        child: Text(
+                          category,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )).toList(),
+                      onChanged: (value) {
+                        selectedCategory = value!;
+                        setState(() {});
+                      },
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Certification Criteria',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.primaryText,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            _showOptionsBottomSheet(context, 'Criteria', criteriaOptions, (value) {
+                              selectedCriteria = value;
+                              criteriaController.text = value;
+                              setState(() {});
+                            });
+                          },
+                          child: Text(
+                            'Show All',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Wrap(
+                      spacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      runSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      children: [
+                        ...criteriaOptions.take(ResponsiveHelper.isMobile(context) ? 4 : 8).map((criteria) => FilterChip(
+                          label: Text(
+                            criteria,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            ),
+                          ),
+                          selected: selectedCriteria == criteria,
+                          onSelected: (selected) {
+                            if (selected) {
+                              selectedCriteria = criteria;
+                              criteriaController.text = criteria;
+                            } else {
+                              selectedCriteria = '';
+                              criteriaController.clear();
+                            }
+                            setState(() {});
+                          },
+                          selectedColor: AppColors.success.withOpacity(0.2),
+                          checkmarkColor: AppColors.success,
+                        )).toList(),
+                      ],
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    TextField(
+                      controller: criteriaController,
+                      decoration: InputDecoration(
+                        labelText: 'Custom Criteria (comma-separated)',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                      maxLines: 2,
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Text(
+                      'Benefits',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Wrap(
+                      spacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      runSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      children: [
+                        ...benefitsOptions.take(ResponsiveHelper.isMobile(context) ? 5 : 10).map((benefit) => FilterChip(
+                          label: Text(
+                            benefit,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            ),
+                          ),
+                          selected: selectedBenefits == benefit,
+                          onSelected: (selected) {
+                            if (selected) {
+                              selectedBenefits = benefit;
+                              benefitsController.text = benefit;
+                            } else {
+                              selectedBenefits = '';
+                              benefitsController.clear();
+                            }
+                            setState(() {});
+                          },
+                          selectedColor: AppColors.success.withOpacity(0.2),
+                          checkmarkColor: AppColors.success,
+                        )).toList(),
+                      ],
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    TextField(
+                      controller: benefitsController,
+                      decoration: InputDecoration(
+                        labelText: 'Custom Benefits',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                      maxLines: 2,
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    Text(
+                      'Verification Process',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
+                    Wrap(
+                      spacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      runSpacing: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2,
+                      children: [
+                        ...verificationOptions.take(ResponsiveHelper.isMobile(context) ? 5 : 10).map((verification) => FilterChip(
+                          label: Text(
+                            verification,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                            ),
+                          ),
+                          selected: selectedVerification == verification,
+                          onSelected: (selected) {
+                            if (selected) {
+                              selectedVerification = verification;
+                              verificationController.text = verification;
+                            } else {
+                              selectedVerification = '';
+                              verificationController.clear();
+                            }
+                            setState(() {});
+                          },
+                          selectedColor: AppColors.success.withOpacity(0.2),
+                          checkmarkColor: AppColors.success,
+                        )).toList(),
+                      ],
+                    ),
+                    SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                    TextField(
+                      controller: verificationController,
+                      decoration: InputDecoration(
+                        labelText: 'Custom Verification Process',
+                        labelStyle: TextStyle(
+                          fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                        ),
+                      ),
+                      maxLines: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    color: AppColors.secondaryText,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Please enter a certification name',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                    return;
+                  }
+                  try {
+                    final updatedCertification = Certification(
+                      key: certification.key,
+                      name: nameController.text.trim(),
+                      description: descriptionController.text.trim(),
+                      category: selectedCategory,
+                      logoUrl: certification.logoUrl,
+                      criteria: criteriaController.text.trim().split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList(),
+                      verificationProcess: verificationController.text.trim(),
+                      benefits: benefitsController.text.trim(),
+                      isVerified: true,
+                    );
+                    await CertificationDAO.updateCertification(updatedCertification);
+                    await _loadData();
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Certification updated successfully!',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  } catch (e) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to update certification: $e',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.success,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(ResponsiveHelper.getAdaptiveBorderRadius(context) * 0.3),
+                  ),
+                ),
+                child: Text(
+                  'Save Changes',
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteCertification(Certification certification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Certification'),
+        content: Text('Are you sure you want to delete "${certification.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              try {
+                await CertificationDAO.deleteCertification(certification.key);
+                await _loadData();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Certification deleted successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete certification: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: AppColors.white)),
+          ),
+        ],
       ),
     );
   }

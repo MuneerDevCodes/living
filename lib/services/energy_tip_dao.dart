@@ -96,4 +96,42 @@ class EnergyTipDAO {
       throw Exception('Failed to delete energy tip: $e');
     }
   }
+
+  // Get all pending energy tips (isVerified == false)
+  static Future<List<EnergyTip>> getPendingEnergyTips() async {
+    try {
+      final snapshot = await _database.orderByChild('isVerified').equalTo(false).get();
+      List<EnergyTip> tips = [];
+      if (snapshot.exists) {
+        for (var child in snapshot.children) {
+          final value = child.value;
+          if (value is Map) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(value);
+            tips.add(EnergyTip.fromJson(child.key!, data));
+          }
+        }
+      }
+      return tips;
+    } catch (e) {
+      throw Exception('Failed to fetch pending energy tips: $e');
+    }
+  }
+
+  // Approve an energy tip (set isVerified: true)
+  static Future<void> approveEnergyTip(String key) async {
+    try {
+      await _database.child(key).update({'isVerified': true});
+    } catch (e) {
+      throw Exception('Failed to approve energy tip: $e');
+    }
+  }
+
+  // Reject (delete) an energy tip
+  static Future<void> rejectEnergyTip(String key) async {
+    try {
+      await _database.child(key).remove();
+    } catch (e) {
+      throw Exception('Failed to reject energy tip: $e');
+    }
+  }
 } 

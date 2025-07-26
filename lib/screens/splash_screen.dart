@@ -3,6 +3,8 @@ import 'dart:async';
 import '../screens/home_page.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'onboarding_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,10 +18,12 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _logoController;
   late AnimationController _textController;
   bool _hasNavigated = false;
+  bool? _onboardingCompleted;
 
   @override
   void initState() {
     super.initState();
+    _checkOnboardingStatus();
     
     // Logo animation controller
     _logoController = AnimationController(
@@ -37,11 +41,20 @@ class _SplashScreenState extends State<SplashScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startAnimations();
     });
-    
-    // Navigate to main app after 4 seconds
-    Timer(const Duration(seconds: 4), () {
-      _navigateToHome();
-    });
+  }
+
+  void _checkOnboardingStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final completed = prefs.getBool('onboarding_completed') ?? false;
+    if (mounted) {
+      setState(() {
+        _onboardingCompleted = completed;
+      });
+      // Navigate to next screen after 4 seconds
+      Timer(const Duration(seconds: 6), () {
+        _navigateToNext();
+      });
+    }
   }
 
   void _startAnimations() async {
@@ -58,22 +71,27 @@ class _SplashScreenState extends State<SplashScreen>
     } catch (e) {
       // Handle any animation errors gracefully
       if (mounted) {
-        _navigateToHome();
+        _navigateToNext();
       }
     }
   }
 
-  void _navigateToHome() {
+  void _navigateToNext() {
     if (!mounted || _hasNavigated) return;
-    
     _hasNavigated = true;
-    
-    // Use pushReplacement to replace the splash screen with home page
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => const HomePage(),
-      ),
-    );
+    if (_onboardingCompleted == true) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const HomePage(),
+        ),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const OnboardingPage(),
+        ),
+      );
+    }
   }
 
   @override

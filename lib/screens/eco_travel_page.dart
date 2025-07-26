@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:living/models/eco_travel_model.dart';
 import 'package:living/services/eco_travel_dao.dart';
+import 'package:living/services/admin_service.dart';
 import 'package:living/widgets/loader.dart';
 import 'package:living/widgets/alert_error.dart';
 import 'package:living/widgets/alert_success.dart';
@@ -8,6 +9,7 @@ import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
+import 'package:living/services/auth_helper.dart';
 
 /// EcoTravelPage displays eco-friendly travel suggestions, using responsive and theme-driven design.
 class EcoTravelPage extends StatefulWidget {
@@ -25,6 +27,7 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
   String selectedLocation = 'All';
   String searchQuery = '';
   List<String> popularDestinations = [];
+  bool isAdmin = false;
 
   final List<String> categories = [
     'All',
@@ -41,7 +44,17 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAdminAndLoad();
+  }
+
+  Future<void> _initAdminAndLoad() async {
+    final admin = await AdminService().isAdmin();
+    if (mounted) {
+      setState(() {
+        isAdmin = admin;
+      });
+    }
+    await _loadData();
   }
 
   @override
@@ -153,21 +166,47 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
         padding: EdgeInsets.only(
           bottom: ResponsiveHelper.getBottomNavHeight(context) + 12,
         ),
-        child: FloatingActionButton.extended(
-          onPressed: _showAddSuggestionDialog,
-          backgroundColor: AppColors.success,
-          foregroundColor: AppColors.white,
-          icon: Icon(
-            Icons.add,
-            size: ResponsiveHelper.getAdaptiveIconSize(context),
-          ),
-          label: Text(
-            'Add Suggestion',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
-              color: AppColors.white,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (isAdmin) ...[
+              FloatingActionButton.extended(
+                heroTag: 'manageEcoTravelFab',
+                onPressed: () => Navigator.pushNamed(context, '/manage-eco-travel'),
+                backgroundColor: AppColors.warning,
+                foregroundColor: AppColors.white,
+                icon: Icon(
+                  Icons.admin_panel_settings,
+                  size: ResponsiveHelper.getAdaptiveIconSize(context),
+                ),
+                label: Text(
+                  'Manage Pending',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+              SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context)),
+            ],
+            FloatingActionButton.extended(
+              heroTag: 'addEcoTravelFab',
+              onPressed: _showAddSuggestionDialog,
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.white,
+              icon: Icon(
+                Icons.add,
+                size: ResponsiveHelper.getAdaptiveIconSize(context),
+              ),
+              label: Text(
+                'Add Suggestion',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  color: AppColors.white,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -434,6 +473,18 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
                       ),
                     ),
                   ),
+                  if (isAdmin) ...[
+                    IconButton(
+                      icon: Icon(Icons.edit, color: AppColors.info),
+                      tooltip: 'Edit',
+                      onPressed: () => _showEditSuggestionDialog(suggestion),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.error),
+                      tooltip: 'Delete',
+                      onPressed: () => _confirmDeleteSuggestion(suggestion),
+                    ),
+                  ],
                 ],
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
@@ -536,12 +587,36 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          suggestion.title,
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
-            fontWeight: FontWeight.bold,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                suggestion.title,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (isAdmin) ...[
+              IconButton(
+                icon: Icon(Icons.edit, color: AppColors.info),
+                tooltip: 'Edit',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditSuggestionDialog(suggestion);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: AppColors.error),
+                tooltip: 'Delete',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _confirmDeleteSuggestion(suggestion);
+                },
+              ),
+            ],
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -758,6 +833,38 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (!isAdmin) ...[
+                  Container(
+                    padding: ResponsiveHelper.getAdaptivePadding(context),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(
+                        ResponsiveHelper.getAdaptiveBorderRadius(context),
+                      ),
+                      border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info,
+                          color: AppColors.info,
+                          size: ResponsiveHelper.getAdaptiveIconSize(context),
+                        ),
+                        SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                        Expanded(
+                          child: Text(
+                            'Your suggestion will be reviewed by an admin before being published.',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 12),
+                              color: AppColors.info,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                ],
                 TextFormField(
                   controller: titleController,
                   decoration: InputDecoration(
@@ -912,6 +1019,11 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 try {
+                  final currentUser = AuthService().currentUser;
+                  if (currentUser == null) {
+                    throw Exception('User not authenticated');
+                  }
+
                   final suggestion = EcoTravelSuggestion(
                     key: DateTime.now().millisecondsSinceEpoch.toString(),
                     title: titleController.text.trim(),
@@ -927,17 +1039,28 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
                       ? tipsController.text.split(',').map((e) => e.trim()).toList()
                       : [],
                     imageUrl: '',
-                    isVerified: false,
+                    createdBy: currentUser.uid,
+                    createdByName: currentUser.displayName ?? currentUser.email ?? 'Unknown User',
+                    createdAt: DateTime.now(),
                   );
 
                   await EcoTravelDAO.addEcoTravelSuggestion(suggestion);
                   Navigator.pop(context);
                   
                   if (mounted) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertSuccess(
-                        'Eco-Travel suggestion added successfully! It will be reviewed and verified soon.',
+                    final message = isAdmin 
+                      ? 'Eco-Travel suggestion added successfully and is now live!'
+                      : 'Eco-Travel suggestion submitted successfully! It will be reviewed by an admin and published soon.';
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          message,
+                          style: TextStyle(color: AppColors.white),
+                        ),
+                        backgroundColor: AppColors.success,
+                        duration: Duration(seconds: 3),
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                     _loadData(); // Reload data to show new suggestion
@@ -956,12 +1079,293 @@ class _EcoTravelPageState extends State<EcoTravelPage> {
               backgroundColor: AppColors.success,
             ),
             child: Text(
-              'Add Suggestion',
+              isAdmin ? 'Add Suggestion' : 'Submit for Review',
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditSuggestionDialog(EcoTravelSuggestion suggestion) {
+    final titleController = TextEditingController(text: suggestion.title);
+    final descriptionController = TextEditingController(text: suggestion.description);
+    final locationController = TextEditingController(text: suggestion.location);
+    final carbonImpactController = TextEditingController(text: suggestion.carbonImpact.toString());
+    final carbonUnitController = TextEditingController(text: suggestion.carbonUnit);
+    final benefitsController = TextEditingController(text: suggestion.benefits.join(", "));
+    final tipsController = TextEditingController(text: suggestion.tips.join(", "));
+    String selectedCategory = suggestion.category;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Edit Eco-Travel Suggestion',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: titleController,
+                  decoration: InputDecoration(
+                    labelText: 'Suggestion Title *',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a title';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description *',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a description';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: locationController,
+                  decoration: InputDecoration(
+                    labelText: 'Location *',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a location';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category *',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                    value: category,
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    selectedCategory = value!;
+                  },
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: carbonImpactController,
+                        decoration: InputDecoration(
+                          labelText: 'Carbon Impact *',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+                          if (double.tryParse(value) == null) {
+                            return 'Invalid number';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.5),
+                    Expanded(
+                      child: TextFormField(
+                        controller: carbonUnitController,
+                        decoration: InputDecoration(
+                          labelText: 'Unit (e.g., kg CO2/km) *',
+                          labelStyle: TextStyle(
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Required';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: benefitsController,
+                  decoration: InputDecoration(
+                    labelText: 'Benefits (comma-separated)',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 2,
+                ),
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                TextFormField(
+                  controller: tipsController,
+                  decoration: InputDecoration(
+                    labelText: 'Tips (comma-separated)',
+                    labelStyle: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                try {
+                  final updatedSuggestion = EcoTravelSuggestion(
+                    key: suggestion.key,
+                    title: titleController.text.trim(),
+                    description: descriptionController.text.trim(),
+                    category: selectedCategory,
+                    location: locationController.text.trim(),
+                    carbonImpact: double.parse(carbonImpactController.text),
+                    carbonUnit: carbonUnitController.text.trim(),
+                    benefits: benefitsController.text.isNotEmpty 
+                      ? benefitsController.text.split(',').map((e) => e.trim()).toList()
+                      : [],
+                    tips: tipsController.text.isNotEmpty 
+                      ? tipsController.text.split(',').map((e) => e.trim()).toList()
+                      : [],
+                    imageUrl: suggestion.imageUrl,
+                    createdBy: suggestion.createdBy,
+                    createdByName: suggestion.createdByName,
+                    createdAt: suggestion.createdAt,
+                    isVerified: true,
+                    status: 'approved',
+                    verifiedAt: DateTime.now(),
+                    verifiedBy: AuthService.getCurrentUserId(),
+                  );
+                  await EcoTravelDAO.updateEcoTravelSuggestion(updatedSuggestion);
+                  await _loadData();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Eco-Travel suggestion updated successfully!'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                } catch (e) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update suggestion: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Save Changes',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteSuggestion(EcoTravelSuggestion suggestion) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Eco-Travel Suggestion'),
+        content: Text('Are you sure you want to delete "${suggestion.title}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              try {
+                await EcoTravelDAO.deleteEcoTravelSuggestion(suggestion.key);
+                await _loadData();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Eco-Travel suggestion deleted successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete suggestion: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),

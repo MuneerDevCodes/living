@@ -4,24 +4,9 @@ import 'package:living/widgets/header.dart';
 import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
-
-class EnergyTip {
-  final String title;
-  final String description;
-  final String category;
-  final bool isVerified;
-  final double energySavings;
-  final String difficulty;
-
-  EnergyTip({
-    required this.title,
-    required this.description,
-    required this.category,
-    required this.isVerified,
-    required this.energySavings,
-    required this.difficulty,
-  });
-}
+import 'package:living/services/energy_tip_dao.dart';
+import 'package:living/services/admin_service.dart';
+import 'package:living/models/energy_tip_model.dart';
 
 /// EnergyTipsPage displays energy-saving tips, using responsive and theme-driven design.
 class EnergyTipsPage extends StatefulWidget {
@@ -35,6 +20,7 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
   List<EnergyTip> tips = [];
   bool isLoading = true;
   String selectedCategory = 'All';
+  bool isAdmin = false;
 
   final List<String> categories = [
     'All',
@@ -47,15 +33,25 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAdminAndLoad();
+  }
+
+  Future<void> _initAdminAndLoad() async {
+    final admin = await AdminService().isAdmin();
+    if (mounted) {
+      setState(() {
+        isAdmin = admin;
+      });
+    }
+    await _loadData();
   }
 
   Future<void> _loadData() async {
     try {
       setState(() => isLoading = true);
-      // Simulate loading
-      await Future.delayed(const Duration(seconds: 1));
-      tips = _getSampleTips();
+      // Load only verified tips for users
+      final allTips = await EnergyTipDAO.getAllEnergyTips();
+      tips = allTips.where((tip) => tip.isVerified).toList();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,36 +76,52 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
   List<EnergyTip> _getSampleTips() {
     return [
       EnergyTip(
+        key: '',
         title: 'Switch to LED Bulbs',
         description: 'Replace traditional incandescent bulbs with energy-efficient LED bulbs to save up to 80% on lighting costs.',
         category: 'Home Energy',
-        isVerified: true,
-        energySavings: 15.5,
         difficulty: 'Easy',
+        potentialSavings: 15.5,
+        savingsUnit: 'kWh',
+        steps: [],
+        imageUrl: '',
+        isVerified: true,
       ),
       EnergyTip(
+        key: '',
         title: 'Unplug Unused Electronics',
         description: 'Unplug chargers and electronics when not in use to prevent phantom energy consumption.',
         category: 'Appliances',
-        isVerified: true,
-        energySavings: 8.2,
         difficulty: 'Easy',
+        potentialSavings: 8.2,
+        savingsUnit: 'kWh',
+        steps: [],
+        imageUrl: '',
+        isVerified: true,
       ),
       EnergyTip(
+        key: '',
         title: 'Use Public Transportation',
         description: 'Take public transportation or carpool to reduce your carbon footprint and save on fuel costs.',
         category: 'Transportation',
-        isVerified: false,
-        energySavings: 25.0,
         difficulty: 'Medium',
+        potentialSavings: 25.0,
+        savingsUnit: 'kWh',
+        steps: [],
+        imageUrl: '',
+        isVerified: false,
       ),
       EnergyTip(
+        key: '',
         title: 'Install Smart Thermostat',
         description: 'Use a programmable thermostat to automatically adjust temperature settings and save energy.',
         category: 'Heating & Cooling',
-        isVerified: true,
-        energySavings: 12.8,
         difficulty: 'Medium',
+        potentialSavings: 12.8,
+        savingsUnit: 'kWh',
+        steps: [],
+        imageUrl: '',
+        isVerified: true,
       ),
     ];
   }
@@ -265,6 +277,18 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                       ),
                     ),
                   ),
+                  if (isAdmin) ...[
+                    IconButton(
+                      icon: Icon(Icons.edit, color: AppColors.info),
+                      tooltip: 'Edit',
+                      onPressed: () => _showEditTipDialog(tip),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.error),
+                      tooltip: 'Delete',
+                      onPressed: () => _confirmDeleteTip(tip),
+                    ),
+                  ],
                 ],
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
@@ -317,7 +341,7 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                         ),
                         SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.1),
                         Text(
-                          '${tip.energySavings.toStringAsFixed(1)} kWh',
+                          '${tip.potentialSavings.toStringAsFixed(1)} ${tip.savingsUnit}',
                           style: TextStyle(
                             color: AppColors.success,
                             fontWeight: FontWeight.bold,
@@ -353,12 +377,36 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
           tip.title,
           style: TextStyle(
             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
             fontWeight: FontWeight.bold,
           ),
+              ),
+            ),
+            if (isAdmin) ...[
+              IconButton(
+                icon: Icon(Icons.edit, color: AppColors.info),
+                tooltip: 'Edit',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _showEditTipDialog(tip);
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.delete, color: AppColors.error),
+                tooltip: 'Delete',
+                onPressed: () {
+                  Navigator.pop(context);
+                  _confirmDeleteTip(tip);
+                },
+              ),
+            ],
+          ],
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -401,7 +449,7 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                   ),
                   SizedBox(width: ResponsiveHelper.getAdaptiveSpacing(context) * 0.2),
                   Text(
-                    'Energy Savings: ${tip.energySavings.toStringAsFixed(1)} kWh per month',
+                    'Energy Savings: ${tip.potentialSavings.toStringAsFixed(1)} ${tip.savingsUnit} per month',
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
                       color: AppColors.success,
@@ -566,7 +614,7 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (titleController.text.trim().isEmpty || descriptionController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -581,14 +629,20 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
                 );
                 return;
               }
+              final isAdmin = await AdminService().isAdmin();
               final tip = EnergyTip(
+                key: '',
                 title: titleController.text.trim(),
                 description: descriptionController.text.trim(),
                 category: selectedCategory,
-                isVerified: false,
-                energySavings: 0.0,
                 difficulty: selectedDifficulty,
+                potentialSavings: 0.0,
+                savingsUnit: '',
+                steps: [],
+                imageUrl: '',
+                isVerified: isAdmin,
               );
+              await EnergyTipDAO.addEnergyTip(tip);
               Navigator.pop(context, tip);
             },
             style: ElevatedButton.styleFrom(
@@ -607,20 +661,224 @@ class _EnergyTipsPageState extends State<EnergyTipsPage> {
     );
 
     if (newTip != null) {
-      setState(() {
-        tips.add(newTip);
-      });
+      await _loadData();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Energy tip added successfully!',
+            newTip.isVerified ? 'Energy tip added and verified!' : 'Energy tip submitted for admin approval.',
             style: TextStyle(
               fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
             ),
           ),
-          backgroundColor: AppColors.success,
+          backgroundColor: newTip.isVerified ? AppColors.success : AppColors.warning,
         ),
       );
     }
+  }
+
+  void _showEditTipDialog(EnergyTip tip) {
+    final titleController = TextEditingController(text: tip.title);
+    final descriptionController = TextEditingController(text: tip.description);
+    String selectedCategory = tip.category;
+    String selectedDifficulty = tip.difficulty;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Edit Energy Tip',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: InputDecoration(
+                  labelText: 'Tip Title',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: descriptionController,
+                decoration: InputDecoration(
+                  labelText: 'Description',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                maxLines: 3,
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                decoration: InputDecoration(
+                  labelText: 'Category',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: categories.where((cat) => cat != 'All').map((category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedCategory = value!;
+                },
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              DropdownButtonFormField<String>(
+                value: selectedDifficulty,
+                decoration: InputDecoration(
+                  labelText: 'Difficulty',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+                items: [
+                  'Easy',
+                  'Medium',
+                  'Hard',
+                ].map((difficulty) => DropdownMenuItem(
+                  value: difficulty,
+                  child: Text(
+                    difficulty,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                    ),
+                  ),
+                )).toList(),
+                onChanged: (value) {
+                  selectedDifficulty = value!;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (titleController.text.trim().isEmpty || descriptionController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please fill in all fields.',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              try {
+                final updatedTip = EnergyTip(
+                  key: tip.key,
+                  title: titleController.text.trim(),
+                  description: descriptionController.text.trim(),
+                  category: selectedCategory,
+                  difficulty: selectedDifficulty,
+                  potentialSavings: tip.potentialSavings,
+                  savingsUnit: tip.savingsUnit,
+                  steps: tip.steps,
+                  imageUrl: tip.imageUrl,
+                  isVerified: true,
+                );
+                await EnergyTipDAO.updateEnergyTip(updatedTip);
+                await _loadData();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Energy tip updated successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to update energy tip: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: Text(
+              'Save Changes',
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteTip(EnergyTip tip) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Energy Tip'),
+        content: Text('Are you sure you want to delete "${tip.title}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () async {
+              try {
+                await EnergyTipDAO.deleteEnergyTip(tip.key);
+                await _loadData();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Energy tip deleted successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete energy tip: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: AppColors.white)),
+          ),
+        ],
+      ),
+    );
   }
 } 

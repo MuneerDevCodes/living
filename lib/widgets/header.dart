@@ -483,6 +483,8 @@ class DrawerItems {
     DrawerItem(label: 'Manage Challenges', icon: Icons.emoji_events, route: '/manage-challenges'),
     DrawerItem(label: 'Manage Educational Content', icon: Icons.article, route: '/manage-educational-content'),
     DrawerItem(label: 'Manage Contact Us', icon: Icons.support_agent, route: '/manage-contact-us'),
+    DrawerItem(label: 'Manage Certifications', icon: Icons.verified, route: '/manage-certifications'),
+    DrawerItem(label: 'Manage Energy Tips', icon: Icons.lightbulb, route: '/manage-energy-tips'),
   ];
 
   static final List<DrawerItem> userItems = [

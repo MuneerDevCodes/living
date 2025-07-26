@@ -34,13 +34,13 @@
       ".indexOn": ["userId"]
     },
     "certifications": {
-      ".indexOn": ["name"]
+      ".indexOn": ["name", "isVerified"]
     },
     "energy_tips": {
-      ".indexOn": ["category"]
+      ".indexOn": ["category", "isVerified"]
     },
     "eco_travel": {
-      ".indexOn": ["destination", "ecoRating"]
+      ".indexOn": ["destination", "ecoRating", "status"]
     },
     "educational_content": {
       ".indexOn": ["category", "difficulty", "isPublished"]

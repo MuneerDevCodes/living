@@ -8,6 +8,7 @@ import 'package:living/widgets/footer.dart';
 import 'package:living/style/responsive_helper.dart';
 import 'package:living/style/theme.dart';
 import 'package:living/services/admin_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// EducationalContentPage displays educational articles, videos, and infographics, using responsive and theme-driven design.
 class EducationalContentPage extends StatefulWidget {
@@ -301,6 +302,18 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                       ],
                     ),
                   ),
+                  if (_userRole != null && _userRole != 'user') ...[
+                    IconButton(
+                      icon: Icon(Icons.edit, color: AppColors.info),
+                      onPressed: () => _showAddContentDialog(editContent: item),
+                      tooltip: 'Edit',
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.error),
+                      onPressed: () => _confirmDeleteContent(item),
+                      tooltip: 'Delete',
+                    ),
+                  ],
                 ],
               ),
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context) * 0.4),
@@ -446,6 +459,44 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                   color: AppColors.secondaryText,
                 ),
               ),
+              if (item.imageUrl.isNotEmpty) ...[
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Center(
+                  child: Image.network(
+                    item.imageUrl,
+                    height: 180,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Icon(Icons.broken_image, size: 48, color: AppColors.error),
+                  ),
+                ),
+              ],
+              if (item.videoUrl != null && item.videoUrl!.isNotEmpty) ...[
+                SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+                Row(
+                  children: [
+                    Icon(Icons.ondemand_video, color: AppColors.info),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () async {
+                          // Open the video URL in the browser
+                          final url = item.videoUrl!;
+                          // ignore: deprecated_member_use
+                          await launchUrl(Uri.parse(url));
+                        },
+                        child: Text(
+                          'Watch Video',
+                          style: TextStyle(
+                            color: AppColors.info,
+                            decoration: TextDecoration.underline,
+                            fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 15),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
               Text(
                 item.content,
@@ -602,20 +653,22 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
     }
   }
 
-  void _showAddContentDialog() {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final contentController = TextEditingController();
-    final authorController = TextEditingController();
-    final tagsController = TextEditingController();
-    String selectedCategory = 'Climate Change';
-    String selectedContentType = 'Article';
+  void _showAddContentDialog({EducationalContent? editContent}) {
+    final titleController = TextEditingController(text: editContent?.title ?? '');
+    final descriptionController = TextEditingController(text: editContent?.description ?? '');
+    final contentController = TextEditingController(text: editContent?.content ?? '');
+    final authorController = TextEditingController(text: editContent?.author ?? '');
+    final tagsController = TextEditingController(text: editContent?.tags.join(', ') ?? '');
+    final imageUrlController = TextEditingController(text: editContent?.imageUrl ?? '');
+    final videoUrlController = TextEditingController(text: editContent?.videoUrl ?? '');
+    String selectedCategory = editContent?.category ?? 'Climate Change';
+    String selectedContentType = editContent?.contentType ?? 'Article';
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(
-          'Add Educational Content',
+          editContent == null ? 'Add Educational Content' : 'Edit Educational Content',
           style: TextStyle(
             fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 18),
             fontWeight: FontWeight.bold,
@@ -724,6 +777,26 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
                   ),
                 ),
               ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: imageUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Image URL',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
+              SizedBox(height: ResponsiveHelper.getAdaptiveSpacing(context)),
+              TextField(
+                controller: videoUrlController,
+                decoration: InputDecoration(
+                  labelText: 'Video URL (optional)',
+                  labelStyle: TextStyle(
+                    fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -738,31 +811,130 @@ class _EducationalContentPageState extends State<EducationalContentPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              // Add content logic here
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Content added successfully!',
-                    style: TextStyle(
-                      fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+            onPressed: () async {
+              final title = titleController.text.trim();
+              final description = descriptionController.text.trim();
+              final contentText = contentController.text.trim();
+              final author = authorController.text.trim();
+              final tags = tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+              final imageUrl = imageUrlController.text.trim();
+              final videoUrl = videoUrlController.text.trim().isEmpty ? null : videoUrlController.text.trim();
+              // For new content, always set isPublished to true. For edit, preserve the value.
+              final isPublished = editContent?.isPublished ?? true;
+
+              if (title.isEmpty || description.isEmpty || contentText.isEmpty || author.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Please fill in all required fields.',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
                     ),
+                    backgroundColor: AppColors.error,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
+                );
+                return;
+              }
+
+              final newContent = EducationalContent(
+                key: editContent?.key ?? '',
+                title: title,
+                description: description,
+                category: selectedCategory,
+                content: contentText,
+                author: author,
+                publishDate: editContent?.publishDate ?? DateTime.now(),
+                tags: tags,
+                imageUrl: imageUrl,
+                contentType: selectedContentType,
+                videoUrl: videoUrl,
+                isPublished: isPublished,
               );
+
+              try {
+                if (editContent == null) {
+                  await EducationalContentDAO.addEducationalContent(newContent);
+                } else {
+                  await EducationalContentDAO.updateEducationalContent(newContent);
+                }
+                Navigator.pop(context);
+                await _loadData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      editContent == null ? 'Content added successfully!' : 'Content updated successfully!',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to ${editContent == null ? 'add' : 'update'} content: $e',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
+                      ),
+                    ),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
             ),
             child: Text(
-              'Add Content',
+              editContent == null ? 'Add Content' : 'Update Content',
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: ResponsiveHelper.getAdaptiveFontSize(context, baseSize: 14),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteContent(EducationalContent item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Content'),
+        content: Text('Are you sure you want to delete this content?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await EducationalContentDAO.deleteEducationalContent(item.key);
+                Navigator.pop(context);
+                await _loadData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Content deleted successfully!'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete content: $e'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text('Delete', style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),

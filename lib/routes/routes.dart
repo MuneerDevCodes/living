@@ -33,6 +33,9 @@ import 'package:living/screens/manage_challenges_page.dart';
 import 'package:living/screens/manage_educational_content_page.dart';
 import 'package:living/screens/onboarding_page.dart';
 import 'package:living/screens/settings_page.dart';
+import 'package:living/screens/manage_certifications_page.dart';
+import 'package:living/screens/manage_energy_tips_page.dart';
+import 'package:living/screens/manage_eco_travel_page.dart';
 
 // Public routes (no authentication required)
 final Map<String, WidgetBuilder> publicRoutes = {
@@ -86,6 +89,9 @@ final Map<String, WidgetBuilder> adminRoutes = {
   '/manage-challenges': (context) => const ManageChallengesPage(),
   '/manage-educational-content':
       (context) => const ManageEducationalContentPage(),
+  '/manage-certifications': (context) => const ManageCertificationsPage(),
+  '/manage-energy-tips': (context) => const ManageEnergyTipsPage(),
+  '/manage-eco-travel': (context) => const ManageEcoTravelPage(),
 };
 
 // Combined routes map
@@ -140,4 +146,7 @@ const List<String> adminOnlyRoutes = [
   '/manage-contact-us',
   '/manage-challenges',
   '/manage-educational-content',
+  '/manage-certifications',
+  '/manage-energy-tips',
+  '/manage-eco-travel',
 ];

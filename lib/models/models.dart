@@ -14,4 +14,3 @@ export 'energy_tip_model.dart';
 export 'eco_travel_model.dart';
 export 'educational_content_model.dart';
 export 'progress_dashboard_model.dart';
-export 'gallery_item_model.dart';

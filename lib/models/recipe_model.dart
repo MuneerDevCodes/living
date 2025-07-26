@@ -3,22 +3,22 @@ class Recipe {
   final List<String> ingredients;
   final String steps;
   final double carbonScore;
-  final String imageUrl;
+  final String? imageUrl; // Optional image URL
 
   Recipe({
     required this.title,
     required this.ingredients,
     required this.steps,
     required this.carbonScore,
-    required this.imageUrl,
+    this.imageUrl,
   });
 
   Recipe.fromJson(Map<dynamic, dynamic> json)
       : title = json['title'] as String,
         ingredients = List<String>.from(json['ingredients'] as List),
         steps = json['steps'] as String,
-        carbonScore = (json['carbonScore'] as num).toDouble(),
-        imageUrl = json['imageUrl'] as String;
+        carbonScore = json['carbonScore'] as double,
+        imageUrl = json['imageUrl'] as String?;
 
   Map<dynamic, dynamic> toJson() => <dynamic, dynamic>{
         'title': title,
